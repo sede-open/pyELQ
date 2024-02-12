@@ -1,0 +1,28 @@
+# SPDX-FileCopyrightText: 2024 Shell Global Solutions International B.V. All Rights Reserved.
+#
+# SPDX-License-Identifier: Apache-2.0
+
+name: pydocstyle
+on:
+  - push
+jobs:
+  pydocstyle:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        # Specify all python versions you might want to perform the actions on
+        python-version: [ "3.11" ]
+    steps:
+      - name: Checkout Repo
+        uses: actions/checkout@v3
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install pydocstyle
+      - name: Run PydocStyle check
+        run: |
+          pydocstyle .

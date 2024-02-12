@@ -1,0 +1,124 @@
+# SPDX-FileCopyrightText: 2024 Shell Global Solutions International B.V. All Rights Reserved.
+#
+# SPDX-License-Identifier: Apache-2.0
+
+---
+# Project information
+site_name: pyELQ Python Emission Localization and Quantification
+site_author: pyELQ
+site_description: >-
+  This repository contains the Python Emission Localization and Quantification software we call pyELQ. It is code used
+  for gas dispersion modelling, in particular methane emissions detection, localization and quantification.
+# Repository
+repo_name: pyELQ
+repo_url: https://github.com/sede-open/pyELQ
+edit_uri: ""
+
+docs_dir: docs
+
+# Configuration
+theme:
+  name: material
+  # Default values, taken from mkdocs_theme.yml
+  language: en
+  features:
+    - content.code.annotate
+    - content.code.copy
+    - content.code.select
+    - content.tabs.link
+    - content.tooltips
+    #- navigation.expand
+    - navigation.indexes
+    - navigation.instant
+#    - navigation.sections
+    - navigation.tabs
+    # - navigation.tabs.sticky
+    - navigation.top
+    # - navigation.tracking
+    - search.highlight
+    - search.share
+    - search.suggest
+    - toc.follow
+  palette:
+    - scheme: default
+      primary: custom
+      accent: custom
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    - scheme: slate
+      primary: custom
+      accent: custom
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+  font:
+    text: Roboto
+    code: Roboto Mono
+  icon:
+    tag:
+        pipelines: fontawesome/solid/timeline
+
+extra:
+  generator: false
+  tags:
+    Pipelines: pipelines
+
+plugins:
+  - search
+  - autorefs
+  - mkdocstrings:
+      handlers:
+        python:
+          paths: [src]
+          options:
+            members_order: source
+            docstring_style: "google"
+  - tags
+
+watch:
+  - src/pyelq
+
+markdown_extensions:
+  - attr_list
+  - md_in_html
+  - meta
+  - admonition
+  - pymdownx.details
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
+  - pymdownx.tabbed:
+      alternate_style: true
+  - pymdownx.emoji:
+      emoji_index: !!python/name:material.extensions.emoji.twemoji
+      emoji_generator: !!python/name:materialx.emoji.to_svg # Page tree
+  - pymdownx.snippets:
+      url_download: true
+
+nav:
+  - Home: index.md
+  - pyELQ User Guide:
+    - Components:
+      - Overview: pyelq/component/component.md
+      - Background: pyelq/component/background.md
+      - Error Model: pyelq/component/error_model.md
+      - Offset: pyelq/component/offset.md
+      - Source Model: pyelq/component/source_model.md
+    - Coordinate System: pyelq/coordinate_system.md
+    - Data Access: pyelq/data_access/data_access.md
+    - Dispersion Model: pyelq/dispersion_model/gaussian_plume.md
+    - DLM: pyelq/dlm.md
+    - Gas Species: pyelq/gas_species.md
+    - Meteorology: pyelq/meteorology.md
+    - Model: pyelq/model.md
+    - Plotting: pyelq/plotting/plot.md
+    - Pre-Processing: pyelq/preprocessing.md
+    - Sensor:
+      - Overview: pyelq/sensor/sensor.md
+      - Beam: pyelq/sensor/beam.md
+      - Satellite: pyelq/sensor/satellite.md
+    - Source Map: pyelq/source_map.md
+    - Support Functions: pyelq/support_functions/spatio_temporal_interpolation.md

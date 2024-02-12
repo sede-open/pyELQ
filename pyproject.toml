@@ -1,0 +1,81 @@
+# SPDX-FileCopyrightText: 2024 Shell Global Solutions International B.V. All Rights Reserved.
+#
+# SPDX-License-Identifier: Apache-2.0
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.poetry]
+name = "pyelq"
+version = "1.0.0"
+description = "Package for detection, localization and quantification code."
+authors = ["Bas van de Kerkhof", "Matthew Jones", "David Randell"]
+homepage = "https://github.com/sede-open/pyELQ"
+repository = "https://github.com/sede-open/pyELQ"
+documentation = "https://github.com/sede-open/pyELQ"
+readme = "README.md"
+license = "Apache-2.0"
+keywords = ["gas dispersion", "emission", "detection", "localization", "quantification"]
+
+[tool.poetry.dependencies]
+python = "~3.11"
+pandas = ">=2.1.4"
+numpy = ">=1.26.2"
+azure-storage-blob = ">=12.19.0"
+h5py = ">=3.10.0"
+plotly = ">=5.18.0"
+scipy = ">=1.11.4"
+pymap3d = ">=3.0.1"
+python-dotenv = ">=1.0.0"
+geojson = ">=3.1.0"
+geopandas = ">=0.14.1"
+shapely = ">=2.0.2"
+Fiona = ">=1.9.5"
+scikit-learn = ">=1.3.2"
+openmcmc = ">=1.0.0"
+pyarrow = {version = ">=14.0.2", optional = true }
+
+[tool.poetry.extras]
+parquet = ["pyarrow"]
+
+[tool.poetry.group.contributor]
+optional = true
+
+[tool.poetry.group.contributor.dependencies]
+black = ">=23.12.1"
+isort = ">=5.13.2"
+pydocstyle = ">=6.3.0"
+pylint = ">=3.0.3"
+pytest = ">=7.4.4"
+pytest-cov = ">=4.1.0"
+mkdocs-material = ">=9.5.7"
+mkdocstrings-python = ">=1.8.0"
+
+[tool.pytest.ini_options]
+addopts = "--cov=pyelq --cov-fail-under=90 --ignore-glob=*plot*"
+testpaths = ["tests"]
+
+[tool.coverage.report]
+omit = ["*plot*", "*/data_access/*", "*/plotting/*"]
+exclude_lines = [".*def.*plot.*", "from pyelq.plotting.plot import Plot"]
+
+[tool.coverage.run]
+relative_files = true
+source = ["src/"]
+
+[tool.pylint]
+fail-under=9.0
+max-line-length=120
+py-version=3.11
+
+[tool.black]
+line-length = 120
+target-version = ['py311']
+
+[tool.pydocstyle]
+convention = "google"
+add-ignore = ["D105", "D107"]
+
+[tool.isort]
+profile = "black"
