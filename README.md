@@ -58,4 +58,4 @@ For more details on contributing to this repository, see the [Contributing guide
 ***
 # Licensing
 
-Distributed under the Apache License Version 2.0. See the [license file](https://github.com/sede-open/pyELQ/blob/main/LICENSE.txt) for more information.
+Distributed under the Apache License Version 2.0. See the [license file](https://github.com/sede-open/pyELQ/blob/main/LICENSE.md) for more information.
