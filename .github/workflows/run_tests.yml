@@ -3,8 +3,10 @@
 # SPDX-License-Identifier: Apache-2.0
 
 name: Run Pytest
+
 on:
-  - push
+  workflow_call:
+
 jobs:
   Build:
     runs-on: ubuntu-latest
@@ -13,9 +15,9 @@ jobs:
         python-version: [ "3.11" ]
     steps:
       - name: Checkout Repo
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
       - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
       - name: Install dependencies
@@ -36,13 +38,13 @@ jobs:
         # Use always() to always run this step to publish test results when there are test failures
         if: ${{ always() }}
       - name: Upload coverage xml results
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: coverage_xml
           path: coverage.xml
         if: ${{ always() }}
       - name: Upload coverage junitxml results
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: pytest_junitxml
           path: pytest_junit.xml

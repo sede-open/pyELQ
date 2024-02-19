@@ -2,10 +2,11 @@
 #
 # SPDX-License-Identifier: Apache-2.0
 
-on:
-  - push
-
 name: Pylint Check
+
+on:
+  workflow_call:
+
 jobs:
   Pylint:
     # Specify the operating system GitHub has to use to perform the checks (ubuntu seems to be default)
@@ -15,9 +16,9 @@ jobs:
         # Specify all python versions you might want to perform the actions on
         python-version: ["3.11"]
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
     - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v4
+      uses: actions/setup-python@v5
       with:
         python-version: ${{ matrix.python-version }}
     - name: Install dependencies
@@ -30,7 +31,7 @@ jobs:
       run: |
         python -m pylint `find -regextype egrep -regex '(.*src/pyelq/.*.py)$'` --output-format=parseable:pylint_report.out
     - name: Upload pylint results
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: pylint_report
         path: pylint_report.out

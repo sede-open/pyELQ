@@ -3,8 +3,10 @@
 # SPDX-License-Identifier: Apache-2.0
 
 name: SonarCloudAnalysis
+
 on:
-  - push
+  workflow_call:
+
 jobs:
   SonarCloudAnalysis:
     runs-on: ubuntu-latest
@@ -14,44 +16,7 @@ jobs:
         python-version: [ "3.11" ]
     steps:
       - name: Checkout Repo
-        uses: actions/checkout@v3
-        with:
-          # Disabling shallow clone is recommended for improving relevancy of reporting
-          fetch-depth: 0
-      - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v4
-        with:
-          python-version: ${{ matrix.python-version }}
-      - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install pytest==7.4.4
-          pip install pytest-cov
-          pip install .
-      - name: Unit test with pytest
-        run: |
-          pytest --cov-report=xml --junitxml=pytest_junit.xml
-      - name: Fix code coverage paths
-        run: |
-          sed -i 's/\/opt\/hostedtoolcache\/Python\/.*\/site-packages/src/g' coverage.xml
-          sed -i 's/opt\/hostedtoolcache\/Python\/.*\/site-packages/src/g' coverage.xml
-          sed -i 's/\.opt\.hostedtoolcache\.Python\..*\.site-packages\.pyelq/src/g' coverage.xml
-          sed -i 's/opt\.hostedtoolcache\.Python\..*\.site-packages\.pyelq/src/g' coverage.xml
-        # Use always() to always run this step to publish test results when there are test failures
-        if: ${{ always() }}
-      - name: Upload coverage xml results
-        uses: actions/upload-artifact@v3
-        with:
-          name: coverage_xml
-          path: coverage.xml
-        if: ${{ always() }}
-      - name: Upload coverage junitxml results
-        uses: actions/upload-artifact@v3
-        with:
-          name: pytest_junitxml
-          path: pytest_junit.xml
-        # Use always() to always run this step to publish test results when there are test failures
-        if: ${{ always() }}
+        uses: actions/checkout@v4
       - name: SonarCloud Scan
         if: ${{ always() }}
         uses: SonarSource/sonarcloud-github-action@master
@@ -59,7 +24,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.PYELQ_TOKEN }}
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
       - name: Upload SonarCloud Scan Report
-        uses: actions/upload-artifact@master
+        uses: actions/upload-artifact@v4
         with:
           name: sonar-scan-log
           path: .scannerwork/report-task.txt

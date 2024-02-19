@@ -4,16 +4,8 @@
 
 name: ReleaseTag
 
-# Trigger when a python file is changed on main branch either from pull request or push
-# but not when only pyproject.toml is changed due to version bump
 on:
-  push:
-    branches:
-      - 'main'
-    paths:
-      - '**.py'
-      - '!pyproject.toml'
-      - 'requirements.txt'
+  workflow_call:
 
 jobs:
   # Releases new Python version when Pull Requests are merged into "main"
@@ -26,16 +18,16 @@ jobs:
     steps:
       # Checkout
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           persist-credentials: false
       - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
       - name: Bump version and commit bumped version back to branch
         env:
-          GITHUB_ACCESS_TOKEN: ${{ secrets.PYELQ_TOKEN
+          GITHUB_ACCESS_TOKEN: ${{ secrets.PYELQ_TOKEN }}
         id: version
         run: |
           version=$(python .github/bump_version.py)
