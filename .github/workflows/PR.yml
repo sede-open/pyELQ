@@ -12,8 +12,7 @@ on:
 jobs:
   CodeFormat:
     uses: sede-open/pyELQ/.github/workflows/code_formatting.yml@initial_repo_updates
-    with:
-      secrets: inherit
+    secrets: inherit
 
   Pydocstyle:
     uses: sede-open/pyELQ/.github/workflows/pydocstyle_check.yml@initial_repo_updates
@@ -30,5 +29,4 @@ jobs:
   SonarCloud:
     uses: sede-open/pyELQ/.github/workflows/sonarcloud_analysis.yml@initial_repo_updates
     needs: Tests
-    with:
-      secrets: inherit
+    secrets: inherit
