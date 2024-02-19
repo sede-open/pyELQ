@@ -11,27 +11,27 @@ on:
 
 jobs:
   CodeFormat:
-    uses: sede-open/pyELQ/.github/workflows/code_formatting.yml@main
+    uses: sede-open/pyELQ/.github/workflows/code_formatting.yml
     with:
       secrets: inherit
 
   Pydocstyle:
-    uses: sede-open/pyELQ/.github/workflows/pydocstyle_check.yml@main
+    uses: sede-open/pyELQ/.github/workflows/pydocstyle_check.yml
     needs: CodeFormat
 
   Pylint:
-    uses: sede-open/pyELQ/.github/workflows/pylint_check.yml@main
+    uses: sede-open/pyELQ/.github/workflows/pylint_check.yml
     needs: Pydocstyle
 
   REUSE:
-    uses: sede-open/pyELQ/.github/workflows/reuse_compliance.yml@main
+    uses: sede-open/pyELQ/.github/workflows/reuse_compliance.yml
 
   Tests:
-    uses: sede-open/pyELQ/.github/workflows/run_tests.yml@main
+    uses: sede-open/pyELQ/.github/workflows/run_tests.yml
     needs: CodeFormat
 
   SonarCloud:
-    uses: sede-open/pyELQ/.github/workflows/sonarcloud_analysis.yml@main
+    uses: sede-open/pyELQ/.github/workflows/sonarcloud_analysis.yml
     needs: Tests
     with:
       secrets: inherit
