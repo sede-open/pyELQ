@@ -18,7 +18,7 @@ from pyelq.source_map import SourceMap
 
 
 def test_n_sources():
-    """Test if nof_sources property works as expected."""
+    """Test if the nof_sources property works as expected."""
     n_samples = np.random.randint(1, 100)
     array = np.random.random((n_samples, 2))
 

@@ -34,15 +34,15 @@ jobs:
     uses: sede-open/pyELQ/.github/workflows/sonarcloud_analysis.yml@main
     needs: Tests
     secrets: inherit
-
-  ReleaseTag:
-    uses: sede-open/pyELQ/.github/workflows/release_tagging.yml@main
-    needs: [CodeFormat, Pydocstyle, Pylint, Tests]
-    secrets: inherit
+#
+#  ReleaseTag:
+#    uses: sede-open/pyELQ/.github/workflows/release_tagging.yml@main
+#    needs: [CodeFormat, Pydocstyle, Pylint, Tests]
+#    secrets: inherit
 
   Build:
     uses: sede-open/pyELQ/.github/workflows/build_package.yml@main
-    needs: ReleaseTag
+    needs: [CodeFormat, Pydocstyle, Pylint, Tests]
     secrets: inherit
 
   PublishDocs:
