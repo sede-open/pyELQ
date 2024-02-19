@@ -1,0 +1,37 @@
+# SPDX-FileCopyrightText: 2024 Shell Global Solutions International B.V. All Rights Reserved.
+#
+# SPDX-License-Identifier: Apache-2.0
+
+name: PullRequest
+
+on:
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  CodeFormat:
+    uses: sede-open/pyELQ/.github/workflows/code_formatting.yml@main
+    with:
+      secrets: inherit
+
+  Pydocstyle:
+    uses: sede-open/pyELQ/.github/workflows/pydocstyle_check.yml@main
+    needs: CodeFormat
+
+  Pylint:
+    uses: sede-open/pyELQ/.github/workflows/pylint_check.yml@main
+    needs: Pydocstyle
+
+  REUSE:
+    uses: sede-open/pyELQ/.github/workflows/reuse_compliance.yml@main
+
+  Tests:
+    uses: sede-open/pyELQ/.github/workflows/run_tests.yml@main
+    needs: CodeFormat
+
+  SonarCloud:
+    uses: sede-open/pyELQ/.github/workflows/sonarcloud_analysis.yml@main
+    needs: Tests
+    with:
+      secrets: inherit
