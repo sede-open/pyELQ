@@ -6,27 +6,28 @@ name: PullRequest
 
 on:
   pull_request:
+    types: [opened, synchronize, reopened, review_requested]
     branches:
       - main
 
 jobs:
   CodeFormat:
-    uses: sede-open/pyELQ/.github/workflows/code_formatting.yml@initial_repo_updates
+    uses: sede-open/pyELQ/.github/workflows/code_formatting.yml@main
     secrets: inherit
 
   Pydocstyle:
-    uses: sede-open/pyELQ/.github/workflows/pydocstyle_check.yml@initial_repo_updates
+    uses: sede-open/pyELQ/.github/workflows/pydocstyle_check.yml@main
     needs: CodeFormat
 
   Pylint:
-    uses: sede-open/pyELQ/.github/workflows/pylint_check.yml@initial_repo_updates
+    uses: sede-open/pyELQ/.github/workflows/pylint_check.yml@main
     needs: Pydocstyle
 
   Tests:
-    uses: sede-open/pyELQ/.github/workflows/run_tests.yml@initial_repo_updates
+    uses: sede-open/pyELQ/.github/workflows/run_tests.yml@main
     needs: CodeFormat
 
   SonarCloud:
-    uses: sede-open/pyELQ/.github/workflows/sonarcloud_analysis.yml@initial_repo_updates
+    uses: sede-open/pyELQ/.github/workflows/sonarcloud_analysis.yml@main
     needs: Tests
     secrets: inherit
