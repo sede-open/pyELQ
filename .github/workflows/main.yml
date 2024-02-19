@@ -1,0 +1,46 @@
+# SPDX-FileCopyrightText: 2024 Shell Global Solutions International B.V. All Rights Reserved.
+#
+# SPDX-License-Identifier: Apache-2.0
+
+name: Main
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  CodeFormat:
+    uses: sede-open/pyELQ/.github/workflows/code_formatting.yml@main
+    secrets: inherit
+
+  Pydocstyle:
+    uses: sede-open/pyELQ/.github/workflows/pydocstyle_check.yml@main
+    needs: CodeFormat
+
+  Pylint:
+    uses: sede-open/pyELQ/.github/workflows/pylint_check.yml@main
+    needs: Pydocstyle
+
+  Tests:
+    uses: sede-open/pyELQ/.github/workflows/run_tests.yml@main
+    needs: CodeFormat
+
+  SonarCloud:
+    uses: sede-open/pyELQ/.github/workflows/sonarcloud_analysis.yml@main
+    needs: Tests
+    secrets: inherit
+
+  ReleaseTag:
+    uses: sede-open/pyELQ/.github/workflows/release_tagging.yml@main
+    needs: [CodeFormat, Pydocstyle, Pylint, Tests]
+    secrets: inherit
+
+  Build:
+    uses: sede-open/pyELQ/.github/workflows/build_package.yml@main
+    needs: ReleaseTag
+    secrets: inherit
+
+  PublishDocs:
+    uses: sede-open/pyELQ/.github/workflows/publish_docs.yml@main
+    needs: Build

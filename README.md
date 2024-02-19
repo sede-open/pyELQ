@@ -4,6 +4,23 @@ SPDX-FileCopyrightText: 2024 Shell Global Solutions International B.V. All Right
 SPDX-License-Identifier: Apache-2.0
 -->
 
+<div align="center">
+
+[![PyPI version](https://img.shields.io/pypi/v/pyelq-sdk.svg?logo=pypi&logoColor=FFE873)](https://pypi.org/project/pyelq-sdk/)
+[![Supported Python versions](https://img.shields.io/pypi/pyversions/pyelq-sdk.svg?logo=python&logoColor=FFE873)](https://pypi.org/project/pyelq-sdk/)
+[![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
+[![Code Style Black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
+[![Tests](https://github.com/sede-open/pyelq/actions/workflows/run_tests.yml/badge.svg?branch=main)](https://github.com/sede-open/pyelq/actions/workflows/run_tests.yml)
+
+[![Coverage](https://sonarcloud.io/api/project_badges/measure?project=pyelq_pyelq&metric=coverage)](https://sonarcloud.io/summary/new_code?id=pyelq_pyelq)
+[![Vulnerabilities](https://sonarcloud.io/api/project_badges/measure?project=pyelq_pyelq&metric=vulnerabilities)](https://sonarcloud.io/summary/new_code?id=pyelq_pyelq)
+[![Bugs](https://sonarcloud.io/api/project_badges/measure?project=pyelq_pyelq&metric=bugs)](https://sonarcloud.io/summary/new_code?id=pyelq_pyelq)
+[![Lines of Code](https://sonarcloud.io/api/project_badges/measure?project=pyelq_pyelq&metric=ncloc)](https://sonarcloud.io/summary/new_code?id=pyelq_pyelq)
+[![Duplicated Lines (%)](https://sonarcloud.io/api/project_badges/measure?project=pyelq_pyelq&metric=duplicated_lines_density)](https://sonarcloud.io/summary/new_code?id=pyelq_pyelq)
+[![Code Smells](https://sonarcloud.io/api/project_badges/measure?project=pyelq_pyelq&metric=code_smells)](https://sonarcloud.io/summary/new_code?id=pyelq_pyelq)
+[![Security Rating](https://sonarcloud.io/api/project_badges/measure?project=pyelq_pyelq&metric=security_rating)](https://sonarcloud.io/summary/new_code?id=pyelq_pyelq)
+[![Maintainability Rating](https://sonarcloud.io/api/project_badges/measure?project=pyelq_pyelq&metric=sqale_rating)](https://sonarcloud.io/summary/new_code?id=pyelq_pyelq)
+</div>
 
 # pyELQ
 This repository contains the Python Emission Localization and Quantification software we call pyELQ. It is code used 
@@ -58,4 +75,4 @@ For more details on contributing to this repository, see the [Contributing guide
 ***
 # Licensing
 
-Distributed under the Apache License Version 2.0. See the [license file](https://github.com/sede-open/pyELQ/blob/main/LICENSE.txt) for more information.
+Distributed under the Apache License Version 2.0. See the [license file](https://github.com/sede-open/pyELQ/blob/main/LICENSE.md) for more information.
