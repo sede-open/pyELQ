@@ -20,6 +20,16 @@ jobs:
         with:
           # Disabling shallow clone is recommended for improving relevancy of reporting
           fetch-depth: 0
+      - name: Download coverage xml results
+        uses: actions/download-artifact@v4
+        with:
+          name: coverage_xml
+          path: coverage.xml
+      - name: Download coverage junitxml results
+        uses: actions/download-artifact@v4
+        with:
+          name: pytest_junitxml
+          path: pytest_junit.xml
       - name: SonarCloud Scan
         uses: SonarSource/sonarcloud-github-action@master
         env:
