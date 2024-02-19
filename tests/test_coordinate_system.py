@@ -37,7 +37,6 @@ def test_lla(n):
     assert np.all(crd5.longitude == pytest.approx(lon))
     assert np.all(crd5.altitude == pytest.approx(alt))
 
-    # test tree is created successfully
     crd.create_tree()
 
 

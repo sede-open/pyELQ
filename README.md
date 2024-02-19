@@ -54,7 +54,10 @@ Use cases where the pyELQ code has been applied are described in the following p
 * Weidmann, D., Hirst, B. et al. "Locating and Quantifying Methane Emissions by Inverse Analysis of Path-Integrated Concentration Data Using a Markov-Chain Monte Carlo Approach." ACS Earth and Space Chemistry 2022 6 (9), 2190-2198  (https://doi.org/10.1021/acsearthspacechem.2c00093)
 ***
 # Installing pyELQ as a package
-Suppose you want to use pyELQ in a different project. You can install it just like a Python package.
+Suppose you want to use this pyELQ package in a different project.
+You can install it from [PyPi](https://pypi.org/project/pyelq-sdk/) through pip 
+`pip install pyelq-sdk`.
+Or you could clone the repository and install it from the source code. 
 After activating the environment you want to install pyELQ in, open a terminal, move to the main pyELQ folder
 where pyproject.toml is located and run `pip install .`, optionally you can pass the `-e` flag is for editable mode.
 All the main options, info and settings for the package are found in the pyproject.toml file which sits in this repo
