@@ -24,6 +24,7 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install --upgrade build
+          pip install --upgrade twine
       - name: Build the package
         run: |
           python -m build
@@ -32,3 +33,6 @@ jobs:
         with:
           name: pyelq_whl
           path: ./dist/*.whl
+      - name: Upload build files
+        run: |
+          twine upload --username __token__ --password ${{ secrets.PYPI_TOKEN }} --verbose dist/*
