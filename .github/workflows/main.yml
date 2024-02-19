@@ -5,8 +5,7 @@
 name: Main
 
 on:
-  pull_request:
-    types: [opened, synchronize, reopened, review_requested]
+  push:
     branches:
       - main
 
