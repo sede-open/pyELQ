@@ -1,0 +1,17 @@
+# SPDX-FileCopyrightText: 2024 Shell Global Solutions International B.V. All Rights Reserved.
+#
+# SPDX-License-Identifier: Apache-2.0
+
+name: ManualBuild
+
+on:
+  workflow_dispatch:
+
+jobs:
+  Build:
+    uses: sede-open/pyELQ/.github/workflows/build_package.yml@main
+    secrets: inherit
+
+  PublishDocs:
+    uses: sede-open/pyELQ/.github/workflows/publish_docs.yml@main
+    needs: Build
