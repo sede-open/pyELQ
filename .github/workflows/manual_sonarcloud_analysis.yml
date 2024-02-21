@@ -10,7 +10,6 @@ on:
 jobs:
   Tests:
     uses: sede-open/pyELQ/.github/workflows/run_tests.yml@main
-    needs: CodeFormat
 
   SonarCloud:
     uses: sede-open/pyELQ/.github/workflows/sonarcloud_analysis.yml@main
