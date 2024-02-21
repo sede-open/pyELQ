@@ -2,12 +2,17 @@
 #
 # SPDX-License-Identifier: Apache-2.0
 
-name: ManualPublishDocs
+name: ManualSonarcloudAnalysis
 
 on:
   workflow_dispatch:
 
 jobs:
+  Tests:
+    uses: sede-open/pyELQ/.github/workflows/run_tests.yml@main
+    needs: CodeFormat
+
   SonarCloud:
     uses: sede-open/pyELQ/.github/workflows/sonarcloud_analysis.yml@main
+    needs: Tests
     secrets: inherit
