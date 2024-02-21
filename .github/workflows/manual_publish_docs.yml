@@ -10,4 +10,3 @@ on:
 jobs:
   PublishDocs:
     uses: sede-open/pyELQ/.github/workflows/publish_docs.yml@main
-    needs: Build
