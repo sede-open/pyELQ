@@ -8,7 +8,7 @@ build-backend = "poetry.core.masonry.api"
 
 [tool.poetry]
 name = "pyelq-sdk"
-version = "1.0.3"
+version = "1.0.4"
 description = "Package for detection, localization and quantification code."
 authors = ["Bas van de Kerkhof", "Matthew Jones", "David Randell"]
 homepage = "https://sede-open.github.io/pyELQ/"
@@ -20,7 +20,7 @@ keywords = ["gas dispersion", "emission", "detection", "localization", "quantifi
 packages = [{ include = "pyelq", from = "src" }]
 
 [tool.poetry.dependencies]
-python = "~3.11"
+python = ">=3.9, ~3.11"
 pandas = ">=2.1.4"
 numpy = ">=1.26.2"
 plotly = ">=5.18.0"
