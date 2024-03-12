@@ -27,11 +27,13 @@ jobs:
           pip install black 
           pip install isort
       - name: Run isort, docformatter and black checks
+        id: checks
+        continue-on-error: true
         run: |
           isort . --check
           black . --check
       - name: Run isort and black when required and commit back
-        if: failure()
+        if: ${{ failure() || steps.checks.outcome == 'failure'}}
         env:
           GITHUB_ACCESS_TOKEN: ${{ secrets.PYELQ_TOKEN }}
         run: |
@@ -40,5 +42,7 @@ jobs:
           git config --global user.name 'code_reformat'
           git config --global user.email ''
           git remote set-url origin "https://$GITHUB_ACCESS_TOKEN@github.com/$GITHUB_REPOSITORY"
+          git fetch
+          git checkout ${{ github.head_ref }}
           git commit --signoff -am "Automatic reformat of code"
           git push
