@@ -2,13 +2,13 @@
 #
 # SPDX-License-Identifier: Apache-2.0
 
-name: ReleaseTag
+name: ManualReleaseTag
 
 on:
-  workflow_call:
+  workflow_dispatch:
 
 jobs:
-  # Releases new Python version when Pull Requests are merged into "main"
+  # Releases new Python version
   Release:
     runs-on: ubuntu-latest
     strategy:
