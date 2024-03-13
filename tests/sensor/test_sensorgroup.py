@@ -28,7 +28,7 @@ def test_sensorgroup():
         nof_observations = np.random.randint(1, 10)
         total_observations += nof_observations
         sensor.concentration = np.random.rand(nof_observations, 1)
-        sensor.time = pd.arrays.DatetimeArray(pd.date_range(start="1/1/2022", periods=nof_observations))
+        sensor.time = pd.array(pd.date_range(start="1/1/2022", periods=nof_observations), dtype='datetime64[ns]')
         sensor.location = LLA(
             latitude=0.01 * np.random.rand(), longitude=0.01 * np.random.rand(), altitude=0.01 * np.random.rand()
         )
@@ -57,7 +57,7 @@ def test_plotting():
         nof_observations = np.random.randint(5, 10)
         total_observations += nof_observations
         sensor.concentration = np.random.rand(nof_observations, 1)
-        sensor.time = pd.arrays.DatetimeArray(pd.date_range(start="1/1/2022", periods=nof_observations))
+        sensor.time = pd.array(pd.date_range(start="1/1/2022", periods=nof_observations), dtype='datetime64[ns]')
         location = LLA()
         location.latitude = np.array(idx)
         location.longitude = np.array(idx)

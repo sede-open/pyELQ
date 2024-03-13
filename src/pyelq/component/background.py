@@ -176,7 +176,7 @@ class TemporalBackground(Background):
         """
         self.n_obs = sensor_object.nof_observations
         self.time, unique_inverse = np.unique(sensor_object.time, return_inverse=True)
-        self.time = pd.arrays.DatetimeArray(self.time)
+        self.time = pd.array(self.time, dtype='datetime64[ns]')
         self.n_parameter = len(self.time)
         self.basis_matrix = sparse.csr_array((np.ones(self.n_obs), (np.array(range(self.n_obs)), unique_inverse)))
         self.precision_matrix = gmrf.precision_temporal(time=self.time)
@@ -300,12 +300,12 @@ class SpatioTemporalBackground(Background):
 
         """
         if self.n_time is None:
-            self.time = pd.arrays.DatetimeArray(np.unique(sensor_object.time))
+            self.time = pd.array(np.unique(sensor_object.time), dtype='datetime64[ns]')
             self.n_time = len(self.time)
         else:
-            self.time = pd.arrays.DatetimeArray(
-                pd.date_range(start=np.min(sensor_object.time), end=np.max(sensor_object.time), periods=self.n_time)
-            )
+            self.time = pd.array(
+                pd.date_range(start=np.min(sensor_object.time), end=np.max(sensor_object.time), periods=self.n_time),
+                dtype='datetime64[ns]')
 
     def make_spatial_knots(self, sensor_object: SensorGroup):
         """Create the spatial grid for the model.
