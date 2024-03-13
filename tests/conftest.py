@@ -60,7 +60,8 @@ def fix_sensor_group(request, ref_longitude, ref_latitude):
         sensor[device_name] = Sensor()
         sensor[device_name].time = pd.array(
             pd.date_range(start=datetime.now(), end=datetime.now() + timedelta(hours=1.0), periods=n_time),
-            dtype='datetime64[ns]')
+            dtype="datetime64[ns]",
+        )
         sensor[device_name].concentration = np.random.random_sample(size=(n_time,))
         sensor[device_name].location = ENU(
             east=locations[k, 0],
@@ -77,7 +78,8 @@ def fix_sensor_group(request, ref_longitude, ref_latitude):
     sensor[device_name] = Beam()
     sensor[device_name].time = pd.array(
         pd.date_range(start=datetime.now(), end=datetime.now() + timedelta(hours=1.0), periods=n_time),
-        dtype='datetime64[ns]')
+        dtype="datetime64[ns]",
+    )
     sensor[device_name].concentration = np.random.random_sample(size=(n_time,))
     sensor[device_name].location = ENU(
         east=np.array([0, locations[k, 0]]),

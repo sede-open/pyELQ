@@ -137,7 +137,7 @@ class SensorGroup(dict):
     @property
     def time(self) -> pd.arrays.DatetimeArray:
         """DatetimeArray: Column vector of time values across all sensors."""
-        return pd.array(np.concatenate([sensor.time for sensor in self.values()]), dtype='datetime64[ns]')
+        return pd.array(np.concatenate([sensor.time for sensor in self.values()]), dtype="datetime64[ns]")
 
     @property
     def location(self) -> Coordinate:

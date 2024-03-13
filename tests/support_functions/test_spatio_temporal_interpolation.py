@@ -30,7 +30,9 @@ def test_default_returns():
     same."""
 
     loc_in = np.array([[0, 0, 0], [1, 1, 1]])
-    time_in = pd.array(pd.date_range(pd.Timestamp.now(), periods=loc_in.shape[0], freq="h"), dtype='datetime64[ns]')[:, None]
+    time_in = pd.array(pd.date_range(pd.Timestamp.now(), periods=loc_in.shape[0], freq="h"), dtype="datetime64[ns]")[
+        :, None
+    ]
     vals = np.random.random((loc_in.shape[0], 1))
     # check if same input/output locations and time give the same answer
     return_vals = sti.interpolate(
@@ -47,7 +49,7 @@ def test_single_value():
     """Tests if all interpolated values are set to the same value when 1 input value is provided."""
     loc_in = np.array([[0, 0, 0], [1, 1, 1]])
     n_obs = loc_in.shape[0]
-    time_in = pd.array(pd.date_range(pd.Timestamp.now(), periods=n_obs, freq="h"), dtype='datetime64[ns]')[:, None]
+    time_in = pd.array(pd.date_range(pd.Timestamp.now(), periods=n_obs, freq="h"), dtype="datetime64[ns]")[:, None]
     vals = np.random.random((loc_in.shape[0], 1))
 
     # Check if we get the same output for all values when 1 value is provided
@@ -73,7 +75,7 @@ def test_temporal_interpolation():
     interpolation in 1d) Also checks if we get the same values when an array of integers (representing seconds) is
     supplied instead of an array of datetimes."""
     periods = 10
-    time_in = pd.array(pd.date_range(pd.Timestamp.now(), periods=periods, freq="s"), dtype='datetime64[ns]')[:, None]
+    time_in = pd.array(pd.date_range(pd.Timestamp.now(), periods=periods, freq="s"), dtype="datetime64[ns]")[:, None]
     time_in_array = np.array(range(periods))[:, None]
     vals = np.random.random(time_in.size)
     random_index = np.random.randint(0, periods - 1)
@@ -133,13 +135,17 @@ def test_fill_value():
 def test_consistent_shapes():
     """Test if output shapes are consistent with provided input."""
     loc_in = np.array([[0, 0, 0], [1, 1, 1]])
-    time_in = pd.array(pd.date_range(pd.Timestamp.now(), periods=loc_in.shape[0] - 1, freq="h"), dtype='datetime64[ns]')[:, None]
+    time_in = pd.array(
+        pd.date_range(pd.Timestamp.now(), periods=loc_in.shape[0] - 1, freq="h"), dtype="datetime64[ns]"
+    )[:, None]
     vals = np.random.random((loc_in.shape[0], 1))
     with pytest.raises(ValueError):
         sti.interpolate(location_in=loc_in, time_in=time_in, values_in=vals, location_out=loc_in, time_out=time_in)
 
     loc_in = np.array([[0, 0, 0], [0, 1, 0], [1, 0.5, 0], [0.5, 0.5, 1]])
-    time_in = pd.array(pd.date_range(pd.Timestamp.now(), periods=loc_in.shape[0], freq="h"), dtype='datetime64[ns]')[:, None]
+    time_in = pd.array(pd.date_range(pd.Timestamp.now(), periods=loc_in.shape[0], freq="h"), dtype="datetime64[ns]")[
+        :, None
+    ]
     vals = np.random.random((loc_in.shape[0], 1))
     return_vals = sti.interpolate(
         location_in=loc_in, time_in=time_in, values_in=vals, location_out=loc_in, time_out=time_in
@@ -174,16 +180,18 @@ def test_temporal_resampling():
     time_in = [datetime(2000, 1, 1, 0, 0, 1) + timedelta(minutes=i) for i in range(n_values_in)]
     time_bin_edges = pd.array(
         pd.to_datetime([datetime(2000, 1, 1) + timedelta(minutes=i * 10) for i in range(n_time_out + 1)]),
-        dtype='datetime64[ns]')
+        dtype="datetime64[ns]",
+    )
 
     correct_values_out_mean = np.array([np.mean(i) for i in np.split(values_in, n_time_out)])
     correct_values_out_max = np.array([np.max(i) for i in np.split(values_in, n_time_out)])
     correct_values_out_min = np.array([np.min(i) for i in np.split(values_in, n_time_out)])
 
     time_bin_edges_non_monotonic = pd.array(
-        pd.Series(list(time_bin_edges)[:-1] + [datetime(1999, 1, 1)]), dtype='datetime64[ns]')
+        pd.Series(list(time_bin_edges)[:-1] + [datetime(1999, 1, 1)]), dtype="datetime64[ns]"
+    )
 
-    time_in = pd.array(pd.to_datetime(time_in + [datetime(2001, 1, 1)]), dtype='datetime64[ns]')
+    time_in = pd.array(pd.to_datetime(time_in + [datetime(2001, 1, 1)]), dtype="datetime64[ns]")
     values_in = np.append(values_in, 1000000)
 
     p = np.random.permutation(len(time_in))
