@@ -9,8 +9,8 @@ This module provides various tests for the DLM related code part of pyELQ
 
 """
 
-from typing import Tuple
 import warnings
+from typing import Tuple
 
 import numpy as np
 import pytest
