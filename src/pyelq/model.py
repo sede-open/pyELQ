@@ -42,6 +42,7 @@ class ELQModel:
         mcmc (MCMC): MCMC object containing model and sampler specification for the problem. Constructed from the
             other components in self.to_mcmc().
         n_iter (int): number of MCMC iterations to be run.
+        n_thin (int): number of iterations to thin by.
         fitted_values (np.ndarray): samples of fitted values (i.e. model predictions for the data) generated during the
             MCMC sampler. Attached in self.from_mcmc().
 
@@ -52,6 +53,7 @@ class ELQModel:
     model: Model = field(init=False)
     mcmc: MCMC = field(init=False)
     n_iter: int = 1000
+    n_thin: int = 1
     fitted_values: np.ndarray = field(init=False)
 
     def __init__(
@@ -151,7 +153,7 @@ class ELQModel:
         for component in self.components.values():
             sampler_list = component.make_sampler(self.model, sampler_list)
 
-        self.mcmc = MCMC(initial_state, sampler_list, self.model, n_burn=0, n_iter=self.n_iter)
+        self.mcmc = MCMC(initial_state, sampler_list, self.model, n_burn=0, n_iter=self.n_iter, n_thin= self.n_thin)
 
     def run_mcmc(self):
         """Run the mcmc function."""
