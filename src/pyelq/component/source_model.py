@@ -542,8 +542,12 @@ class SourceModel(Component, SourceGrouping, SourceDistribution):
 
     def screen_coverage(self):
         """Screen the initial source map for coverage."""
+        threshold_function = np.quantile
+        quantile = 0.95
         in_coverage_area = self.dispersion_model.compute_coverage(
-            self.coupling, coverage_threshold=self.coverage_threshold
+            self.coupling, coverage_threshold=self.coverage_threshold,
+            threshold_function=threshold_function,
+            q=quantile
         )
         self.coupling = self.coupling[:, in_coverage_area]
         all_locations = self.dispersion_model.source_map.location.to_array()
@@ -622,8 +626,12 @@ class SourceModel(Component, SourceGrouping, SourceDistribution):
         """
         prop_state = self.update_coupling_column(prop_state, int(prop_state["n_src"]) - 1)
         prop_state["alloc_s"] = np.concatenate((prop_state["alloc_s"], np.array([0], ndmin=2)), axis=0)
+        threshold_function = np.quantile
+        quantile = 0.95
         in_cov_area = self.dispersion_model.compute_coverage(
-            prop_state["A"][:, -1], coverage_threshold=self.coverage_threshold
+            prop_state["A"][:, -1], coverage_threshold=self.coverage_threshold,
+            threshold_function=threshold_function,
+            q=quantile
         )
         if not in_cov_area:
             logp_pr_g_cr = 1e10
@@ -681,8 +689,13 @@ class SourceModel(Component, SourceGrouping, SourceDistribution):
         """
         prop_state = deepcopy(current_state)
         prop_state = self.update_coupling_column(prop_state, update_column)
+        threshold_function = np.quantile
+        quantile = 0.95
         in_cov_area = self.dispersion_model.compute_coverage(
-            prop_state["A"][:, update_column], coverage_threshold=self.coverage_threshold
+            prop_state["A"][:, update_column], coverage_threshold=self.coverage_threshold,
+            threshold_function=threshold_function,
+            q=quantile
+
         )
         if not in_cov_area:
             prop_state = deepcopy(current_state)
