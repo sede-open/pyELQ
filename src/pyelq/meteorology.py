@@ -307,8 +307,8 @@ class MeteorologyGroup(dict):
                 warnings.warn(
                     f"Concentration values for sensor {sensor_key} are of shape "
                     + f"{sensor.concentration.shape}, but wind_direction values for meteorology object {sensor_key} "
-                      f"has shape {temp_met_object.wind_direction.shape}. It will not be plotted on the polar scatter "
-                      f"plot."
+                    f"has shape {temp_met_object.wind_direction.shape}. It will not be plotted on the polar scatter "
+                    f"plot."
                 )
             else:
                 theta = temp_met_object.wind_direction
