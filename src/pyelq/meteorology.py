@@ -218,6 +218,7 @@ class Meteorology:
                 )
             else:
                 theta = self.wind_direction
+                color_idx = i % len(sensor_object.color_map)
 
                 fig.add_trace(
                     go.Scatterpolar(
@@ -225,7 +226,7 @@ class Meteorology:
                         theta=theta,
                         mode="markers",
                         name=sensor_key,
-                        marker={"color": sensor_object.color_map[i]},
+                        marker={"color": sensor_object.color_map[color_idx]},
                     )
                 )
 
