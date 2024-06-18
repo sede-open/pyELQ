@@ -27,7 +27,7 @@ jobs:
           python-version: ${{ matrix.python-version }}
       - name: Get version
         env:
-          GITHUB_ACCESS_TOKEN: ${{ secrets.PYELQ_TOKEN }}
+          GITHUB_ACCESS_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         id: version
         run: |
           version=$(python .github/get_version.py)
@@ -36,4 +36,4 @@ jobs:
       - name: Create Release
         run: gh release create ${{ env.BUMPED_VERSION }} --generate-notes
         env:
-          GITHUB_TOKEN: ${{ secrets.PYELQ_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

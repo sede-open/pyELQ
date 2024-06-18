@@ -124,7 +124,7 @@ class Meteorology:
         Args:
             nof_sectors (int, optional): The number of wind direction sectors into which the data is binned.
             nof_divisions (int, optional): The number of wind speed divisions into which the data is binned.
-            template (go.update_layout): A layout template which can be applied to the plot. Defaults to None.
+            template (object): A layout template which can be applied to the plot. Defaults to None.
 
         Returns:
             fig (go.Figure): A plotly go figure containing the trace of the rose plot.
@@ -195,13 +195,19 @@ class Meteorology:
 
         return fig
 
-    def plot_polar_scatter(self, fig, sensor_object: SensorGroup, template: object = None) -> go.Figure():
+    def plot_polar_scatter(self, fig: go.Figure, sensor_object: SensorGroup, template: object = None) -> go.Figure():
         """Plots a scatter plot of concentration with respect to wind direction in polar Coordinates.
+
+        This function implements the polar scatter functionality for a (single) Meteorology object. Assuming the all
+        Sensors in the SensorGroup are consistent with the Meteorology object.
+
+        Note we do plot the sensors which do not contain any values when present in the SensorGroup to keep consistency
+        in plot colors.
 
         Args:
             fig (go.Figure): A plotly figure onto which traces can be drawn.
             sensor_object (SensorGroup): SensorGroup object which contains the concentration information
-            template (go.update_layout): A layout template which can be applied to the plot. Defaults to None.
+            template (object): A layout template which can be applied to the plot. Defaults to None.
 
         Returns:
             fig (go.Figure): A plotly go figure containing the trace of the rose plot.
@@ -218,6 +224,7 @@ class Meteorology:
                 )
             else:
                 theta = self.wind_direction
+                color_idx = i % len(sensor_object.color_map)
 
                 fig.add_trace(
                     go.Scatterpolar(
@@ -225,46 +232,13 @@ class Meteorology:
                         theta=theta,
                         mode="markers",
                         name=sensor_key,
-                        marker={"color": sensor_object.color_map[i]},
+                        marker={"color": sensor_object.color_map[color_idx]},
                     )
                 )
+                if sensor.concentration.size > 0:
+                    max_concentration = np.maximum(np.nanmax(sensor.concentration), max_concentration)
 
-                max_concentration = np.maximum(np.nanmax(sensor.concentration), max_concentration)
-
-        ticktext = ["N", "NE", "E", "SE", "S", "SW", "W", "NW"]
-        polar_dict = {
-            "radialaxis": {"tickangle": 0, "range": [0.0, 1.01 * max_concentration]},
-            "radialaxis_angle": 0,
-            "angularaxis": {
-                "tickmode": "array",
-                "ticktext": ticktext,
-                "direction": "clockwise",
-                "rotation": 90,
-                "tickvals": list(np.linspace(0, 360 - (360 / 8), 8)),
-            },
-        }
-
-        fig.add_annotation(
-            x=1,
-            y=1,
-            yref="paper",
-            xref="paper",
-            xanchor="right",
-            yanchor="top",
-            align="left",
-            font={"size": 18, "color": "#000000"},
-            showarrow=False,
-            borderwidth=2,
-            borderpad=10,
-            bgcolor="#ffffff",
-            bordercolor="#000000",
-            opacity=0.8,
-            text="<b>Radial Axis:</b> Wind<br>speed in m/s.",
-        )
-
-        fig.update_layout(polar=polar_dict)
-        fig.update_layout(template=template)
-        fig.update_layout(title="Measured Concentration against Wind Direction.")
+        fig = set_plot_polar_scatter_layout(max_concentration=max_concentration, fig=fig, template=template)
 
         return fig
 
@@ -301,3 +275,109 @@ class MeteorologyGroup(dict):
         """Calculate wind speed from the u and v components for each member of the group."""
         for met in self.values():
             met.calculate_wind_speed_from_uv()
+
+    def plot_polar_scatter(self, fig: go.Figure, sensor_object: SensorGroup, template: object = None) -> go.Figure():
+        """Plots a scatter plot of concentration with respect to wind direction in polar coordinates.
+
+        This function implements the polar scatter functionality for a MeteorologyGroup object. It assumes each object
+        in the SensorGroup has an associated Meteorology object in the MeteorologyGroup.
+
+        Note we do plot the sensors which do not contain any values when present in the SensorGroup to keep consistency
+        in plot colors.
+
+        Args:
+            fig (go.Figure): A plotly figure onto which traces can be drawn.
+            sensor_object (SensorGroup): SensorGroup object which contains the concentration information
+            template (object): A layout template which can be applied to the plot. Defaults to None.
+
+        Returns:
+            fig (go.Figure): A plotly go figure containing the trace of the rose plot.
+
+        Raises
+            ValueError: When there is a sensor key which is not present in the MeteorologyGroup.
+
+        """
+        max_concentration = 0
+
+        for i, (sensor_key, sensor) in enumerate(sensor_object.items()):
+            if sensor_key not in self.keys():
+                raise ValueError(f"Key {sensor_key} not found in MeteorologyGroup.")
+            temp_met_object = self[sensor_key]
+            if sensor.concentration.shape != temp_met_object.wind_direction.shape:
+                warnings.warn(
+                    f"Concentration values for sensor {sensor_key} are of shape "
+                    + f"{sensor.concentration.shape}, but wind_direction values for meteorology object {sensor_key} "
+                    f"has shape {temp_met_object.wind_direction.shape}. It will not be plotted on the polar scatter "
+                    f"plot."
+                )
+            else:
+                theta = temp_met_object.wind_direction
+                color_idx = i % len(sensor_object.color_map)
+
+                fig.add_trace(
+                    go.Scatterpolar(
+                        r=sensor.concentration,
+                        theta=theta,
+                        mode="markers",
+                        name=sensor_key,
+                        marker={"color": sensor_object.color_map[color_idx]},
+                    )
+                )
+
+                if sensor.concentration.size > 0:
+                    max_concentration = np.maximum(np.nanmax(sensor.concentration), max_concentration)
+
+        fig = set_plot_polar_scatter_layout(max_concentration=max_concentration, fig=fig, template=template)
+
+        return fig
+
+
+def set_plot_polar_scatter_layout(max_concentration: float, fig: go.Figure(), template: object) -> go.Figure:
+    """Helper function to set the layout of the polar scatter plot.
+
+    Helps avoid code duplication.
+
+    Args:
+        max_concentration (float): The maximum concentration value used to update radial axis range.
+        fig (go.Figure): A plotly figure onto which traces can be drawn.
+        template (object): A layout template which can be applied to the plot.
+
+    Returns:
+        fig (go.Figure): A plotly go figure containing the trace of the rose plot.
+
+    """
+    ticktext = ["N", "NE", "E", "SE", "S", "SW", "W", "NW"]
+    polar_dict = {
+        "radialaxis": {"tickangle": 0, "range": [0.0, 1.01 * max_concentration]},
+        "radialaxis_angle": 0,
+        "angularaxis": {
+            "tickmode": "array",
+            "ticktext": ticktext,
+            "direction": "clockwise",
+            "rotation": 90,
+            "tickvals": list(np.linspace(0, 360 - (360 / 8), 8)),
+        },
+    }
+
+    fig.add_annotation(
+        x=1,
+        y=1,
+        yref="paper",
+        xref="paper",
+        xanchor="right",
+        yanchor="top",
+        align="left",
+        font={"size": 18, "color": "#000000"},
+        showarrow=False,
+        borderwidth=2,
+        borderpad=10,
+        bgcolor="#ffffff",
+        bordercolor="#000000",
+        opacity=0.8,
+        text="<b>Radial Axis:</b> Wind<br>speed in m/s.",
+    )
+
+    fig.update_layout(polar=polar_dict)
+    fig.update_layout(template=template)
+    fig.update_layout(title="Measured Concentration against Wind Direction.")
+    return fig
