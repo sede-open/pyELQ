@@ -5,7 +5,7 @@
 # -*- coding: utf-8 -*-
 """Meteorology module.
 
-The superclass for the meteorology classes
+The superclass for the meteorology class
 
 """
 import warnings

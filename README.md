@@ -79,7 +79,7 @@ Or you could clone the repository and install it from the source code.
 After activating the environment you want to install pyELQ in, open a terminal, move to the main pyELQ folder
 where pyproject.toml is located and run `pip install .`, optionally you can pass the `-e` flag is for editable mode.
 All the main options, info and settings for the package are found in the pyproject.toml file which sits in this repo
-as well.
+as well. 
 
 ***
 
