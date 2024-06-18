@@ -33,6 +33,25 @@ Use cases where the pyELQ code has been applied are described in the following p
 * IJzermans, R., Jones, M., Weidmann, D. et al. "Long-term continuous monitoring of methane emissions at an oil and gas facility using a multi-open-path laser dispersion spectrometer." Sci Rep 14, 623 (2024). (https://doi.org/10.1038/s41598-023-50081-9)
 
 * Weidmann, D., Hirst, B. et al. "Locating and Quantifying Methane Emissions by Inverse Analysis of Path-Integrated Concentration Data Using a Markov-Chain Monte Carlo Approach." ACS Earth and Space Chemistry 2022 6 (9), 2190-2198  (https://doi.org/10.1021/acsearthspacechem.2c00093)
+
+## Deployment design
+The pyELQ code needs high-quality methane concentration and wind data to be able to provide reliable output on location 
+and quantification of methane emission sources. This requires methane concentration sensors of sufficiently high 
+precision in a layout that allows the detection of relevant methane emission sources, in combination with wind 
+measurements of high enough frequency and accuracy. The optimal sensor layout typically depends on the prevailing 
+meteorological conditions at the site of interest and requires multiple concentration sensors to cover the site under 
+different wind directions. 
+
+## pyELQ data interpretation
+The results from pyELQ come with uncertainty ranges that are representative of probability density functions sampled 
+by a Markov Chain Monte Carlo method. One should take these uncertainty ranges into account when interpreting the pyELQ 
+output data. Remember that absence of evidence for methane emissions does not always imply evidence for absence of 
+methane emissions; for instance, when meteorological conditions are such that there is no sensor downwind of a methane 
+source during the selected monitoring period, then it will be impossible to detect, localize and quantify 
+this particular source. 
+Also, there are limitations to the forward dispersion model which is used in the analysis. 
+For example, the performance of the Gaussian plume dispersion model will degrade at lower wind speeds. 
+Therefore, careful interpretation of the data is always required. 
 ***
 # Installing pyELQ as a package
 Suppose you want to use this pyELQ package in a different project.
