@@ -153,7 +153,7 @@ class ELQModel:
         for component in self.components.values():
             sampler_list = component.make_sampler(self.model, sampler_list)
 
-        self.mcmc = MCMC(initial_state, sampler_list, self.model, n_burn=0, n_iter=self.n_iter, n_thin= self.n_thin)
+        self.mcmc = MCMC(initial_state, sampler_list, self.model, n_burn=0, n_iter=self.n_iter, n_thin=self.n_thin)
 
     def run_mcmc(self):
         """Run the mcmc function."""
