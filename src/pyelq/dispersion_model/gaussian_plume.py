@@ -561,7 +561,7 @@ class GaussianPlume:
 
     @staticmethod
     def compute_coverage(
-        couplings: np.ndarray, threshold_function: Callable = np.max, coverage_threshold: float = 6, **kwargs
+        couplings: np.ndarray, threshold_function: Callable, coverage_threshold: float = 6, **kwargs
     ) -> Union[np.ndarray, dict]:
         """Returns a logical vector that indicates which sources in the couplings are, or are not, within the coverage.
 
@@ -585,7 +585,7 @@ class GaussianPlume:
             coverage (Union[np.ndarray, dict]): A logical array specifying which sources are within the coverage.
 
         """
-        coupling_threshold = threshold_function(couplings, axis=0, **kwargs)
+        coupling_threshold = threshold_function(couplings, **kwargs)
         no_warning_threshold = np.where(coupling_threshold <= 1e-100, 1, coupling_threshold)
         no_warning_estimated_emission_rates = np.where(coupling_threshold <= 1e-100, np.inf, 1 / no_warning_threshold)
         coverage = no_warning_estimated_emission_rates < coverage_threshold

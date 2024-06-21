@@ -588,7 +588,7 @@ def test_compute_coverage():
     source_object.location.east = np.array([-10, 10])
     source_object.location.north = np.array([25, 25])
     source_object.location.up = np.array([0, 0])
-
+    threshold_function = lambda x: np.quantile(x, 0.95, axis=0)
     plume_object = GaussianPlume(source_map=source_object)
 
     couplings = np.array(
@@ -600,14 +600,14 @@ def test_compute_coverage():
         ]
     )
 
-    coverage = plume_object.compute_coverage(couplings)
+    coverage = plume_object.compute_coverage(couplings, threshold_function=threshold_function)
     assert np.all(np.equal(coverage, np.array([True, False])))
 
-    coverage = plume_object.compute_coverage(couplings, coverage_threshold=0.3)
+    coverage = plume_object.compute_coverage(couplings, threshold_function=threshold_function, coverage_threshold=0.3)
     assert np.all(np.equal(coverage, np.array([False, False])))
 
-    coverage = plume_object.compute_coverage(couplings, threshold_function=np.mean, coverage_threshold=0.3)
+    coverage = plume_object.compute_coverage(couplings, threshold_function=lambda x:np.mean(x, axis=0), coverage_threshold=0.3)
     assert np.all(np.equal(coverage, np.array([False, False])))
 
-    coverage = plume_object.compute_coverage(couplings, threshold_function=np.mean, coverage_threshold=6)
+    coverage = plume_object.compute_coverage(couplings, threshold_function=lambda x:np.mean(x, axis=0), coverage_threshold=6)
     assert np.all(np.equal(coverage, np.array([True, False])))
