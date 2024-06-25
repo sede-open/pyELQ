@@ -606,8 +606,12 @@ def test_compute_coverage():
     coverage = plume_object.compute_coverage(couplings, threshold_function=threshold_function, coverage_threshold=0.3)
     assert np.all(np.equal(coverage, np.array([False, False])))
 
-    coverage = plume_object.compute_coverage(couplings, threshold_function=lambda x:np.mean(x, axis=0), coverage_threshold=0.3)
+    coverage = plume_object.compute_coverage(
+        couplings, threshold_function=lambda x: np.mean(x, axis=0), coverage_threshold=0.3
+    )
     assert np.all(np.equal(coverage, np.array([False, False])))
 
-    coverage = plume_object.compute_coverage(couplings, threshold_function=lambda x:np.mean(x, axis=0), coverage_threshold=6)
+    coverage = plume_object.compute_coverage(
+        couplings, threshold_function=lambda x: np.mean(x, axis=0), coverage_threshold=6
+    )
     assert np.all(np.equal(coverage, np.array([True, False])))

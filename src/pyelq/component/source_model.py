@@ -477,6 +477,7 @@ class SourceModel(Component, SourceGrouping, SourceDistribution):
     coverage_test_source: float = 6.0
 
     threshold_function: callable = lambda x: np.quantile(x, 0.95, axis=0)
+
     @property
     def nof_sources(self):
         """Get number of sources in the source map."""
@@ -548,9 +549,8 @@ class SourceModel(Component, SourceGrouping, SourceDistribution):
     def screen_coverage(self):
         """Screen the initial source map for coverage."""
         in_coverage_area = self.dispersion_model.compute_coverage(
-            self.coupling, coverage_threshold=self.coverage_threshold,
-            threshold_function=self.threshold_function
-            )
+            self.coupling, coverage_threshold=self.coverage_threshold, threshold_function=self.threshold_function
+        )
         self.coupling = self.coupling[:, in_coverage_area]
         all_locations = self.dispersion_model.source_map.location.to_array()
         screened_locations = all_locations[in_coverage_area, :]
@@ -629,8 +629,10 @@ class SourceModel(Component, SourceGrouping, SourceDistribution):
         prop_state = self.update_coupling_column(prop_state, int(prop_state["n_src"]) - 1)
         prop_state["alloc_s"] = np.concatenate((prop_state["alloc_s"], np.array([0], ndmin=2)), axis=0)
         in_cov_area = self.dispersion_model.compute_coverage(
-            prop_state["A"][:, -1], coverage_threshold=self.coverage_threshold,
-            threshold_function=self.threshold_function)
+            prop_state["A"][:, -1],
+            coverage_threshold=self.coverage_threshold,
+            threshold_function=self.threshold_function,
+        )
         if not in_cov_area:
             logp_pr_g_cr = 1e10
         else:
@@ -688,8 +690,10 @@ class SourceModel(Component, SourceGrouping, SourceDistribution):
         prop_state = deepcopy(current_state)
         prop_state = self.update_coupling_column(prop_state, update_column)
         in_cov_area = self.dispersion_model.compute_coverage(
-            prop_state["A"][:, update_column], coverage_threshold=self.coverage_threshold,
-            threshold_function=self.threshold_function)
+            prop_state["A"][:, update_column],
+            coverage_threshold=self.coverage_threshold,
+            threshold_function=self.threshold_function,
+        )
         if not in_cov_area:
             prop_state = deepcopy(current_state)
         return prop_state
