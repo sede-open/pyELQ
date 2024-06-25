@@ -448,6 +448,10 @@ class SourceModel(Component, SourceGrouping, SourceDistribution):
         coverage_detection (float): sensor detection threshold (in ppm) to be used for coverage calculations.
         coverage_test_source (float): test source (in kg/hr) which we wish to be able to see in coverage calculation.
 
+        threshold_function (Callable): Callable function which returns some single value that defines the
+        threshold' coupling in a lambda function form. Examples: lambda x: np.quantile(x, 0.95, axis=0),
+        lambda x: np.max(x, axis=0), lambda x: np.mean(x, axis=0). Defaults to np.max. Defaults to np.quantile.
+
     """
 
     dispersion_model: GaussianPlume = field(init=False, default=None)
@@ -543,8 +547,6 @@ class SourceModel(Component, SourceGrouping, SourceDistribution):
 
     def screen_coverage(self):
         """Screen the initial source map for coverage."""
-        # threshold_function = np.quantile
-        # quantile = 0.95
         in_coverage_area = self.dispersion_model.compute_coverage(
             self.coupling, coverage_threshold=self.coverage_threshold,
             threshold_function=self.threshold_function
@@ -626,12 +628,9 @@ class SourceModel(Component, SourceGrouping, SourceDistribution):
         """
         prop_state = self.update_coupling_column(prop_state, int(prop_state["n_src"]) - 1)
         prop_state["alloc_s"] = np.concatenate((prop_state["alloc_s"], np.array([0], ndmin=2)), axis=0)
-        # threshold_function = np.quantile
-        # quantile = 0.95
         in_cov_area = self.dispersion_model.compute_coverage(
             prop_state["A"][:, -1], coverage_threshold=self.coverage_threshold,
-            threshold_function=self.threshold_function
-        )
+            threshold_function=self.threshold_function)
         if not in_cov_area:
             logp_pr_g_cr = 1e10
         else:
@@ -688,8 +687,6 @@ class SourceModel(Component, SourceGrouping, SourceDistribution):
         """
         prop_state = deepcopy(current_state)
         prop_state = self.update_coupling_column(prop_state, update_column)
-        # threshold_function = np.quantile
-        # quantile = 0.95
         in_cov_area = self.dispersion_model.compute_coverage(
             prop_state["A"][:, update_column], coverage_threshold=self.coverage_threshold,
             threshold_function=self.threshold_function)

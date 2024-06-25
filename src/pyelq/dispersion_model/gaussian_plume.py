@@ -574,9 +574,8 @@ class GaussianPlume:
 
         Args:
             couplings (np.ndarray): Array of coupling values. Dimensions: n_datapoints x n_sources.
-            threshold_function (Callable, optional): Callable function which returns some single value that defines the
-                                                     maximum or 'threshold' coupling. Examples: np.quantile(q=0.9),
-                                                     np.max, np.mean. Defaults to np.max.
+            threshold_function (Callable): Callable function which returns some single value that defines the
+                                                     maximum or 'threshold' coupling.
             coverage_threshold (float, optional): The threshold value of the estimated emission rate which is
                                                   considered to be within the coverage. Defaults to 6 kg/hr.
             kwargs (dict, optional): Keyword arguments required for the threshold function.
