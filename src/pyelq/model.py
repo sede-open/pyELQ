@@ -5,8 +5,8 @@
 # -*- coding: utf-8 -*-
 """ELQModel module.
 
-This module provides a class definition main functionalities of the codebase, providing the interface with the openMCMC
-repo and defining some plotting wrappers.
+This module provides a class definition for the main functionalities of the codebase, providing the interface with the
+openMCMC repo and defining some plotting wrappers.
 
 """
 import warnings
