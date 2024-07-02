@@ -156,9 +156,9 @@ class Preprocessor:
 
         """
         if lower_limit is None:
-            lower_limit = [-np.infty] * len(filter_variable)
+            lower_limit = [-np.inf] * len(filter_variable)
         if upper_limit is None:
-            upper_limit = [np.infty] * len(filter_variable)
+            upper_limit = [np.inf] * len(filter_variable)
 
         for vrb, low, high in zip(filter_variable, lower_limit, upper_limit):
             for sns_key, met_key in zip(self.sensor_object, self.met_object):
