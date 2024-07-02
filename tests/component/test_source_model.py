@@ -103,7 +103,7 @@ def test_coverage_function(source_model):
     """Test that the coverage function has defaulted correctly."""
     random_vars = np.random.normal(0, 1, size=(10000, 1))
     threshold_value = source_model.threshold_function(random_vars)
-    assert threshold_value.shape == (1, )
+    assert threshold_value.shape == (1,)
     assert np.allclose(threshold_value, np.quantile(random_vars, 0.95))
 
 
