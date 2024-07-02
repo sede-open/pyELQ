@@ -448,9 +448,9 @@ class SourceModel(Component, SourceGrouping, SourceDistribution):
         coverage_detection (float): sensor detection threshold (in ppm) to be used for coverage calculations.
         coverage_test_source (float): test source (in kg/hr) which we wish to be able to see in coverage calculation.
 
-        threshold_function (Callable): Callable function which returns some single value that defines the
-        threshold' coupling in a lambda function form. Examples: lambda x: np.quantile(x, 0.95, axis=0),
-        lambda x: np.max(x, axis=0), lambda x: np.mean(x, axis=0). Defaults to np.max. Defaults to np.quantile.
+        threshold_function (Callable): Callable function which returns a single value that defines the threshold
+            for the coupling in a lambda function form. Examples: lambda x: np.quantile(x, 0.95, axis=0),
+            lambda x: np.max(x, axis=0), lambda x: np.mean(x, axis=0). Defaults to np.quantile.
 
     """
 
