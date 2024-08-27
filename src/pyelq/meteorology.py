@@ -113,9 +113,13 @@ class Meteorology:
 
         """
         data_series = pd.Series(data=self.wind_direction, index=self.time)
-        aggregated_data = data_series.rolling(window=window, center=True, min_periods=3).apply(
-            circstd, kwargs={"low": 0, "high": 360}
-        )
+        data_series = np.deg2rad(data_series)
+        sin_data_series = np.sin(data_series)
+        cos_data_series = np.cos(data_series)
+        sin_rolling = sin_data_series.rolling(window=window, center=True, min_periods=3).mean()
+        cos_rolling = cos_data_series.rolling(window=window, center=True, min_periods=3).mean()
+        hypotenuse = (sin_rolling ** 2 + cos_rolling ** 2) ** 0.5
+        aggregated_data = np.sqrt(-2 * np.log(hypotenuse)) * 180 / np.pi
         self.wind_turbulence_horizontal = aggregated_data.values
 
     def plot_polar_hist(self, nof_sectors: int = 16, nof_divisions: int = 5, template: object = None) -> go.Figure():
