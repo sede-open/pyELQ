@@ -13,8 +13,9 @@ import datetime as dt
 
 import numpy as np
 import pandas as pd
-from scipy.stats import circstd
 import pytest
+from pytictoc import TicToc
+from scipy.stats import circstd
 
 from pyelq.coordinate_system import LLA
 from pyelq.meteorology import Meteorology, MeteorologyGroup
@@ -225,7 +226,6 @@ def test_calculate_wind_turbulence_horizontal():
     data_series = pd.Series(data=met.wind_direction, index=met.time)
     wind_turbulance_circstd = data_series.rolling(window="300s", center=True, min_periods=3).apply(
         circstd, kwargs={"low": 0, "high": 360})
-
 
     tolerance = 3 * np.std(met.wind_turbulence_horizontal)
     mean_turbulence = np.mean(met.wind_turbulence_horizontal)
