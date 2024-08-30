@@ -102,11 +102,28 @@ class Meteorology:
     def calculate_wind_turbulence_horizontal(self, window: str) -> None:
         """Calculate the horizontal wind turbulence values from the wind direction attribute.
 
-        Wind turbulence values are calculated as the circular standard deviation based on a rolling window.
+        Wind turbulence values are calculated as the circular standard deviation defined as 
+        sqrt(-2 log |1 / n sum_{i=1}^{n}(e^(ix_k) | ) 
+        (https://docs.scipy.org/doc/scipy/reference/generated/scipy.stats.circstd.html)
+
+    
+        where i is the imaginary unit, x_k 
+        is the wind direction, n is the number of observations in the window and |.| denotes 
+        the length of the complex value.
+        Using Euler formula e^(ix_k) can be exressed as cos(x_k) + i sin(x_k) and the The term
+        in the || expresses the mean of the complex values over the rolling window. Therefore,
+        rolling mean can be applied to the sin and cos values of the wind direction. The length
+        of the complex value is then calculated as the square root of the sum of the squares of
+        the sin and cos values (hypotenuse). and the wind turbulence is calculated as 
+        sqrt(-2 log(hypotenuse)). 
+        This calculation is equivalent to using the circstd function from scipy.stats as an apply
+        function on a rolling window. However, using the rolling mean on sin and cos speeds up
+        the calculation by a factor of 100. 
+
         Outputted values are calculated at the center of the window and at least 3 observations are required in a
         window for the calculation. If the window contains less values the result will be np.nan.
         The result of the calculation will be stored as the wind_turbulence_horizontal attribute.
-
+        
         Args:
             window (str): The size of the window in which values are aggregated specified as an offset alias:
                 https://pandas.pydata.org/docs/user_guide/timeseries.html#timeseries-offset-aliases
