@@ -99,6 +99,14 @@ def test_make_sampler(source_model):
     assert isinstance(sampler_object[0], NormalNormal)
 
 
+def test_coverage_function(source_model):
+    """Test that the coverage function has defaulted correctly."""
+    random_vars = np.random.normal(0, 1, size=(10000, 1))
+    threshold_value = source_model.threshold_function(random_vars)
+    assert threshold_value.shape == (1,)
+    assert np.allclose(threshold_value, np.quantile(random_vars, 0.95))
+
+
 def test_birth_function(source_model):
     """Test the birth_function implementation, and some aspects of the reversible jump sampler.
 
