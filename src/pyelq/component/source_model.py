@@ -19,7 +19,7 @@ A SourceModel instance inherits from 3 super-classes:
 from abc import abstractmethod
 from copy import deepcopy
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING, Tuple, Union
+from typing import TYPE_CHECKING, Tuple, Union, Dict
 
 import numpy as np
 from openmcmc import parameter
@@ -46,18 +46,19 @@ class ParameterMapping:
     """ Class for defining mapping variable/parameterised labels needed for creating an mcmc
 
     """
-    map = {'source': 's',
-           'coupling_matrix': 'A',
-           'emission_rate_mean':'mu_s',
-           'emission_rate_precision': 'lambda_s',
-           'allocation': 'alloc_s',
-           'source_prob': 's_prob',
-           'precision_prior_shape': 'a_lam_s',
-           'precision_prior_rate': 'b_lam_s',
-           "source_location": 'z_src',
-           'number_sources': 'n_src',
-           "number_source_rate": 'rho'}
-
+    map : Dict = field(default_factory==
+                      {'source': 's',
+                       'coupling_matrix': 'A',
+                        'emission_rate_mean':'mu_s',
+                        'emission_rate_precision': 'lambda_s',
+                        'allocation': 'alloc_s',
+                        'source_prob': 's_prob',
+                        'precision_prior_shape': 'a_lam_s',
+                        'precision_prior_rate': 'b_lam_s',
+                        "source_location": 'z_src',
+                        'number_sources': 'n_src',
+                        "number_source_rate": 'rho'})
+                      
     def append_string(self, string: str=None):
         """ Append string to all element of map
 
@@ -485,7 +486,7 @@ class SourceModel(Component, SourceGrouping, SourceDistribution):
         threshold_function (Callable): Callable function which returns a single value that defines the threshold
             for the coupling in a lambda function form. Examples: lambda x: np.quantile(x, 0.95, axis=0),
             lambda x: np.max(x, axis=0), lambda x: np.mean(x, axis=0). Defaults to np.quantile.
-
+        label_string (str): string to append to the parameter mapping, e.g. for fixed sources.
     """
 
     dispersion_model: GaussianPlume = field(init=False, default=None)
@@ -511,6 +512,12 @@ class SourceModel(Component, SourceGrouping, SourceDistribution):
     coverage_test_source: float = 6.0
 
     threshold_function: callable = lambda x: np.quantile(x, 0.95, axis=0)
+
+    label_string: str = None 
+
+    def __post_init__(self):
+        if self.label_string is not None:
+            self.append_string(self.label_string)
 
     @property
     def nof_sources(self):
