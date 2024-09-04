@@ -8,7 +8,7 @@ build-backend = "poetry.core.masonry.api"
 
 [tool.poetry]
 name = "pyelq-sdk"
-version = "1.0.8"
+version = "1.0.8b"
 description = "Package for detection, localization and quantification code."
 authors = ["Bas van de Kerkhof", "Matthew Jones", "David Randell"]
 homepage = "https://sede-open.github.io/pyELQ/"
@@ -29,7 +29,7 @@ pymap3d = ">=3.0.1"
 geojson = ">=3.1.0"
 shapely = ">=2.0.2"
 scikit-learn = ">=1.3.2"
-openmcmc = ">=1.0.4"
+openmcmc = "==1.0.5"
 
 [tool.poetry.group.contributor]
 optional = true
