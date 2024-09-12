@@ -14,7 +14,6 @@ import datetime as dt
 import numpy as np
 import pandas as pd
 import pytest
-from scipy.stats import circstd
 
 from pyelq.coordinate_system import LLA
 from pyelq.meteorology import Meteorology, MeteorologyGroup
@@ -202,7 +201,7 @@ def test_meteorology_group():
 def test_calculate_wind_turbulence_horizontal():
     """Checks that the wind turbulence values are calculated correctly.
 
-    To verify circstd, we define winds as draws from a normal distribution. We then check that the mean of the
+    To verify horizontal wind turbulence calculations, we define winds as draws from a normal distribution. We then check that the mean of the
     calculated turbulence values is within 3 standard deviations of the true value.
 
     """

@@ -16,7 +16,6 @@ import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
 from pandas.arrays import DatetimeArray
-from scipy.stats import circstd
 
 from pyelq.coordinate_system import Coordinate
 from pyelq.sensor.sensor import SensorGroup
@@ -102,21 +101,9 @@ class Meteorology:
     def calculate_wind_turbulence_horizontal(self, window: str) -> None:
         """Calculate the horizontal wind turbulence values from the wind direction attribute.
 
-        Wind turbulence values are calculated as the circular standard deviation defined as
-        sqrt(-2 log |1 / n sum_{i=1}^{n}(e^(ix_k) | )
-        (https://docs.scipy.org/doc/scipy/reference/generated/scipy.stats.circstd.html)
-
-
-        where i is the imaginary unit, x_k
-        is the wind direction, n is the number of observations in the window and |.| denotes
-        the length of the complex value.
-        Using Euler formula e^(ix_k) can be exressed as cos(x_k) + i sin(x_k) and the The term
-        in the || expresses the mean of the complex values over the rolling window. Therefore,
-        rolling mean can be applied to the sin and cos values of the wind direction. The length
-        of the complex value is then calculated as the square root of the sum of the squares of
-        the sin and cos values (hypotenuse). and the wind turbulence is calculated as
-        sqrt(-2 log(hypotenuse)).
-        This calculation is equivalent to using the circstd function from scipy.stats as an apply
+        Wind turbulence values are calculated as the circular standard
+        (https://docs.scipy.org/doc/scipy/reference/generated/scipy.stats.circstd.html).
+        The implementation is equivalent to using the circstd function from scipy.stats as an apply
         function on a rolling window. However, using the rolling mean on sin and cos speeds up
         the calculation by a factor of 100.
 
@@ -130,13 +117,9 @@ class Meteorology:
 
         """
         data_series = pd.Series(data=self.wind_direction, index=self.time)
-        data_series = np.deg2rad(data_series)
-        sin_data_series = np.sin(data_series)
-        cos_data_series = np.cos(data_series)
-        sin_rolling = sin_data_series.rolling(window=window, center=True, min_periods=3).mean()
-        cos_rolling = cos_data_series.rolling(window=window, center=True, min_periods=3).mean()
-        hypotenuse = (sin_rolling**2 + cos_rolling**2) ** 0.5
-        aggregated_data = np.sqrt(-2 * np.log(hypotenuse)) * 180 / np.pi
+        sin_rolling = (np.sin(data_series * np.pi / 180)).rolling(window=window, center=True, min_periods=3).mean()
+        cos_rolling = (np.cos(data_series * np.pi / 180)).rolling(window=window, center=True, min_periods=3).mean()
+        aggregated_data = np.sqrt(-2 * np.log((sin_rolling**2 + cos_rolling**2) ** 0.5)) * 180 / np.pi
         self.wind_turbulence_horizontal = aggregated_data.values
 
     def plot_polar_hist(self, nof_sectors: int = 16, nof_divisions: int = 5, template: object = None) -> go.Figure():
