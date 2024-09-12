@@ -16,7 +16,6 @@ import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
 from pandas.arrays import DatetimeArray
-from scipy.stats import circstd
 
 from pyelq.coordinate_system import Coordinate
 from pyelq.sensor.sensor import SensorGroup
@@ -102,7 +101,12 @@ class Meteorology:
     def calculate_wind_turbulence_horizontal(self, window: str) -> None:
         """Calculate the horizontal wind turbulence values from the wind direction attribute.
 
-        Wind turbulence values are calculated as the circular standard deviation based on a rolling window.
+        Wind turbulence values are calculated as the circular standard deviation of wind direction
+        (https://docs.scipy.org/doc/scipy/reference/generated/scipy.stats.circstd.html).
+        The implementation here is equivalent to using the circstd function from scipy.stats as an apply
+        function on a rolling window. However, using the rolling mean on sin and cos speeds up
+        the calculation by a factor of 100.
+
         Outputted values are calculated at the center of the window and at least 3 observations are required in a
         window for the calculation. If the window contains less values the result will be np.nan.
         The result of the calculation will be stored as the wind_turbulence_horizontal attribute.
@@ -113,9 +117,9 @@ class Meteorology:
 
         """
         data_series = pd.Series(data=self.wind_direction, index=self.time)
-        aggregated_data = data_series.rolling(window=window, center=True, min_periods=3).apply(
-            circstd, kwargs={"low": 0, "high": 360}
-        )
+        sin_rolling = (np.sin(data_series * np.pi / 180)).rolling(window=window, center=True, min_periods=3).mean()
+        cos_rolling = (np.cos(data_series * np.pi / 180)).rolling(window=window, center=True, min_periods=3).mean()
+        aggregated_data = np.sqrt(-2 * np.log((sin_rolling**2 + cos_rolling**2) ** 0.5)) * 180 / np.pi
         self.wind_turbulence_horizontal = aggregated_data.values
 
     def plot_polar_hist(self, nof_sectors: int = 16, nof_divisions: int = 5, template: object = None) -> go.Figure():
