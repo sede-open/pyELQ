@@ -101,9 +101,9 @@ class Meteorology:
     def calculate_wind_turbulence_horizontal(self, window: str) -> None:
         """Calculate the horizontal wind turbulence values from the wind direction attribute.
 
-        Wind turbulence values are calculated as the circular standard
+        Wind turbulence values are calculated as the circular standard deviation of wind direction
         (https://docs.scipy.org/doc/scipy/reference/generated/scipy.stats.circstd.html).
-        The implementation is equivalent to using the circstd function from scipy.stats as an apply
+        The implementation here is equivalent to using the circstd function from scipy.stats as an apply
         function on a rolling window. However, using the rolling mean on sin and cos speeds up
         the calculation by a factor of 100.
 
