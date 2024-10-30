@@ -30,6 +30,7 @@ from pyelq.component.source_model import SlabAndSpike, SourceModel
 from pyelq.coordinate_system import ENU, LLA
 from pyelq.dispersion_model.gaussian_plume import GaussianPlume
 from pyelq.sensor.sensor import Sensor, SensorGroup
+from pyelq.support_functions.post_processing import is_regularly_spaced
 
 if TYPE_CHECKING:
     from pyelq.model import ELQModel
@@ -983,7 +984,7 @@ class Plot:
         datetime_min_string = model_object.sensor_object.time.min().strftime("%d-%b-%Y, %H:%M:%S")
         datetime_max_string = model_object.sensor_object.time.max().strftime("%d-%b-%Y, %H:%M:%S")
 
-        all_source_locations = model_object.mcmc.store["z_src"]
+        all_source_locations = model_object .mcmc.store["z_src"]
         min_x = np.nanmin(all_source_locations[0, :, :])
         max_x = np.nanmax(all_source_locations[0, :, :])
         min_y = np.nanmin(all_source_locations[1, :, :])
@@ -1343,32 +1344,3 @@ class Plot:
         print(summary_result.to_string(float_format=lambda x: "%.7f" % x))
 
         return summary_trace
-
-
-def is_regularly_spaced(array: np.ndarray, tolerance: float = 0.01, return_delta: bool = True):
-    """Determines whether an input array is regularly spaced, within some (absolute) tolerance.
-
-    Gets the large differences (defined by tolerance) in the array, and sees whether all of them are within 5% of one
-    another.
-
-    Args:
-        array (np.ndarray): Input array to be analysed.
-        tolerance (float, optional): Absolute value above which the difference between values is considered significant.
-            Defaults to 0.01.
-        return_delta (bool, optional): Whether to return the value of the regular grid spacing. Defaults to True.
-
-    Returns:
-        (bool): Whether or not the grid is regularly spaced.
-        (float): The value of the regular grid spacing.
-
-    """
-    unique_vals = np.unique(array)
-    diff_unique_vals = np.diff(unique_vals)
-    diff_big = diff_unique_vals[diff_unique_vals > tolerance]
-
-    boolean = np.all([np.isclose(diff_big[i], diff_big[i + 1], rtol=0.05) for i in range(len(diff_big) - 1)])
-
-    if return_delta:
-        return boolean, np.mean(diff_big)
-
-    return boolean, None
