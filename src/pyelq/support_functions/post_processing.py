@@ -153,7 +153,7 @@ def calculate_rectangular_statistics(
 
 
 def create_lla_polygons_from_xy_points(
-    points_array: np.ndarray,
+    points_array: list[np.ndarray],
     ref_latitude: float,
     ref_longitude: float,
     ref_altitude: float,
@@ -166,7 +166,7 @@ def create_lla_polygons_from_xy_points(
     A polygon is only created if the boolean mask for that pixel is True.
 
     Args:
-        points_array (np.ndarray): Grid of points in ENU coordinates.
+        points_array (list[np.ndarray]): List of arrays of grid of points in ENU coordinates.
         ref_latitude (float): Reference latitude in degrees of ENU coordinate system.
         ref_longitude (float): Reference longitude in degrees of ENU coordinate system.
         ref_altitude (float): Reference altitude in meters of ENU coordinate system.
