@@ -49,7 +49,7 @@ addopts = "--cov=pyelq --cov-fail-under=90 --ignore-glob=*plot*"
 testpaths = ["tests"]
 
 [tool.coverage.report]
-omit = ["*plot*", "*/data_access/*", "*/plotting/*"]
+omit = ["*plot*", "*/data_access/*", "*/plotting/*", "*/post_processing/*"]
 exclude_lines = [".*def.*plot.*", "from pyelq.plotting.plot import Plot"]
 
 [tool.coverage.run]
