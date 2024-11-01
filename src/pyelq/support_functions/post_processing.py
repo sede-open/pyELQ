@@ -8,27 +8,14 @@
 Module containing some functions used in post-processing of the results.
 
 """
-import warnings
-from copy import deepcopy
-from dataclasses import dataclass, field
-from typing import TYPE_CHECKING, Callable, Type, Union
+from typing import TYPE_CHECKING, Tuple, Union
 
 import numpy as np
 import pandas as pd
-import plotly.figure_factory as ff
-import plotly.graph_objects as go
-from geojson import Feature, FeatureCollection
-from openmcmc.mcmc import MCMC
 from scipy.ndimage import label
 from shapely import geometry
 
-from pyelq.component.background import TemporalBackground
-from pyelq.component.error_model import ErrorModel
-from pyelq.component.offset import PerSensor
-from pyelq.component.source_model import SlabAndSpike, SourceModel
-from pyelq.coordinate_system import ENU, LLA
-from pyelq.dispersion_model.gaussian_plume import GaussianPlume
-from pyelq.sensor.sensor import Sensor, SensorGroup
+from pyelq.coordinate_system import ENU
 
 if TYPE_CHECKING:
     from pyelq.model import ELQModel
@@ -69,8 +56,34 @@ def calculate_rectangular_statistics(
     bin_size_y: float = 1,
     burn_in: int = 0,
     normalized_count_limit: float = 0.005,
-):
-    """"""
+) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, list, pd.DataFrame]:
+    """Function which aggregates the pyELQ results into rectangular bins and outputs the related summary statistics.
+
+    The function creates a pixel grid (binning) in East-North coordinates based on the bin_size_x and bin_size_y
+    parameters. For each bin both a count as well as a weighted sum of the emission rate estimates is calculated. The
+    count is normalized by the number of iterations used in the MCMC and a boolean array is created which indicates if
+    the count is above a certain threshold. Connected pixels where the count is above this threshold are considered to
+    be a single blob/source and emission estimates per blob are summed over all pixels in the blob. The function
+    then calculates the summary statistics for each blob of estimates which are connected pixels. The summary
+    statistics include the median and IQR of the emission rate estimates, the mean location of the blob and the
+    likelihood of the blob.
+
+    Args:
+        model_object (ELQModel): ELQModel object containing the results of the MCMC run.
+        bin_size_x (float, optional): Size of the bins in the x-direction. Defaults to 1.
+        bin_size_y  (float, optional): Size of the bins in the y-direction. Defaults to 1.
+        burn_in (int, optional): Number of burn-in iterations used in the MCMC. Defaults to 0.
+        normalized_count_limit  (float, optional): Threshold for the normalized count to be considered a blob.
+
+    Returns:
+        result_weighted (np.ndarray): Weighted sum of the emission rate estimates in each bin.
+        overall_count (np.ndarray): Count of the number of estimates in each bin.
+        normalized_count (np.ndarray): Normalized count of the number of estimates in each bin.
+        count_boolean (np.ndarray): Boolean array which indicates if likelihood of pixel is over threshold.
+        edges_result (np.ndarray): Centers of the pixels in the x and y direction.
+        summary_result (pd.DataFrame): Summary statistics for each blob of estimates.
+
+    """
     nof_iterations = model_object.n_iter
     ref_latitude = model_object.components["source"].dispersion_model.source_map.location.ref_latitude
     ref_longitude = model_object.components["source"].dispersion_model.source_map.location.ref_longitude
@@ -98,7 +111,7 @@ def calculate_rectangular_statistics(
     result_x_vals = all_source_locations[0, :, :].flatten()
     result_y_vals = all_source_locations[1, :, :].flatten()
     result_z_vals = all_source_locations[2, :, :].flatten()
-    # 1-indexing for iterations effectively
+
     result_iteration_vals = np.array(range(nof_iterations)).reshape(1, -1) + 1
     result_iteration_vals = np.tile(result_iteration_vals, (max_nof_sources, 1)).flatten()
     results_estimates = model_object.mcmc.store["s"].flatten()
@@ -116,10 +129,8 @@ def calculate_rectangular_statistics(
         density=False,
     )
 
-    overall_count = np.sum(count_result, axis=2)
-
+    overall_count = np.array(np.sum(count_result, axis=2))
     normalized_count = overall_count / (nof_iterations - burn_in)
-
     count_boolean = normalized_count >= normalized_count_limit
 
     summary_result = create_aggregation(
@@ -141,7 +152,30 @@ def calculate_rectangular_statistics(
     return result_weighted, overall_count, normalized_count, count_boolean, edges_result[:2], summary_result
 
 
-def create_LLA_polygons_from_XY_points(points_array, ref_latitude, ref_longitude, ref_altitude, boolean_mask=None):
+def create_lla_polygons_from_xy_points(
+    points_array: np.ndarray,
+    ref_latitude: float,
+    ref_longitude: float,
+    ref_altitude: float,
+    boolean_mask: Union[np.ndarray, None] = None,
+) -> list[geometry.Polygon]:
+    """Function to create polygons in LLA coordinates from a grid of points in ENU coordinates.
+
+    This function takes a grid of East-North points, these points are used as center points for a pixel grid. The pixel
+    grid is then converted to LLA coordinates and these center points are used to create a polygon in LLA coordinates.
+    A polygon is only created if the boolean mask for that pixel is True.
+
+    Args:
+        points_array (np.ndarray): Grid of points in ENU coordinates.
+        ref_latitude (float): Reference latitude in degrees of ENU coordinate system.
+        ref_longitude (float): Reference longitude in degrees of ENU coordinate system.
+        ref_altitude (float): Reference altitude in meters of ENU coordinate system.
+        boolean_mask (np.ndarray, optional): Boolean mask to indicate which pixels to create polygons for.
+            Defaults to None which means all pixels are used.
+
+    Returns:
+        list[geometry.Polygon]: List of polygons in LLA coordinates
+    """
     if boolean_mask is None:
         boolean_mask = np.ones_like(points_array, dtype=bool)
 
@@ -189,7 +223,7 @@ def create_aggregation(
     ref_longitude: float,
     ref_altitude: float,
 ) -> pd.DataFrame:
-    """Helper function to create the summary information to plot on top of map type plots.
+    """Function to create the aggregated information for the blobs of estimates.
 
     We identify all blobs of estimates which appear close together on the map by looking at connected pixels in the
     count_boolean array. Next we find the summary statistics for all estimates in that blob like overall median and
@@ -198,7 +232,8 @@ def create_aggregation(
     When multiple sources are present in the same blob at the same iteration we first sum those emission rate
     estimates before taking the median.
 
-    The summary statistics are also printed out on screen.
+    If no blobs are found a dataframe with nan values is return to avoid breaking plotting code which calls this
+    function.
 
     Args:
         result_x_vals (np.ndarray): X-coordinate of estimates, flattened array of (n_sources_max * nof_iterations,).
@@ -218,7 +253,7 @@ def create_aggregation(
         ref_altitude (float): Reference altitude in meters of ENU coordinate system.
 
     Returns:
-        summary_trace (go.Scattermapbox): Trace with summary information to plot on top of map type plots.
+        summary_result (pd.DataFrame): Summary statistics for each blob of estimates.
 
     """
     labeled_array, num_features = label(input=count_boolean, structure=np.ones((3, 3)))
