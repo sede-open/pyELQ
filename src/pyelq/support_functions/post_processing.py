@@ -90,14 +90,25 @@ def calculate_rectangular_statistics(
     ref_longitude = model_object.components["source"].dispersion_model.source_map.location.ref_longitude
     ref_altitude = model_object.components["source"].dispersion_model.source_map.location.ref_altitude
 
-    all_source_locations = model_object.mcmc.store["z_src"]
+    if model_object.components["source"].reversible_jump:
+        all_source_locations = model_object.mcmc.store["z_src"]
+    else:
+        source_locations = (
+            model_object.components["source"]
+            .dispersion_model.source_map.location.to_enu(
+                ref_longitude=ref_longitude, ref_latitude=ref_latitude, ref_altitude=ref_altitude
+            )
+            .to_array()
+        )
+        all_source_locations = np.repeat(source_locations.T[:, :, np.newaxis], model_object.mcmc.n_iter, axis=2)
+
     if np.all(np.isnan(all_source_locations[:2, :, :])):
         warnings.warn("No sources found")
         result_weighted = np.array([[[np.nan]]])
         overall_count = np.array([[0]])
         normalized_count = np.array([[0]])
         count_boolean = np.array([[False]])
-        edges_result = [np.array([np.nan])]*2
+        edges_result = [np.array([np.nan])] * 2
         summary_result = pd.DataFrame()
         summary_result.index.name = "source_ID"
         summary_result.loc[0, "latitude"] = np.nan
