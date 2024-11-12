@@ -8,8 +8,8 @@
 Module containing some functions used in post-processing of the results.
 
 """
-from typing import TYPE_CHECKING, Tuple, Union
 import warnings
+from typing import TYPE_CHECKING, Tuple, Union
 
 import numpy as np
 import pandas as pd
@@ -97,7 +97,7 @@ def calculate_rectangular_statistics(
         overall_count = np.array([[0]])
         normalized_count = np.array([[0]])
         count_boolean = np.array([[False]])
-        edges_result = [np.array([np.nan])]*2
+        edges_result = [np.array([np.nan])] * 2
         summary_result = pd.DataFrame()
         summary_result.index.name = "source_ID"
         summary_result.loc[0, "latitude"] = np.nan
