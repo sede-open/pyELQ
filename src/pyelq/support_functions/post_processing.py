@@ -8,8 +8,8 @@
 Module containing some functions used in post-processing of the results.
 
 """
-from typing import TYPE_CHECKING, Tuple, Union
 import warnings
+from typing import TYPE_CHECKING, Tuple, Union
 
 import numpy as np
 import pandas as pd
