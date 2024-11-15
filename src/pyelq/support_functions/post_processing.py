@@ -8,6 +8,7 @@
 Module containing some functions used in post-processing of the results.
 
 """
+import warnings
 from typing import TYPE_CHECKING, Tuple, Union
 
 import numpy as np
@@ -80,7 +81,7 @@ def calculate_rectangular_statistics(
         overall_count (np.ndarray): Count of the number of estimates in each bin.
         normalized_count (np.ndarray): Normalized count of the number of estimates in each bin.
         count_boolean (np.ndarray): Boolean array which indicates if likelihood of pixel is over threshold.
-        edges_result (np.ndarray): Centers of the pixels in the x and y direction.
+        edges_result (list): Centers of the pixels in the x and y direction.
         summary_result (pd.DataFrame): Summary statistics for each blob of estimates.
 
     """
@@ -89,7 +90,40 @@ def calculate_rectangular_statistics(
     ref_longitude = model_object.components["source"].dispersion_model.source_map.location.ref_longitude
     ref_altitude = model_object.components["source"].dispersion_model.source_map.location.ref_altitude
 
-    all_source_locations = model_object.mcmc.store["z_src"]
+    if model_object.components["source"].reversible_jump:
+        all_source_locations = model_object.mcmc.store["z_src"]
+    else:
+        source_locations = (
+            model_object.components["source"]
+            .dispersion_model.source_map.location.to_enu(
+                ref_longitude=ref_longitude, ref_latitude=ref_latitude, ref_altitude=ref_altitude
+            )
+            .to_array()
+        )
+        all_source_locations = np.repeat(source_locations.T[:, :, np.newaxis], model_object.mcmc.n_iter, axis=2)
+
+    if np.all(np.isnan(all_source_locations[:2, :, :])):
+        warnings.warn("No sources found")
+        result_weighted = np.array([[[np.nan]]])
+        overall_count = np.array([[0]])
+        normalized_count = np.array([[0]])
+        count_boolean = np.array([[False]])
+        edges_result = [np.array([np.nan])] * 2
+        summary_result = pd.DataFrame()
+        summary_result.index.name = "source_ID"
+        summary_result.loc[0, "latitude"] = np.nan
+        summary_result.loc[0, "longitude"] = np.nan
+        summary_result.loc[0, "altitude"] = np.nan
+        summary_result.loc[0, "height"] = np.nan
+        summary_result.loc[0, "median_estimate"] = np.nan
+        summary_result.loc[0, "quantile_025"] = np.nan
+        summary_result.loc[0, "quantile_975"] = np.nan
+        summary_result.loc[0, "iqr_estimate"] = np.nan
+        summary_result.loc[0, "absolute_count_iterations"] = np.nan
+        summary_result.loc[0, "blob_likelihood"] = np.nan
+
+        return result_weighted, overall_count, normalized_count, count_boolean, edges_result[:2], summary_result
+
     min_x = np.nanmin(all_source_locations[0, :, :])
     max_x = np.nanmax(all_source_locations[0, :, :])
     min_y = np.nanmin(all_source_locations[1, :, :])
