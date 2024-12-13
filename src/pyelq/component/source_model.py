@@ -425,6 +425,8 @@ class SourceModel(Component, SourceGrouping, SourceDistribution):
 
         reversible_jump (bool): logical indicating whether the reversible jump algorithm for estimation of the number
             of sources and their locations should be run. Defaults to False.
+        random_walk_step_size (np.ndarray): (3 x 1) array specifying the standard deviations of the distributions
+            from which the random walk sampler draws new source locations. Defaults to np.array([1.0, 1.0, 0.1])
         site_limits (np.ndarray): (3 x 2) array specifying the lower (column 0) and upper (column 1) limits of the
             analysis site. Only relevant for cases where reversible_jump == True (where sources are free to move in
             the solution).
@@ -462,6 +464,7 @@ class SourceModel(Component, SourceGrouping, SourceDistribution):
     gas_species: GasSpecies = field(init=False, default=None)
 
     reversible_jump: bool = False
+    random_walk_step_size: np.ndarray = field(default_factory=lambda: np.array([1.0, 1.0, 0.1], ndmin=2).T)
     site_limits: np.ndarray = None
     rate_num_sources: int = 5
     n_sources_max: int = 20
@@ -788,7 +791,7 @@ class SourceModel(Component, SourceGrouping, SourceDistribution):
             RandomWalkLoop(
                 "z_src",
                 model,
-                step=np.array([1.0, 1.0, 0.1], ndmin=2).T,
+                step=self.random_walk_step_size,
                 max_variable_size=(3, self.n_sources_max),
                 domain_limits=self.site_limits,
                 state_update_function=self.move_function,
