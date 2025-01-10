@@ -426,7 +426,7 @@ class SourceModel(Component, SourceGrouping, SourceDistribution):
         reversible_jump (bool): logical indicating whether the reversible jump algorithm for estimation of the number
             of sources and their locations should be run. Defaults to False.
         random_walk_step_size (np.ndarray): (3 x 1) array specifying the standard deviations of the distributions
-            from which the random walk sampler draws new source locations. Defaults to np.array([1.0, 1.0, 0.1])
+            from which the random walk sampler draws new source locations. Defaults to np.array([1.0, 1.0, 0.1]).
         site_limits (np.ndarray): (3 x 2) array specifying the lower (column 0) and upper (column 1) limits of the
             analysis site. Only relevant for cases where reversible_jump == True (where sources are free to move in
             the solution).
