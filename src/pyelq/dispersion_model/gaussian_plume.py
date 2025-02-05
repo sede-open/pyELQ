@@ -11,7 +11,7 @@ The Mathematics of Atmospheric Dispersion Modeling, John M. Stockie, DOI. 10.113
 
 """
 from copy import deepcopy
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Callable, Union
 
 import numpy as np
@@ -24,6 +24,7 @@ from pyelq.sensor.beam import Beam
 from pyelq.sensor.satellite import Satellite
 from pyelq.sensor.sensor import Sensor, SensorGroup
 from pyelq.source_map import SourceMap
+from pyelq.dispersion_model.turbulence_model import TurbulenceModel, AngularModel
 
 
 @dataclass
@@ -32,6 +33,9 @@ class GaussianPlume:
 
     Attributes:
         source_map (Sourcemap): SourceMap object used for the dispersion model
+        turbulence_model_horizontal (TurbulenceModel): Definition for horizontal turbulence calculation
+        turbulence_model_vertical (TurbulenceModel): Definition for vertical turbulence calculation
+
         source_half_width (float): Source half width (radius) to be used in the Gaussian plume model (in meters)
         minimum_contribution (float): All elements in the Gaussian plume coupling smaller than this number will be set
             to 0. Helps to speed up matrix multiplications/matrix inverses, also helps with stability
@@ -39,6 +43,9 @@ class GaussianPlume:
     """
 
     source_map: SourceMap
+    turbulence_model_horizontal: TurbulenceModel = field(default_factory=AngularModel, init=False)
+    turbulence_model_vertical: TurbulenceModel = field(default_factory=AngularModel, init=False)
+
     source_half_width: float = 1
     minimum_contribution: float = 0
 
@@ -236,10 +243,13 @@ class GaussianPlume:
 
         distance_y = -sin_theta * sensor_x + cos_theta * sensor_y
 
-        sigma_hor = np.tan(wind_turbulence_horizontal * (np.pi / 180)) * np.abs(distance_x) + self.source_half_width
-        sigma_vert = np.tan(wind_turbulence_vertical * (np.pi / 180)) * np.abs(distance_x)
-
-        sigma_vert[sigma_vert == 0] = 1e-16
+        sigma_hor, sigma_vert = self.compute_plume_spread(
+            source_z=source_z,
+            wind_speed=wind_speed,
+            wind_turbulence_horizontal=wind_turbulence_horizontal,
+            wind_turbulence_vertical=wind_turbulence_vertical,
+            distance_x=distance_x,
+        )
 
         plume_coupling = (
             (1 / (2 * np.pi * wind_speed * sigma_hor * sigma_vert))
@@ -254,6 +264,49 @@ class GaussianPlume:
         plume_coupling[np.logical_or(distance_x < 0, plume_coupling < self.minimum_contribution)] = 0
 
         return plume_coupling
+
+    def compute_plume_spread(
+        self,
+        source_z: np.ndarray,
+        wind_speed: np.ndarray,
+        wind_turbulence_horizontal: np.ndarray,
+        wind_turbulence_vertical: np.ndarray,
+        distance_x: np.ndarray,
+    ) -> tuple[np.ndarray, np.ndarray]:
+        """Compute parameters of plume stability in the horizontal and vertical directions based on the turbulence models
+        in use.
+
+        Setting sigma_hor, sigma_vert to 1e-16 when they are identically zero (distance_x == 0) to avoid divide by zero errors
+        in the following steps of calculation.
+
+        Args:
+            source_z (np.ndarray): source height above ground [m]
+            wind_speed (np.ndarray): wind speed at source locations [m/s]
+            wind_turbulence_horizontal (np.ndarray): parameter of wind stability in the horizontal direction [unit dependent on model in use]
+            wind_turbulence_vertical (np.ndarray): parameter of wind stability in the vertical direction [unit dependent on model in use]
+            distance_x (np.ndarray): distance from source to sensor [m]
+
+        Returns:
+            tuple[np.ndarray, np.ndarray]: tuple of horizontal, vertical plume stability
+
+        """
+
+        wind_speed_non_zero = np.maximum(wind_speed, 1e-16)
+
+        sigma_hor = (
+            self.turbulence_model_horizontal.calculate(
+                wind_turbulence_horizontal, source_z, wind_speed_non_zero, distance_x
+            )
+            + self.source_half_width
+        )
+        sigma_vert = self.turbulence_model_vertical.calculate(
+            wind_turbulence_vertical, source_z, wind_speed_non_zero, distance_x
+        )
+
+        sigma_vert[sigma_vert == 0] = 1e-16
+        sigma_hor[sigma_hor == 0] = 1e-16
+
+        return sigma_hor, sigma_vert
 
     def calculate_gas_density(
         self, meteorology: Meteorology, sensor_object: Sensor, gas_object: Union[GasSpecies, None]
