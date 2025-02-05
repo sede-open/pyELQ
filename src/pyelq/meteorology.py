@@ -35,9 +35,9 @@ class Meteorology:
         v_component (np.ndarray, optional): v component of wind [m/s] in the northerly direction
         w_component (np.ndarray, optional): w component of wind [m/s] in the vertical direction
         wind_turbulence_horizontal (np.ndarray, optional): Parameter of the wind stability in
-            horizontal direction [deg]
+            horizontal direction [deg or m/s]
         wind_turbulence_vertical (np.ndarray, optional): Parameter of the wind stability in
-            vertical direction [deg]
+            vertical direction [deg or m/s]
         pressure (np.ndarray, optional): Pressure [kPa]
         temperature (np.ndarray, optional): Temperature [K]
         atmospheric_boundary_layer (np.ndarray, optional): Atmospheric boundary layer [m]
