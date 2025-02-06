@@ -197,7 +197,8 @@ def create_lla_polygons_from_xy_points(
 
     This function takes a grid of East-North points, these points are used as center points for a pixel grid. The pixel
     grid is then converted to LLA coordinates and these center points are used to create a polygon in LLA coordinates.
-    A polygon is only created if the boolean mask for that pixel is True.
+    A polygon is only created if the boolean mask for that pixel is True. In case one East-North point is available, a 
+    predefined grid size of 1e-6 (equaling to 0.0036 seconds)
 
     Args:
         points_array (list[np.ndarray]): List of arrays of grid of points in ENU coordinates.
