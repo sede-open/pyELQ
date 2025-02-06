@@ -229,6 +229,11 @@ def create_lla_polygons_from_xy_points(
     _, gridsize_lat = is_regularly_spaced(lla_object_full_grid.latitude, tolerance=1e-6)
     _, gridsize_lon = is_regularly_spaced(lla_object_full_grid.longitude, tolerance=1e-6)
 
+    if np.isnan(gridsize_lat):
+        gridsize_lat = 1e-6
+    if np.isnan(gridsize_lon):
+        gridsize_lon = 1e-6
+
     polygons = [
         geometry.box(
             lla_object_full_grid.longitude[idx] - gridsize_lon / 2,
