@@ -22,15 +22,16 @@ def test_sensorgroup():
     """Tests to check all properties of the SensorGroup class have the correct output shapes."""
     nof_sensors = 3
     total_observations = 0
+    random_generator = np.random.default_rng(0)
     group = SensorGroup()
     for idx in range(nof_sensors):
         sensor = Sensor()
-        nof_observations = np.random.Generator.integers(1, 10)
+        nof_observations = random_generator.integers(1, 10)
         total_observations += nof_observations
-        sensor.concentration = np.random.Generator.random(nof_observations, 1)
+        sensor.concentration = random_generator.random(size=(nof_observations, 1))
         sensor.time = pd.array(pd.date_range(start="1/1/2022", periods=nof_observations), dtype="datetime64[ns]")
         sensor.location = LLA(
-            latitude=0.01 * np.random.Generator.random(), longitude=0.01 * np.random.Generator.random(), altitude=0.01 * np.random.Generator.random()
+            latitude=0.01 * random_generator.random(), longitude=0.01 * random_generator.random(), altitude=0.01 * random_generator.random()
         )
         sensor.label = str(idx)
         group.add_sensor(sensor=sensor)
@@ -50,11 +51,12 @@ def test_sensorgroup():
 def test_plotting():
     """Tests to check if plotting methods provide a plotly figure with the correct amount of traces."""
     nof_sensors = 3
+    random_generator = np.random.default_rng(0)
     group = SensorGroup()
     for idx in range(nof_sensors):
         sensor = Sensor()
-        nof_observations = np.random.Generator.integers(5, 10)
-        sensor.concentration = np.random.Generator.random(nof_observations, 1)
+        nof_observations = random_generator.integers(5, 10)
+        sensor.concentration = random_generator.random(size=(nof_observations, 1))
         sensor.time = pd.array(pd.date_range(start="1/1/2022", periods=nof_observations), dtype="datetime64[ns]")
         location = LLA()
         location.latitude = np.array(idx)
