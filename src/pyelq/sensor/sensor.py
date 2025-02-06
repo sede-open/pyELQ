@@ -49,7 +49,7 @@ class Sensor:
         """Int: Number of observations contained in concentration array."""
         return self.concentration.size
 
-    def plot_sensor_location(self, fig: go.Figure(), color=None) -> go.Figure:
+    def plot_sensor_location(self, fig: go.Figure, color=None) -> go.Figure:
         """Plotting the sensor location.
 
         Args:
@@ -78,7 +78,7 @@ class Sensor:
         )
         return fig
 
-    def plot_timeseries(self, fig: go.Figure(), color=None, mode: str = "markers") -> go.Figure:
+    def plot_timeseries(self, fig: go.Figure, color=None, mode: str = "markers") -> go.Figure:
         """Timeseries plot of the sensor concentration observations.
 
         Args:
