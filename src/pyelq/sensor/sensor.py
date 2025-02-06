@@ -67,7 +67,7 @@ class Sensor:
             marker_dict["color"] = color
 
         fig.add_trace(
-            go.Scattermapbox(
+            go.Scattermap(
                 mode="markers+lines",
                 lat=np.array(lla_object.latitude),
                 lon=np.array(lla_object.longitude),

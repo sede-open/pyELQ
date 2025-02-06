@@ -73,7 +73,7 @@ def test_plotting():
 
     fig_2 = go.Figure()
     fig_2 = group.plot_sensor_location(fig_2)
-    fig_2.update_layout(mapbox={"style": "open-street-map", "center": {"lon": 0, "lat": 0}, "zoom": 7})
+    fig_2.update_layout(map={"style": "open-street-map", "center": {"lon": 0, "lat": 0}, "zoom": 7})
     assert isinstance(fig_2, go.Figure)
     assert len(fig_2.data) == group.nof_sensors
     # fig_2.show(renderer='browser')
