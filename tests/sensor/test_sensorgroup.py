@@ -31,7 +31,9 @@ def test_sensorgroup():
         sensor.concentration = random_generator.random(size=(nof_observations, 1))
         sensor.time = pd.array(pd.date_range(start="1/1/2022", periods=nof_observations), dtype="datetime64[ns]")
         sensor.location = LLA(
-            latitude=0.01 * random_generator.random(), longitude=0.01 * random_generator.random(), altitude=0.01 * random_generator.random()
+            latitude=0.01 * random_generator.random(),
+            longitude=0.01 * random_generator.random(),
+            altitude=0.01 * random_generator.random(),
         )
         sensor.label = str(idx)
         group.add_sensor(sensor=sensor)
