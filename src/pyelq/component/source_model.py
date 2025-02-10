@@ -19,7 +19,7 @@ A SourceModel instance inherits from 3 super-classes:
 from abc import abstractmethod
 from copy import deepcopy
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING, Tuple, Union, Dict
+from typing import TYPE_CHECKING, Tuple, Union
 
 import numpy as np
 from openmcmc import parameter
