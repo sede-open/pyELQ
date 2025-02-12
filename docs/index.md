@@ -8,10 +8,6 @@ SPDX-License-Identifier: Apache-2.0
 This repository contains the Python Emission Localization and Quantification software we call pyELQ. It is code used 
 for gas dispersion modelling, in particular methane emissions detection, localization and quantification. 
 
-# IMPORTANT NOTICE
-We will move pyELQ from the pyELQ-sdk project on PyPi to the pyELQ project soon. Please consider installing through the 
-new project on [PyPi](https://pypi.org/project/pyelq/).
-
 ***
 # Background
 The **py**thon **E**mission **L**ocalization and **Q**uantification (pyELQ) code aims to maximize effective use of 
@@ -59,8 +55,8 @@ Therefore, careful interpretation of the data is always required.
 ***
 # Installing pyELQ as a package
 Suppose you want to use this pyELQ package in a different project.
-You can install it from [PyPi](https://pypi.org/project/pyelq-sdk/) through pip 
-`pip install pyelq-sdk`.
+You can install it from [PyPi](https://pypi.org/project/pyelq/) through pip 
+`pip install pyelq`.
 Or you could clone the repository and install it from the source code. 
 After activating the environment you want to install pyELQ in, open a terminal, move to the main pyELQ folder
 where pyproject.toml is located and run `pip install .`, optionally you can pass the `-e` flag is for editable mode.
