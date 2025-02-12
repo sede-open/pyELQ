@@ -46,25 +46,27 @@ class ParameterMapping:
     """ Class for defining mapping variable/parameterised labels needed for creating an mcmc
 
     """
-    map : Dict = field(default_factory==
-                      {'source': 's',
-                       'coupling_matrix': 'A',
+
+    map : dict = field(default_factory =lambda:
+                       {'source': 's',
+                        'coupling_matrix': 'A',
                         'emission_rate_mean':'mu_s',
                         'emission_rate_precision': 'lambda_s',
                         'allocation': 'alloc_s',
                         'source_prob': 's_prob',
                         'precision_prior_shape': 'a_lam_s',
                         'precision_prior_rate': 'b_lam_s',
-                        "source_location": 'z_src',
+                        'source_location': 'z_src',
                         'number_sources': 'n_src',
-                        "number_source_rate": 'rho'})
-                      
+                        'number_source_rate': 'rho'}
+                        )
+
     def append_string(self, string: str=None):
         """ Append string to all element of map
 
         e.g. 'source': 's' would become 'source': 's_fixed' with string = 'fixed'
 
-        If string is None nothing is appended
+        If string is None, nothing is appended.
 
         Args:
             string (str): string to append
@@ -516,7 +518,7 @@ class SourceModel(Component, SourceGrouping, SourceDistribution):
 
     threshold_function: callable = lambda x: np.quantile(x, 0.95, axis=0)
 
-    label_string: str = None 
+    label_string: str = None
 
     def __post_init__(self):
         if self.label_string is not None:
