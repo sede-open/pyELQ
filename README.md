@@ -25,6 +25,10 @@ SPDX-License-Identifier: Apache-2.0
 This repository contains the Python Emission Localization and Quantification software we call pyELQ. It is code used 
 for gas dispersion modelling, in particular methane emissions detection, localization and quantification. 
 
+# IMPORTANT NOTICE
+We will move pyELQ from the pyELQ-sdk project on PyPi to the pyELQ project soon. Please consider installing through the 
+new project on [PyPi](https://pypi.org/project/pyelq/).
+
 ***
 # Background
 The **py**thon **E**mission **L**ocalization and **Q**uantification (pyELQ) code aims to maximize effective use of 
