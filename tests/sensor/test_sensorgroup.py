@@ -22,15 +22,18 @@ def test_sensorgroup():
     """Tests to check all properties of the SensorGroup class have the correct output shapes."""
     nof_sensors = 3
     total_observations = 0
+    random_generator = np.random.default_rng(0)
     group = SensorGroup()
     for idx in range(nof_sensors):
         sensor = Sensor()
-        nof_observations = np.random.randint(1, 10)
+        nof_observations = random_generator.integers(1, 10)
         total_observations += nof_observations
-        sensor.concentration = np.random.rand(nof_observations, 1)
+        sensor.concentration = random_generator.random(size=(nof_observations, 1))
         sensor.time = pd.array(pd.date_range(start="1/1/2022", periods=nof_observations), dtype="datetime64[ns]")
         sensor.location = LLA(
-            latitude=0.01 * np.random.rand(), longitude=0.01 * np.random.rand(), altitude=0.01 * np.random.rand()
+            latitude=0.01 * random_generator.random(),
+            longitude=0.01 * random_generator.random(),
+            altitude=0.01 * random_generator.random(),
         )
         sensor.label = str(idx)
         group.add_sensor(sensor=sensor)
@@ -50,13 +53,12 @@ def test_sensorgroup():
 def test_plotting():
     """Tests to check if plotting methods provide a plotly figure with the correct amount of traces."""
     nof_sensors = 3
-    total_observations = 0
+    random_generator = np.random.default_rng(0)
     group = SensorGroup()
     for idx in range(nof_sensors):
         sensor = Sensor()
-        nof_observations = np.random.randint(5, 10)
-        total_observations += nof_observations
-        sensor.concentration = np.random.rand(nof_observations, 1)
+        nof_observations = random_generator.integers(5, 10)
+        sensor.concentration = random_generator.random(size=(nof_observations, 1))
         sensor.time = pd.array(pd.date_range(start="1/1/2022", periods=nof_observations), dtype="datetime64[ns]")
         location = LLA()
         location.latitude = np.array(idx)
@@ -73,7 +75,7 @@ def test_plotting():
 
     fig_2 = go.Figure()
     fig_2 = group.plot_sensor_location(fig_2)
-    fig_2.update_layout(mapbox={"style": "open-street-map", "center": {"lon": 0, "lat": 0}, "zoom": 7})
+    fig_2.update_layout(map={"style": "open-street-map", "center": {"lon": 0, "lat": 0}, "zoom": 7})
     assert isinstance(fig_2, go.Figure)
     assert len(fig_2.data) == group.nof_sensors
     # fig_2.show(renderer='browser')

@@ -382,7 +382,7 @@ def plot_single_box(fig: go.Figure, y_values: np.ndarray, color: str, name: str)
 
 def plot_polygons_on_map(
     polygons: Union[np.ndarray, list], values: np.ndarray, opacity: float, map_color_scale: str, **kwargs: Any
-) -> go.Choroplethmapbox:
+) -> go.Choroplethmap:
     """Plot a set of polygons on a map.
 
     Args:
@@ -391,11 +391,11 @@ def plot_polygons_on_map(
                              used in coloring the polygons on the map.
         opacity (float): Float between 0 and 1 specifying the opacity of the polygon fill color.
         map_color_scale (str): The string which defines which plotly color scale.
-        **kwargs (Any): Additional key word arguments which can be passed on the go.Choroplethmapbox object
+        **kwargs (Any): Additional key word arguments which can be passed on the go.Choroplethmap object
             (will override the default values as specified in this function)
 
     Returns:
-        trace: go.Choroplethmapbox trace with the colored polygons which can be added to a go.Figure object.
+        trace: go.Choroplethmap trace with the colored polygons which can be added to a go.Figure object.
 
     """
     polygon_id = list(range(values.shape[0]))
@@ -424,7 +424,7 @@ def plot_polygons_on_map(
     for key, value in kwargs.items():
         trace_options[key] = value
 
-    trace = go.Choroplethmapbox(**trace_options)
+    trace = go.Choroplethmap(**trace_options)
 
     return trace
 
@@ -437,7 +437,7 @@ def plot_regular_grid(
     tolerance: float = 1e-7,
     unit: str = "kg/hr",
     name="Values",
-) -> go.Choroplethmapbox:
+) -> go.Choroplethmap:
     """Plots a regular grid of LLA data onto a map.
 
     So long as the input array is regularly spaced, the value of the spacing is found. A set of rectangles are defined
@@ -455,7 +455,7 @@ def plot_regular_grid(
         name (str, optional): Name for the trace to be used in the color bar as well
 
     Returns:
-        trace (go.Choroplethmapbox): Trace with the colored polygons which can be added to a go.Figure object.
+        trace (go.Choroplethmap): Trace with the colored polygons which can be added to a go.Figure object.
 
     """
     _, gridsize_lat = is_regularly_spaced(coordinates.latitude, tolerance=tolerance)
@@ -541,14 +541,12 @@ class Plot:
 
     Attributes:
         figure_dict (dict): Figure dictionary, used as storage using keys to identify the different figures.
-        mapbox_token (str, optional): Optional mapbox token, used for plotting mapbox backgrounds.
         layout (dict, optional): Layout template for plotly figures, used in all figures generated using this class
             instance.
 
     """
 
     figure_dict: dict = field(default_factory=dict)
-    mapbox_token: str = "empty"
     layout: dict = field(default_factory=dict)
 
     def __post_init__(self):
@@ -897,21 +895,20 @@ class Plot:
 
         self.figure_dict[dict_key] = fig
 
-    def create_empty_mapbox_figure(self, dict_key: str = "map_plot") -> None:
-        """Creating an empty mapbox figure to use when you want to add additional traces on a map.
+    def create_empty_map_figure(self, dict_key: str = "map_plot") -> None:
+        """Creating an empty map figure to use when you want to add additional traces on a map.
 
         Args:
             dict_key (str, optional): String key for figure dictionary
 
         """
         self.figure_dict[dict_key] = go.Figure(
-            data=go.Scattermapbox(),
+            data=go.Scattermap(),
             layout={
-                "mapbox_style": "carto-positron",
-                "mapbox_center_lat": 0,
-                "mapbox_center_lon": 0,
-                "mapbox_zoom": 0,
-                "mapbox_accesstoken": self.mapbox_token,
+                "map_style": "carto-positron",
+                "map_center_lat": 0,
+                "map_center_lon": 0,
+                "map_zoom": 0,
             },
         )
 
@@ -938,7 +935,7 @@ class Plot:
         latitude_check, _ = is_regularly_spaced(coordinates.latitude)
         longitude_check, _ = is_regularly_spaced(coordinates.longitude)
         if latitude_check and longitude_check:
-            self.create_empty_mapbox_figure(dict_key=dict_key)
+            self.create_empty_map_figure(dict_key=dict_key)
             trace = plot_regular_grid(
                 coordinates=coordinates,
                 values=values,
@@ -958,13 +955,13 @@ class Plot:
                 show_positions=show_positions,
                 aggregate_function=aggregate_function,
             )
-            fig.update_layout(mapbox_accesstoken=self.mapbox_token, mapbox_style="carto-positron")
+            fig.update_layout(map_style="carto-positron")
             self.figure_dict[dict_key] = fig
 
         center_longitude = np.mean(coordinates.longitude)
         center_latitude = np.mean(coordinates.latitude)
         self.figure_dict[dict_key].update_layout(
-            mapbox={"zoom": 10, "center": {"lon": center_longitude, "lat": center_latitude}}
+            map={"zoom": 10, "center": {"lon": center_longitude, "lat": center_latitude}}
         )
 
         if self.layout is not None:
@@ -1024,7 +1021,7 @@ class Plot:
         if show_summary_results:
             summary_trace = self.create_summary_trace(summary_result=summary_result)
 
-        self.create_empty_mapbox_figure(dict_key="count_map")
+        self.create_empty_map_figure(dict_key="count_map")
         trace = plot_polygons_on_map(
             polygons=polygons,
             values=normalized_count[count_boolean].flatten(),
@@ -1035,9 +1032,8 @@ class Plot:
         )
         self.figure_dict["count_map"].add_trace(trace)
         self.figure_dict["count_map"].update_layout(
-            mapbox_accesstoken=self.mapbox_token,
-            mapbox_style="carto-positron",
-            mapbox={"zoom": 15, "center": {"lon": ref_longitude, "lat": ref_latitude}},
+            map_style="carto-positron",
+            map={"zoom": 15, "center": {"lon": ref_longitude, "lat": ref_latitude}},
             title=f"Source location probability "
             f"(>={normalized_count_limit}) for "
             f"{datetime_min_string} to {datetime_max_string}",
@@ -1052,7 +1048,7 @@ class Plot:
 
         median_of_all_emissions = np.nanmedian(adjusted_result_weights, axis=2)
 
-        self.create_empty_mapbox_figure(dict_key="median_map")
+        self.create_empty_map_figure(dict_key="median_map")
 
         trace = plot_polygons_on_map(
             polygons=polygons,
@@ -1064,9 +1060,8 @@ class Plot:
         )
         self.figure_dict["median_map"].add_trace(trace)
         self.figure_dict["median_map"].update_layout(
-            mapbox_accesstoken=self.mapbox_token,
-            mapbox_style="carto-positron",
-            mapbox={"zoom": 15, "center": {"lon": ref_longitude, "lat": ref_latitude}},
+            map_style="carto-positron",
+            map={"zoom": 15, "center": {"lon": ref_longitude, "lat": ref_latitude}},
             title=f"Median emission rate estimate for {datetime_min_string} to {datetime_max_string}",
             font_family="Futura",
             font_size=15,
@@ -1077,7 +1072,7 @@ class Plot:
         iqr_of_all_emissions = np.nanquantile(a=adjusted_result_weights, q=0.75, axis=2) - np.nanquantile(
             a=adjusted_result_weights, q=0.25, axis=2
         )
-        self.create_empty_mapbox_figure(dict_key="iqr_map")
+        self.create_empty_map_figure(dict_key="iqr_map")
 
         trace = plot_polygons_on_map(
             polygons=polygons,
@@ -1089,9 +1084,8 @@ class Plot:
         )
         self.figure_dict["iqr_map"].add_trace(trace)
         self.figure_dict["iqr_map"].update_layout(
-            mapbox_accesstoken=self.mapbox_token,
-            mapbox_style="carto-positron",
-            mapbox={"zoom": 15, "center": {"lon": ref_longitude, "lat": ref_latitude}},
+            map_style="carto-positron",
+            map={"zoom": 15, "center": {"lon": ref_longitude, "lat": ref_latitude}},
             title=f"Inter Quartile range (25%-75%) of emission rate "
             f"estimate for {datetime_min_string} to {datetime_max_string}",
             font_family="Futura",
@@ -1147,7 +1141,7 @@ class Plot:
     @staticmethod
     def create_summary_trace(
         summary_result: pd.DataFrame,
-    ) -> go.Scattermapbox:
+    ) -> go.Scattermap:
         """Helper function to create the summary information to plot on top of map type plots.
 
         We use the summary result calculated through the support functions module to create a trace which contains
@@ -1157,7 +1151,7 @@ class Plot:
             summary_result (pd.DataFrame): DataFrame containing the summary information for each source location.
 
         Returns:
-            summary_trace (go.Scattermapbox): Trace with summary information to plot on top of map type plots.
+            summary_trace (go.Scattermap): Trace with summary information to plot on top of map type plots.
 
         """
         summary_text_values = [
@@ -1176,11 +1170,11 @@ class Plot:
             for value in summary_result.index
         ]
 
-        summary_trace = go.Scattermapbox(
+        summary_trace = go.Scattermap(
             lat=summary_result.latitude,
             lon=summary_result.longitude,
             mode="markers",
-            marker=go.scattermapbox.Marker(size=14, color="black"),
+            marker=go.scattermap.Marker(size=14, color="black"),
             text=summary_text_values,
             name="Summary",
             hoverinfo="text",
