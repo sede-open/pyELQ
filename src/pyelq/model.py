@@ -65,6 +65,7 @@ class ELQModel:
         source_model: SourceModel = Normal(),
         error_model: ErrorModel = BySensor(),
         offset_model: PerSensor = None,
+        source_model_fixed : SourceModel = None
     ):
         """Initialise the ELQModel model.
 
@@ -85,6 +86,7 @@ class ELQModel:
             source_model (SourceModel): source model specification. Defaults to Normal().
             error_model (Precision): measurement precision model specification. Defaults to BySensor().
             offset_model (PerSensor): offset model specification. Defaults to None.
+            source_model_fixed (SourceModel): fixed source model specification. Defaults to None.
 
         """
         self.sensor_object = sensor_object
@@ -95,6 +97,7 @@ class ELQModel:
             "source": source_model,
             "error_model": error_model,
             "offset": offset_model,
+            "source_fixed": source_model_fixed,
         }
         if error_model is None:
             self.components["error_model"] = BySensor()
@@ -112,11 +115,17 @@ class ELQModel:
             self.form["bg"] = "B_bg"
             self.transform["bg"] = False
         if "source" in component_keys:
-            self.transform["s"] = False
-            self.form["s"] = "A"
+            source_component_map = self.components["source"].map
+            self.transform[source_component_map["source"]] = False
+            self.form[source_component_map["source"]] = source_component_map["coupling_matrix"]
         if "offset" in component_keys:
             self.form["d"] = "B_d"
             self.transform["d"] = False
+        if "source_fixed" in component_keys:
+            source_component_map_fixed =self.components["source_fixed"].map
+            self.transform[source_component_map_fixed["source"]] = False
+            self.form[source_component_map_fixed["source"]] = source_component_map_fixed["coupling_matrix"]
+
         for key in component_keys:
             self.components[key].initialise(self.sensor_object, self.meteorology, self.gas_species)
 
