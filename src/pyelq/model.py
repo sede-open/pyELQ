@@ -9,6 +9,7 @@ This module provides a class definition for the main functionalities of the code
 openMCMC repo and defining some plotting wrappers.
 
 """
+import re
 import warnings
 from dataclasses import dataclass, field
 from typing import Union
@@ -62,10 +63,9 @@ class ELQModel:
         meteorology: Union[Meteorology, MeteorologyGroup],
         gas_species: GasSpecies,
         background: Background = SpatioTemporalBackground(),
-        source_model: SourceModel = Normal(),
+        source_model: Union[list, SourceModel] = Normal(),
         error_model: ErrorModel = BySensor(),
         offset_model: PerSensor = None,
-        source_model_fixed: SourceModel = None,
     ):
         """Initialise the ELQModel model.
 
@@ -83,7 +83,9 @@ class ELQModel:
             meteorology (Union[Meteorology, MeteorologyGroup]): meteorology data.
             gas_species (GasSpecies): gas species object.
             background (Background): background model specification. Defaults to SpatioTemporalBackground().
-            source_model (SourceModel): source model specification. Defaults to Normal().
+            source_model (Union[list, SourceModel]): source model specification. This can be a list of multiple
+            SourceModels or a single SourceModel. Defaults to Normal(). If a single SourceModel is used, it will
+            be converted to a list.
             error_model (Precision): measurement precision model specification. Defaults to BySensor().
             offset_model (PerSensor): offset model specification. Defaults to None.
             source_model_fixed (SourceModel): fixed source model specification. Defaults to None.
@@ -94,11 +96,17 @@ class ELQModel:
         self.gas_species = gas_species
         self.components = {
             "background": background,
-            "source": source_model,
             "error_model": error_model,
             "offset": offset_model,
-            "source_fixed": source_model_fixed,
         }
+        if not isinstance(source_model, list):
+            source_model = [source_model]
+        for source in source_model:
+            if source.label_string is None:
+                self.components["source"] = source
+            else:
+                self.components["source_" + source.label_string] = source
+
         if error_model is None:
             self.components["error_model"] = BySensor()
             warnings.warn("None is not an allowed type for error_model: resetting to default BySensor model.")
@@ -110,23 +118,19 @@ class ELQModel:
         """Take data inputs and extract relevant properties."""
         self.form = {}
         self.transform = {}
-        component_keys = list(self.components.keys())
-        if "background" in component_keys:
-            self.form["bg"] = "B_bg"
-            self.transform["bg"] = False
-        if "source" in component_keys:
-            source_component_map = self.components["source"].map
-            self.transform[source_component_map["source"]] = False
-            self.form[source_component_map["source"]] = source_component_map["coupling_matrix"]
-        if "offset" in component_keys:
-            self.form["d"] = "B_d"
-            self.transform["d"] = False
-        if "source_fixed" in component_keys:
-            source_component_map_fixed = self.components["source_fixed"].map
-            self.transform[source_component_map_fixed["source"]] = False
-            self.form[source_component_map_fixed["source"]] = source_component_map_fixed["coupling_matrix"]
+        for key, component in self.components.items():
 
-        for key in component_keys:
+            if "background" in key:
+                self.form["bg"] = "B_bg"
+                self.transform["bg"] = False
+            if re.match("source", key):
+                source_component_map = component.map
+                self.transform[source_component_map["source"]] = False
+                self.form[source_component_map["source"]] = source_component_map["coupling_matrix"]
+            if "offset" in key:
+                self.form["d"] = "B_d"
+                self.transform["d"] = False
+
             self.components[key].initialise(self.sensor_object, self.meteorology, self.gas_species)
 
     def to_mcmc(self):
