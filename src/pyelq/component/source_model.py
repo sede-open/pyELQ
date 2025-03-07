@@ -43,37 +43,44 @@ if TYPE_CHECKING:
 
 @dataclass
 class ParameterMapping:
-    """ Class for defining mapping variable/parameterised labels needed for creating an mcmc
+    """ Class for defining mapping variable/parameter labels needed for creating an analysis.
 
+    In instances where we want to include multiple source_model instances in an MCMC analysis, we can apply a suffix to
+    all of the parameter names in the mapping dictionary. This allows us to create separate variables for different
+    source map types, so that these can be associated with different sampler types in the MCMC analysis.
+
+    Attributes:
+        map (dict): dictionary containing mapping between variable types and MCMC parameters.
+    
     """
-
-    map : dict = field(default_factory =lambda:
-                       {'source': 's',
-                        'coupling_matrix': 'A',
-                        'emission_rate_mean':'mu_s',
-                        'emission_rate_precision': 'lambda_s',
-                        'allocation': 'alloc_s',
-                        'source_prob': 's_prob',
-                        'precision_prior_shape': 'a_lam_s',
-                        'precision_prior_rate': 'b_lam_s',
-                        'source_location': 'z_src',
-                        'number_sources': 'n_src',
-                        'number_source_rate': 'rho'}
+    map : dict = field(default_factory=lambda:
+                       {
+                            'source': 's',
+                            'coupling_matrix': 'A',
+                            'emission_rate_mean':'mu_s',
+                            'emission_rate_precision': 'lambda_s',
+                            'allocation': 'alloc_s',
+                            'source_prob': 's_prob',
+                            'precision_prior_shape': 'a_lam_s',
+                            'precision_prior_rate': 'b_lam_s',
+                            'source_location': 'z_src',
+                            'number_sources': 'n_src',
+                            'number_source_rate': 'rho'
+                        }
                         )
 
     def append_string(self, string: str=None):
-        """ Append string to all element of map
+        """Apply the supplied string as a suffix to all of the values in the mapping dictionary.
 
-        e.g. 'source': 's' would become 'source': 's_fixed' with string = 'fixed'
-
+        For example: {'source': 's'} would become {'source': 's_fixed'} when string = 'fixed' is passed as the argument.
         If string is None, nothing is appended.
 
         Args:
-            string (str): string to append
+            string (str): string to append to the variable names.
+        
         """
         if string is None:
             return
-
         for key, value in self.map.items():
             self.map[key] = value + '_' + string
 
