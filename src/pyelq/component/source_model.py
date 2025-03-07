@@ -41,9 +41,10 @@ from pyelq.source_map import SourceMap
 if TYPE_CHECKING:
     from pyelq.plotting.plot import Plot
 
+
 @dataclass
 class ParameterMapping:
-    """ Class for defining mapping variable/parameter labels needed for creating an analysis.
+    """Class for defining mapping variable/parameter labels needed for creating an analysis.
 
     In instances where we want to include multiple source_model instances in an MCMC analysis, we can apply a suffix to
     all of the parameter names in the mapping dictionary. This allows us to create separate variables for different
@@ -51,25 +52,26 @@ class ParameterMapping:
 
     Attributes:
         map (dict): dictionary containing mapping between variable types and MCMC parameters.
-    
-    """
-    map : dict = field(default_factory=lambda:
-                       {
-                            'source': 's',
-                            'coupling_matrix': 'A',
-                            'emission_rate_mean':'mu_s',
-                            'emission_rate_precision': 'lambda_s',
-                            'allocation': 'alloc_s',
-                            'source_prob': 's_prob',
-                            'precision_prior_shape': 'a_lam_s',
-                            'precision_prior_rate': 'b_lam_s',
-                            'source_location': 'z_src',
-                            'number_sources': 'n_src',
-                            'number_source_rate': 'rho'
-                        }
-                        )
 
-    def append_string(self, string: str=None):
+    """
+
+    map: dict = field(
+        default_factory=lambda: {
+            "source": "s",
+            "coupling_matrix": "A",
+            "emission_rate_mean": "mu_s",
+            "emission_rate_precision": "lambda_s",
+            "allocation": "alloc_s",
+            "source_prob": "s_prob",
+            "precision_prior_shape": "a_lam_s",
+            "precision_prior_rate": "b_lam_s",
+            "source_location": "z_src",
+            "number_sources": "n_src",
+            "number_source_rate": "rho",
+        }
+    )
+
+    def append_string(self, string: str = None):
         """Apply the supplied string as a suffix to all of the values in the mapping dictionary.
 
         For example: {'source': 's'} would become {'source': 's_fixed'} when string = 'fixed' is passed as the argument.
@@ -77,12 +79,13 @@ class ParameterMapping:
 
         Args:
             string (str): string to append to the variable names.
-        
+
         """
         if string is None:
             return
         for key, value in self.map.items():
-            self.map[key] = value + '_' + string
+            self.map[key] = value + "_" + string
+
 
 @dataclass
 class SourceGrouping(ParameterMapping):
@@ -203,7 +206,7 @@ class NullGrouping(SourceGrouping):
             dict: state updated with parameters related to the source grouping.
 
         """
-        state[self.map['emission_rate_mean']] = np.array(self.emission_rate_mean, ndmin=1)
+        state[self.map["emission_rate_mean"]] = np.array(self.emission_rate_mean, ndmin=1)
         state[self.map["allocation"]] = np.zeros((self.nof_sources, 1), dtype="int")
         return state
 
@@ -260,8 +263,9 @@ class SlabAndSpike(SourceGrouping):
             list: sampler_list updated with sampler for the source allocation.
 
         """
-        sampler_list.append(MixtureAllocation(param=self.map["allocation"], model=model,
-                                              response_param=self.map["source"]))
+        sampler_list.append(
+            MixtureAllocation(param=self.map["allocation"], model=model, response_param=self.map["source"])
+        )
         return sampler_list
 
     def make_allocation_state(self, state: dict) -> dict:
@@ -275,8 +279,9 @@ class SlabAndSpike(SourceGrouping):
 
         """
         state[self.map["emission_rate_mean"]] = np.array(self.emission_rate_mean, ndmin=1)
-        state[self.map["source_prob"]] = np.tile(np.array([self.slab_probability, 1 - self.slab_probability]),
-                                                 (self.nof_sources, 1))
+        state[self.map["source_prob"]] = np.tile(
+            np.array([self.slab_probability, 1 - self.slab_probability]), (self.nof_sources, 1)
+        )
         state[self.map["allocation"]] = np.ones((self.nof_sources, 1), dtype="int")
         return state
 
@@ -392,10 +397,12 @@ class NormalResponse(SourceDistribution):
         model.append(
             mcmcNormal(
                 self.map["source"],
-                mean=parameter.MixtureParameterVector(param=self.map['emission_rate_mean'],
-                                                      allocation=self.map["allocation"]),
-                precision=parameter.MixtureParameterMatrix(param=self.map["emission_rate_precision"],
-                                                           allocation=self.map["allocation"]),
+                mean=parameter.MixtureParameterVector(
+                    param=self.map["emission_rate_mean"], allocation=self.map["allocation"]
+                ),
+                precision=parameter.MixtureParameterMatrix(
+                    param=self.map["emission_rate_precision"], allocation=self.map["allocation"]
+                ),
                 domain_response_lower=domain_response_lower,
             )
         )
@@ -639,8 +646,9 @@ class SourceModel(Component, SourceGrouping, SourceDistribution):
         )
 
         if update_column == state[self.map["coupling_matrix"]].shape[1]:
-            state[self.map["coupling_matrix"]] = np.concatenate((state[self.map["coupling_matrix"]], new_coupling),
-                                                                axis=1)
+            state[self.map["coupling_matrix"]] = np.concatenate(
+                (state[self.map["coupling_matrix"]], new_coupling), axis=1
+            )
         elif update_column < state[self.map["coupling_matrix"]].shape[1]:
             state[self.map["coupling_matrix"]][:, [update_column]] = new_coupling
         else:
@@ -681,8 +689,9 @@ class SourceModel(Component, SourceGrouping, SourceDistribution):
 
         """
         prop_state = self.update_coupling_column(prop_state, int(prop_state[self.map["number_sources"]]) - 1)
-        prop_state[self.map["allocation"]] = np.concatenate((prop_state[self.map["allocation"]],
-                                                             np.array([0], ndmin=2)), axis=0)
+        prop_state[self.map["allocation"]] = np.concatenate(
+            (prop_state[self.map["allocation"]], np.array([0], ndmin=2)), axis=0
+        )
         in_cov_area = self.dispersion_model.compute_coverage(
             prop_state[self.map["coupling_matrix"]][:, -1],
             coverage_threshold=self.coverage_threshold,
@@ -720,8 +729,9 @@ class SourceModel(Component, SourceGrouping, SourceDistribution):
                 (i.e. log[p(current | proposed)])
 
         """
-        prop_state[self.map["coupling_matrix"]] = np.delete(prop_state[self.map["coupling_matrix"]],
-                                                            obj=deletion_index, axis=1)
+        prop_state[self.map["coupling_matrix"]] = np.delete(
+            prop_state[self.map["coupling_matrix"]], obj=deletion_index, axis=1
+        )
         prop_state[self.map["allocation"]] = np.delete(prop_state[self.map["allocation"]], obj=deletion_index, axis=0)
         logp_pr_g_cr = 0.0
         logp_cr_g_pr = 0.0
@@ -766,9 +776,13 @@ class SourceModel(Component, SourceGrouping, SourceDistribution):
         model = self.make_allocation_model(model)
         model = self.make_source_model(model)
         if self.update_precision:
-            model.append(Gamma(self.map["emission_rate_precision"],
-                               shape=self.map["precision_prior_shape"],
-                               rate=self.map["precision_prior_rate"]))
+            model.append(
+                Gamma(
+                    self.map["emission_rate_precision"],
+                    shape=self.map["precision_prior_shape"],
+                    rate=self.map["precision_prior_rate"],
+                )
+            )
         if self.reversible_jump:
             model.append(
                 Uniform(
@@ -851,8 +865,12 @@ class SourceModel(Component, SourceGrouping, SourceDistribution):
                 state_update_function=self.move_function,
             )
         )
-        matching_params = {"variable": self.map["source"], "matrix": self.map["coupling_matrix"],
-                           "scale": 1.0, "limits": [0.0, 1e6]}
+        matching_params = {
+            "variable": self.map["source"],
+            "matrix": self.map["coupling_matrix"],
+            "scale": 1.0,
+            "limits": [0.0, 1e6],
+        }
         sampler_list.append(
             ReversibleJump(
                 self.map["number_sources"],

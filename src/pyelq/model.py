@@ -65,7 +65,7 @@ class ELQModel:
         source_model: SourceModel = Normal(),
         error_model: ErrorModel = BySensor(),
         offset_model: PerSensor = None,
-        source_model_fixed : SourceModel = None
+        source_model_fixed: SourceModel = None,
     ):
         """Initialise the ELQModel model.
 
@@ -122,7 +122,7 @@ class ELQModel:
             self.form["d"] = "B_d"
             self.transform["d"] = False
         if "source_fixed" in component_keys:
-            source_component_map_fixed =self.components["source_fixed"].map
+            source_component_map_fixed = self.components["source_fixed"].map
             self.transform[source_component_map_fixed["source"]] = False
             self.form[source_component_map_fixed["source"]] = source_component_map_fixed["coupling_matrix"]
 
