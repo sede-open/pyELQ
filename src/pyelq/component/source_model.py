@@ -81,8 +81,6 @@ class ParameterMapping:
             string (str): string to append to the variable names.
 
         """
-        if string is None:
-            return
         for key, value in self.map.items():
             self.map[key] = value + "_" + string
 
