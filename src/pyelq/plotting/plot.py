@@ -164,14 +164,7 @@ def create_trace_specifics(object_to_plot: Union[Type[SlabAndSpike], SourceModel
         title_text = "Number of Sources 'on' against MCMC iterations"
         x_label = "MCMC Iteration Number"
         y_label = "Number of Sources 'on'"
-        emission_rates = object_to_plot.emission_rate
-        if isinstance(object_to_plot, SlabAndSpike):
-            total_nof_sources = emission_rates.shape[0]
-            y_values = total_nof_sources - np.sum(object_to_plot.allocation, axis=0)
-        elif object_to_plot.reversible_jump:
-            y_values = np.count_nonzero(np.logical_not(np.isnan(emission_rates)), axis=0)
-        else:
-            raise TypeError("No plotting routine implemented for this SourceModel type.")
+        y_values = object_to_plot.number_on_sources
         x_values = np.array(range(y_values.size))
         color = "rgb(248, 156, 116)"
         name = "Number of Sources 'on'"
@@ -785,6 +778,7 @@ class Plot:
         if self.layout is not None:
             fig.update_layout(template=self.layout)
 
+
         fig.update_layout(title=title_text)
         fig.update_xaxes(title_standoff=20, automargin=True, title_text=x_label)
         fig.update_yaxes(title_standoff=20, automargin=True, title_text=y_label)
@@ -969,7 +963,8 @@ class Plot:
 
     def plot_quantification_results_on_map(
         self,
-        model_object: "ELQModel",
+        source_model: "SourceModel",
+        sensor_object: "Union[SensorGroup, Sensor]",
         bin_size_x: float = 1,
         bin_size_y: float = 1,
         normalized_count_limit: float = 0.005,
@@ -993,16 +988,20 @@ class Plot:
             show_summary_results (bool, optional): Flag to show the summary results on the map. Defaults to True.
 
         """
-        ref_latitude = model_object.components["source"].dispersion_model.source_map.location.ref_latitude
-        ref_longitude = model_object.components["source"].dispersion_model.source_map.location.ref_longitude
-        ref_altitude = model_object.components["source"].dispersion_model.source_map.location.ref_altitude
+        source_locations = source_model.all_source_locations
+        emission_rates = source_model.emission_rate
 
-        datetime_min_string = model_object.sensor_object.time.min().strftime("%d-%b-%Y, %H:%M:%S")
-        datetime_max_string = model_object.sensor_object.time.max().strftime("%d-%b-%Y, %H:%M:%S")
+        ref_latitude = source_locations.ref_latitude
+        ref_longitude = source_locations.ref_longitude
+        ref_altitude = source_locations.ref_altitude
+
+        datetime_min_string = sensor_object.time.min().strftime("%d-%b-%Y, %H:%M:%S")
+        datetime_max_string = sensor_object.time.max().strftime("%d-%b-%Y, %H:%M:%S")
 
         result_weighted, _, normalized_count, count_boolean, enu_points, summary_result = (
             calculate_rectangular_statistics(
-                model_object=model_object,
+                emission_rates= emission_rates,
+                source_locations=source_locations,
                 bin_size_x=bin_size_x,
                 bin_size_y=bin_size_y,
                 burn_in=burn_in,
@@ -1040,7 +1039,7 @@ class Plot:
             font_family="Futura",
             font_size=15,
         )
-        model_object.sensor_object.plot_sensor_location(self.figure_dict["count_map"])
+        sensor_object.plot_sensor_location(self.figure_dict["count_map"])
         self.figure_dict["count_map"].update_traces(showlegend=False)
 
         adjusted_result_weights = result_weighted.copy()
@@ -1066,7 +1065,7 @@ class Plot:
             font_family="Futura",
             font_size=15,
         )
-        model_object.sensor_object.plot_sensor_location(self.figure_dict["median_map"])
+        sensor_object.plot_sensor_location(self.figure_dict["median_map"])
         self.figure_dict["median_map"].update_traces(showlegend=False)
 
         iqr_of_all_emissions = np.nanquantile(a=adjusted_result_weights, q=0.75, axis=2) - np.nanquantile(
@@ -1091,7 +1090,7 @@ class Plot:
             font_family="Futura",
             font_size=15,
         )
-        model_object.sensor_object.plot_sensor_location(self.figure_dict["iqr_map"])
+        sensor_object.plot_sensor_location(self.figure_dict["iqr_map"])
         self.figure_dict["iqr_map"].update_traces(showlegend=False)
 
         if show_summary_results:
