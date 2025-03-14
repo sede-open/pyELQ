@@ -160,6 +160,7 @@ class NullGrouping(SourceGrouping):
             mean and precision term are used for all sources.
 
     """
+    number_on_sources : np.ndarray = field(init=False)
 
     def make_allocation_model(self, model: list) -> list:
         """Initialise the source allocation part of the model.
@@ -216,8 +217,11 @@ class NullGrouping(SourceGrouping):
 
         Args:
             store (dict): dictionary containing samples from the MCMC.
-
         """
+            
+        self.number_on_sources = np.count_nonzero(np.logical_not(np.isnan(store[self.map["source"]])), axis=0)
+
+
 
 
 @dataclass
@@ -236,6 +240,7 @@ class SlabAndSpike(SourceGrouping):
 
     slab_probability: float = 0.05
     allocation: np.ndarray = field(init=False)
+    number_on_sources : np.ndarray = field(init=False)
 
     def make_allocation_model(self, model: list) -> list:
         """Initialise the source allocation part of the model.
@@ -291,6 +296,10 @@ class SlabAndSpike(SourceGrouping):
 
         """
         self.allocation = store[self.map["allocation"]]
+        total_nof_sources = store[self.map["source"]].shape[0]
+        self.number_on_sources = total_nof_sources - np.sum(self.allocation, axis=0)
+
+
 
 
 @dataclass
@@ -503,6 +512,7 @@ class SourceModel(Component, SourceGrouping, SourceDistribution):
             for the coupling in a lambda function form. Examples: lambda x: np.quantile(x, 0.95, axis=0),
             lambda x: np.max(x, axis=0), lambda x: np.mean(x, axis=0). Defaults to np.quantile.
         label_string (str): string to append to the parameter mapping, e.g. for fixed sources.
+
     """
 
     dispersion_model: GaussianPlume = field(init=False, default=None)
@@ -524,7 +534,7 @@ class SourceModel(Component, SourceGrouping, SourceDistribution):
     prior_precision_rate: Union[float, np.ndarray] = 1e-3
     initial_precision: Union[float, np.ndarray] = 1.0
     precision_scalar: np.ndarray = field(init=False)
-
+    all_source_locations : np.ndarray = field(init=False)
     coverage_detection: float = 0.1
     coverage_test_source: float = 6.0
 
@@ -894,6 +904,25 @@ class SourceModel(Component, SourceGrouping, SourceDistribution):
         self.from_mcmc_dist(store)
         if self.update_precision:
             self.precision_scalar = store[self.map["emission_rate_precision"]]
+
+        if self.reversible_jump:
+            reference_latitude = self.dispersion_model.source_map.location.ref_latitude
+            reference_longitude = self.dispersion_model.source_map.location.ref_longitude
+            ref_altitude = self.dispersion_model.source_map.location.ref_altitude
+            self.all_source_locations = ENU(ref_latitude=reference_latitude, 
+                             ref_longitude=reference_longitude, 
+                             ref_altitude=ref_altitude,
+                             east= store["z_src"][0, :, :],
+                             north=store["z_src"][1, :, :],
+                             up=store["z_src"][2, :, :])
+            
+        else:
+            location_temp = self.dispersion_model.source_map.location.to_enu()
+            location_temp.east = np.repeat(location_temp.east[:, np.newaxis], store["log_post"].shape[0], axis=1)
+            location_temp.north = np.repeat(location_temp.north[:, np.newaxis], store["log_post"].shape[0], axis=1)
+            location_temp.up = np.repeat(location_temp.up[:, np.newaxis], store["log_post"].shape[0], axis=1)
+            self.all_source_locations = location_temp
+
 
     def plot_iterations(self, plot: "Plot", burn_in_value: int, y_axis_type: str = "linear") -> "Plot":
         """Plot the emission rate estimates source model object against MCMC iteration.
