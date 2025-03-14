@@ -28,6 +28,8 @@ from pyelq.gas_species import GasSpecies
 from pyelq.meteorology import Meteorology, MeteorologyGroup
 from pyelq.plotting.plot import Plot
 from pyelq.sensor.sensor import SensorGroup
+from pyelq.coordinate_system import ENU
+
 
 
 @dataclass
@@ -187,6 +189,55 @@ class ELQModel:
             component.from_mcmc(self.mcmc.store)
         for key in self.mcmc.store:
             state[key] = self.mcmc.store[key]
+
+        self.make_combined_source_models()
+
+    def make_combined_source_models(self):
+        """Combine the source models into a single source model.
+
+        This is done by summing the contributions from each source model.
+
+        """
+        self.components["combined_source"] = Normal(label_string="combined_source")
+        self.components["combined_source"].emission_rate = np.empty((0, self.mcmc.n_iter))
+        self.components["combined_source"].all_source_locations = ENU(ref_altitude=0,
+                                                                      ref_latitude=0,
+                                                                      ref_longitude=0,
+                                                                      east=np.empty((0, self.mcmc.n_iter)),
+                                                                      north=np.empty((0, self.mcmc.n_iter)), 
+                                                                      up=np.empty((0, self.mcmc.n_iter)))
+        self.components["combined_source"].number_on_sources = np.empty(self.mcmc.n_iter)
+
+        for key, component in self.components.items():
+            if key.startswith("source"):
+                self.components["combined_source"].emission_rate = np.concatenate(
+                    (self.components["combined_source"].emission_rate, component.emission_rate)
+                )
+                self.components["combined_source"].all_source_locations.east = np.concatenate(
+                    (self.components["combined_source"].all_source_locations.east,
+                     component.all_source_locations.east), axis=0
+                )
+                self.components["combined_source"].all_source_locations.north = np.concatenate(
+                    (self.components["combined_source"].all_source_locations.north,
+                     component.all_source_locations.north), axis=0
+                )
+                self.components["combined_source"].all_source_locations.up = np.concatenate(
+                    (self.components["combined_source"].all_source_locations.up,
+                     component.all_source_locations.up), axis=0
+                )
+
+                self.components["combined_source"].all_source_locations.ref_latitude =\
+                    component.all_source_locations.ref_latitude
+                self.components["combined_source"].all_source_locations.ref_longitude =\
+                    component.all_source_locations.ref_longitude
+                self.components["combined_source"].all_source_locations.ref_altitude =\
+                    component.all_source_locations.ref_altitude
+                self.components["combined_source"].number_on_sources = np.concatenate(
+                    (self.components["combined_source"].number_on_sources, 
+                     component.number_on_sources),
+                )
+
+
 
     def plot_log_posterior(self, burn_in_value: int, plot: Plot = Plot()) -> Plot():
         """Plots the trace of the log posterior over the iterations of the MCMC.
