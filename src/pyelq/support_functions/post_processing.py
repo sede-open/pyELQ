@@ -123,7 +123,7 @@ def calculate_rectangular_statistics(
 
     result_iteration_vals = np.array(range(nof_iterations)).reshape(1, -1) + 1
     result_iteration_vals = np.tile(result_iteration_vals, (max_nof_sources, 1)).flatten()
-    
+
     results_estimates = emission_rates.flatten()
 
     result_weighted, _ = np.histogramdd(
@@ -154,7 +154,7 @@ def calculate_rectangular_statistics(
         x_edges=x_edges,
         y_edges=y_edges,
         nof_iterations=nof_iterations,
-        ref_latitude= source_locations.ref_latitude,
+        ref_latitude=source_locations.ref_latitude,
         ref_longitude=source_locations.ref_longitude,
         ref_altitude=source_locations.ref_altitude,
     )
