@@ -160,7 +160,8 @@ class NullGrouping(SourceGrouping):
             mean and precision term are used for all sources.
 
     """
-    number_on_sources : np.ndarray = field(init=False)
+
+    number_on_sources: np.ndarray = field(init=False)
 
     def make_allocation_model(self, model: list) -> list:
         """Initialise the source allocation part of the model.
@@ -218,11 +219,8 @@ class NullGrouping(SourceGrouping):
         Args:
             store (dict): dictionary containing samples from the MCMC.
         """
-            
+
         self.number_on_sources = np.count_nonzero(np.logical_not(np.isnan(store[self.map["source"]])), axis=0)
-
-
-
 
 @dataclass
 class SlabAndSpike(SourceGrouping):
@@ -240,7 +238,7 @@ class SlabAndSpike(SourceGrouping):
 
     slab_probability: float = 0.05
     allocation: np.ndarray = field(init=False)
-    number_on_sources : np.ndarray = field(init=False)
+    number_on_sources: np.ndarray = field(init=False)
 
     def make_allocation_model(self, model: list) -> list:
         """Initialise the source allocation part of the model.
@@ -298,8 +296,6 @@ class SlabAndSpike(SourceGrouping):
         self.allocation = store[self.map["allocation"]]
         total_nof_sources = store[self.map["source"]].shape[0]
         self.number_on_sources = total_nof_sources - np.sum(self.allocation, axis=0)
-
-
 
 
 @dataclass
@@ -453,7 +449,6 @@ class NormalResponse(SourceDistribution):
         """
         self.emission_rate = store[self.map["source"]]
 
-
 @dataclass
 class SourceModel(Component, SourceGrouping, SourceDistribution):
     """Superclass for the specification of the source model in an inversion run.
@@ -534,7 +529,8 @@ class SourceModel(Component, SourceGrouping, SourceDistribution):
     prior_precision_rate: Union[float, np.ndarray] = 1e-3
     initial_precision: Union[float, np.ndarray] = 1.0
     precision_scalar: np.ndarray = field(init=False)
-    all_source_locations : np.ndarray = field(init=False)
+    all_source_locations: np.ndarray = field(init=False)
+    individual_source_labels : list = field(init=False)
     coverage_detection: float = 0.1
     coverage_test_source: float = 6.0
 
@@ -902,6 +898,8 @@ class SourceModel(Component, SourceGrouping, SourceDistribution):
         """
         self.from_mcmc_group(store)
         self.from_mcmc_dist(store)
+        self.individual_source_labels = list(np.repeat(self.label_string, store[self.map["source"]].shape[0]))
+
         if self.update_precision:
             self.precision_scalar = store[self.map["emission_rate_precision"]]
 
@@ -909,13 +907,15 @@ class SourceModel(Component, SourceGrouping, SourceDistribution):
             reference_latitude = self.dispersion_model.source_map.location.ref_latitude
             reference_longitude = self.dispersion_model.source_map.location.ref_longitude
             ref_altitude = self.dispersion_model.source_map.location.ref_altitude
-            self.all_source_locations = ENU(ref_latitude=reference_latitude, 
-                             ref_longitude=reference_longitude, 
-                             ref_altitude=ref_altitude,
-                             east= store["z_src"][0, :, :],
-                             north=store["z_src"][1, :, :],
-                             up=store["z_src"][2, :, :])
-            
+            self.all_source_locations = ENU(
+                ref_latitude=reference_latitude,
+                ref_longitude=reference_longitude,
+                ref_altitude=ref_altitude,
+                east=store["z_src"][0, :, :],
+                north=store["z_src"][1, :, :],
+                up=store["z_src"][2, :, :],
+            )
+
         else:
             location_temp = self.dispersion_model.source_map.location.to_enu()
             location_temp.east = np.repeat(location_temp.east[:, np.newaxis], store["log_post"].shape[0], axis=1)
