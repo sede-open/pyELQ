@@ -31,7 +31,6 @@ from pyelq.sensor.sensor import SensorGroup
 from pyelq.coordinate_system import ENU
 
 
-
 @dataclass
 class ELQModel:
     """Class for setting up, running, and post-processing the full ELQModel analysis.
@@ -190,54 +189,67 @@ class ELQModel:
         for key in self.mcmc.store:
             state[key] = self.mcmc.store[key]
 
-        self.make_combined_source_models()
+        self.make_combined_source_model()
 
-    def make_combined_source_models(self):
+    def make_combined_source_model(self):
         """Combine the source models into a single source model.
-
-        This is done by summing the contributions from each source model.
+        This function is used to combine the source models into a single source model, which is useful for plotting
+        when multiple source models are used in the analysis. A Normal source model is created with the label
+        "sources_combined" and the emission rate, source locations and number of sources "one" are concatenated from the
+        individual source models. The total number of sources is calculated by summing the number of sources from each
+        source model. The combined source model is then added to the components dictionary.
 
         """
-        self.components["combined_source"] = Normal(label_string="combined_source")
-        self.components["combined_source"].emission_rate = np.empty((0, self.mcmc.n_iter))
-        self.components["combined_source"].all_source_locations = ENU(ref_altitude=0,
-                                                                      ref_latitude=0,
-                                                                      ref_longitude=0,
-                                                                      east=np.empty((0, self.mcmc.n_iter)),
-                                                                      north=np.empty((0, self.mcmc.n_iter)), 
-                                                                      up=np.empty((0, self.mcmc.n_iter)))
-        self.components["combined_source"].number_on_sources = np.empty(self.mcmc.n_iter)
+
+        combined_model = Normal(label_string="sources_combined")
+        combined_model.emission_rate = np.empty((0, self.mcmc.n_iter))
+        combined_model.all_source_locations = ENU(
+            ref_altitude=0,
+            ref_latitude=0,
+            ref_longitude=0,
+            east=np.empty((0, self.mcmc.n_iter)),
+            north=np.empty((0, self.mcmc.n_iter)),
+            up=np.empty((0, self.mcmc.n_iter)),
+        )
+        combined_model.number_on_sources = np.empty((0, self.mcmc.n_iter))
+
+        combined_model.label_string = []
+        individual_source_labels = []
 
         for key, component in self.components.items():
             if key.startswith("source"):
-                self.components["combined_source"].emission_rate = np.concatenate(
-                    (self.components["combined_source"].emission_rate, component.emission_rate)
-                )
-                self.components["combined_source"].all_source_locations.east = np.concatenate(
-                    (self.components["combined_source"].all_source_locations.east,
-                     component.all_source_locations.east), axis=0
-                )
-                self.components["combined_source"].all_source_locations.north = np.concatenate(
-                    (self.components["combined_source"].all_source_locations.north,
-                     component.all_source_locations.north), axis=0
-                )
-                self.components["combined_source"].all_source_locations.up = np.concatenate(
-                    (self.components["combined_source"].all_source_locations.up,
-                     component.all_source_locations.up), axis=0
-                )
 
-                self.components["combined_source"].all_source_locations.ref_latitude =\
-                    component.all_source_locations.ref_latitude
-                self.components["combined_source"].all_source_locations.ref_longitude =\
-                    component.all_source_locations.ref_longitude
-                self.components["combined_source"].all_source_locations.ref_altitude =\
-                    component.all_source_locations.ref_altitude
-                self.components["combined_source"].number_on_sources = np.concatenate(
-                    (self.components["combined_source"].number_on_sources, 
-                     component.number_on_sources),
+                combined_model.emission_rate = np.concatenate((combined_model.emission_rate, component.emission_rate))
+                combined_model.number_on_sources = np.concatenate(
+                    (
+                        combined_model.number_on_sources.reshape((-1, self.mcmc.n_iter)),
+                        component.number_on_sources.reshape(-1, self.mcmc.n_iter),
+                    ),
+                    axis=0,
                 )
+                combined_model.label_string.append(component.label_string)
+                individual_source_labels.append(component.individual_source_labels)
+                for attr in ["east", "north", "up"]:
+                    setattr(
+                        combined_model.all_source_locations,
+                        attr,
+                        np.concatenate(
+                            (
+                                getattr(combined_model.all_source_locations, attr),
+                                getattr(component.all_source_locations, attr),
+                            ),
+                            axis=0,
+                        ),
+                    )
 
+                combined_model.all_source_locations.ref_latitude = component.all_source_locations.ref_latitude
+                combined_model.all_source_locations.ref_longitude = component.all_source_locations.ref_longitude
+                combined_model.all_source_locations.ref_altitude = component.all_source_locations.ref_altitude
+        
+        combined_model.number_on_sources = np.sum(combined_model.number_on_sources, axis=0)
+        combined_model.individual_source_labels = [item for sublist in individual_source_labels for item in sublist]
 
+        self.components["sources_combined"] = combined_model
 
     def plot_log_posterior(self, burn_in_value: int, plot: Plot = Plot()) -> Plot():
         """Plots the trace of the log posterior over the iterations of the MCMC.
