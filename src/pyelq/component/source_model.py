@@ -222,6 +222,7 @@ class NullGrouping(SourceGrouping):
 
         self.number_on_sources = np.count_nonzero(np.logical_not(np.isnan(store[self.map["source"]])), axis=0)
 
+
 @dataclass
 class SlabAndSpike(SourceGrouping):
     """Slab and spike source model, special case for the source grouping.
@@ -449,6 +450,7 @@ class NormalResponse(SourceDistribution):
         """
         self.emission_rate = store[self.map["source"]]
 
+
 @dataclass
 class SourceModel(Component, SourceGrouping, SourceDistribution):
     """Superclass for the specification of the source model in an inversion run.
@@ -530,7 +532,7 @@ class SourceModel(Component, SourceGrouping, SourceDistribution):
     initial_precision: Union[float, np.ndarray] = 1.0
     precision_scalar: np.ndarray = field(init=False)
     all_source_locations: np.ndarray = field(init=False)
-    individual_source_labels : list = field(init=False)
+    individual_source_labels: list = None
     coverage_detection: float = 0.1
     coverage_test_source: float = 6.0
 
@@ -898,7 +900,8 @@ class SourceModel(Component, SourceGrouping, SourceDistribution):
         """
         self.from_mcmc_group(store)
         self.from_mcmc_dist(store)
-        self.individual_source_labels = list(np.repeat(self.label_string, store[self.map["source"]].shape[0]))
+        if self.individual_source_labels is None:
+            self.individual_source_labels = list(np.repeat(self.label_string, store[self.map["source"]].shape[0]))
 
         if self.update_precision:
             self.precision_scalar = store[self.map["emission_rate_precision"]]
@@ -922,7 +925,6 @@ class SourceModel(Component, SourceGrouping, SourceDistribution):
             location_temp.north = np.repeat(location_temp.north[:, np.newaxis], store["log_post"].shape[0], axis=1)
             location_temp.up = np.repeat(location_temp.up[:, np.newaxis], store["log_post"].shape[0], axis=1)
             self.all_source_locations = location_temp
-
 
     def plot_iterations(self, plot: "Plot", burn_in_value: int, y_axis_type: str = "linear") -> "Plot":
         """Plot the emission rate estimates source model object against MCMC iteration.
