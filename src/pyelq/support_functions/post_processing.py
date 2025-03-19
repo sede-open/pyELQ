@@ -15,7 +15,7 @@ import numpy as np
 import pandas as pd
 from scipy.ndimage import label
 from shapely import geometry
-
+from sklearn.neighbors import BallTree
 from pyelq.coordinate_system import ENU
 
 if TYPE_CHECKING:
@@ -71,7 +71,10 @@ def calculate_rectangular_statistics(
     likelihood of the blob.
 
     Args:
-        model_object (ELQModel): ELQModel object containing the results of the MCMC run.
+        emission_rates (np.ndarray): and array of shape (number_of_sources, number_of_iterations) 
+        containing emission rate estimates from the MCMC run.
+        source_locations (ENU): An object containing the east, north, and up coordinates of source locations, 
+        as well as reference latitude, longitude, and altitude.
         bin_size_x (float, optional): Size of the bins in the x-direction. Defaults to 1.
         bin_size_y  (float, optional): Size of the bins in the y-direction. Defaults to 1.
         burn_in (int, optional): Number of burn-in iterations used in the MCMC. Defaults to 0.
@@ -360,4 +363,32 @@ def return_empty_summary_dataframe() -> pd.DataFrame:
     summary_result.loc[0, "iqr_estimate"] = np.nan
     summary_result.loc[0, "absolute_count_iterations"] = np.nan
     summary_result.loc[0, "blob_likelihood"] = np.nan
+    return summary_result
+
+
+def map_fixed_source_labels(
+    source_locations_fixed: np.ndarray, source_labels_fixed: list, summary_result: pd.DataFrame
+) -> pd.DataFrame:
+    """
+    Maps source labels to the closest indices in `summary_result` where `blob_likelihood == 1`
+    using a Haversine distance-based BallTree.
+    Args:
+        source_location_fixed (np.ndarray): Array of fixed source locations with shape (N, 3).
+        source_label_fixed (list): List of corresponding source labels.
+        summary_result (pd.DataFrame): Summary statistics for each blob of estimates.
+
+    Returns:
+        pd.DataFrame: Updated `summary_result` with modified index reflecting merged labels.
+    """
+
+    coord_array = summary_result.loc[summary_result["blob_likelihood"] == 1]
+    bt = BallTree(np.deg2rad(coord_array[["latitude", "longitude"]].values), metric="haversine")
+    index_mapping = {}
+    for source_index, target_coord in enumerate(source_locations_fixed):
+        _, indices = bt.query(np.deg2rad([target_coord[:2]]))
+        closest_index = coord_array.index[indices[0, 0]]
+        index_mapping.setdefault(closest_index, []).append(source_labels_fixed[source_index])
+
+    summary_result.index = summary_result.index.map(lambda x: index_mapping.get(x, x))
+    summary_result.index = summary_result.index.map(lambda x: ", ".join(x) if isinstance(x, list) else x)
     return summary_result
