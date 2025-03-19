@@ -22,6 +22,7 @@ from geojson import Feature, FeatureCollection
 from openmcmc.mcmc import MCMC
 from shapely import geometry
 
+
 from pyelq.component.background import TemporalBackground
 from pyelq.component.error_model import ErrorModel
 from pyelq.component.offset import PerSensor
@@ -33,6 +34,7 @@ from pyelq.support_functions.post_processing import (
     calculate_rectangular_statistics,
     create_lla_polygons_from_xy_points,
     is_regularly_spaced,
+    map_fixed_source_labels,
 )
 
 if TYPE_CHECKING:
@@ -164,14 +166,7 @@ def create_trace_specifics(object_to_plot: Union[Type[SlabAndSpike], SourceModel
         title_text = "Number of Sources 'on' against MCMC iterations"
         x_label = "MCMC Iteration Number"
         y_label = "Number of Sources 'on'"
-        emission_rates = object_to_plot.emission_rate
-        if isinstance(object_to_plot, SlabAndSpike):
-            total_nof_sources = emission_rates.shape[0]
-            y_values = total_nof_sources - np.sum(object_to_plot.allocation, axis=0)
-        elif object_to_plot.reversible_jump:
-            y_values = np.count_nonzero(np.logical_not(np.isnan(emission_rates)), axis=0)
-        else:
-            raise TypeError("No plotting routine implemented for this SourceModel type.")
+        y_values = object_to_plot.number_on_sources
         x_values = np.array(range(y_values.size))
         color = "rgb(248, 156, 116)"
         name = "Number of Sources 'on'"
@@ -833,13 +828,17 @@ class Plot:
 
         for source_idx in range(source_model_object.emission_rate.shape[0]):
             y_values = source_model_object.emission_rate[source_idx, :]
+            if source_model_object.individual_source_labels[source_idx] is not None:
+                source_label = source_model_object.individual_source_labels[source_idx]
+            else:
+                source_label = f"Source {source_idx}"
 
             fig = plot_single_scatter(
                 fig=fig,
                 x_values=x_values,
                 y_values=y_values,
                 color="rgb(102, 197, 204)",
-                name=f"Source {source_idx}",
+                name=source_label,
                 burn_in=burn_in,
                 show_legend=False,
                 legend_group="Source traces",
@@ -969,7 +968,8 @@ class Plot:
 
     def plot_quantification_results_on_map(
         self,
-        model_object: "ELQModel",
+        source_model: "SourceModel",
+        sensor_object: "Union[SensorGroup, Sensor]",
         bin_size_x: float = 1,
         bin_size_y: float = 1,
         normalized_count_limit: float = 0.005,
@@ -978,12 +978,14 @@ class Plot:
     ):
         """Function to create a map with the quantification results of the model object.
 
-        This function takes the ELQModel object and calculates the statistics for the quantification results. It then
-        populates the figure dictionary with three different maps showing the normalized count, median emission rate
-        and the inter-quartile range of the emission rate estimates.
+        This function takes the "SourceModel" object and calculates the statistics for the quantification results. 
+        It then populates the figure dictionary with three different maps showing the normalized count, 
+        median emission rate and the inter-quartile range of the emission rate estimates.
 
         Args:
-            model_object (ELQModel): ELQModel object containing the quantification results
+            source_model (SourceModel): SourceModel object containing the quantification results,
+              i.e., all_source_locations, emission rate and individual_source_labels. The individual_source_labels
+              are used to add the label for the fixed sources on the quantification map. 
             bin_size_x (float, optional): Size of the bins in the x-direction. Defaults to 1.
             bin_size_y (float, optional): Size of the bins in the y-direction. Defaults to 1.
             normalized_count_limit (float, optional): Limit for the normalized count to show on the map.
@@ -993,21 +995,45 @@ class Plot:
             show_summary_results (bool, optional): Flag to show the summary results on the map. Defaults to True.
 
         """
-        ref_latitude = model_object.components["source"].dispersion_model.source_map.location.ref_latitude
-        ref_longitude = model_object.components["source"].dispersion_model.source_map.location.ref_longitude
-        ref_altitude = model_object.components["source"].dispersion_model.source_map.location.ref_altitude
+        source_locations = source_model.all_source_locations
+        emission_rates = source_model.emission_rate
 
-        datetime_min_string = model_object.sensor_object.time.min().strftime("%d-%b-%Y, %H:%M:%S")
-        datetime_max_string = model_object.sensor_object.time.max().strftime("%d-%b-%Y, %H:%M:%S")
+        source_location_lla = source_locations.to_lla()
+        source_location_average = LLA()
+        source_location_average.latitude = np.nanmean(source_location_lla.latitude, axis=1)
+        source_location_average.longitude = np.nanmean(source_location_lla.longitude, axis=1)
+        source_location_average.altitude = np.nanmean(source_location_lla.altitude, axis=1)
+        source_location_average = source_location_average.to_array()
+
+        source_location_fixed = []
+        source_label_fixed = []
+        for source_label_index, source_label in enumerate(source_model.individual_source_labels):
+            if source_label is not None:
+                source_location_fixed.append(source_location_average[source_label_index])
+                source_label_fixed.append(source_label)
+
+        ref_latitude = source_locations.ref_latitude
+        ref_longitude = source_locations.ref_longitude
+        ref_altitude = source_locations.ref_altitude
+
+        datetime_min_string = sensor_object.time.min().strftime("%d-%b-%Y, %H:%M:%S")
+        datetime_max_string = sensor_object.time.max().strftime("%d-%b-%Y, %H:%M:%S")
 
         result_weighted, _, normalized_count, count_boolean, enu_points, summary_result = (
             calculate_rectangular_statistics(
-                model_object=model_object,
+                emission_rates=emission_rates,
+                source_locations=source_locations,
                 bin_size_x=bin_size_x,
                 bin_size_y=bin_size_y,
                 burn_in=burn_in,
                 normalized_count_limit=normalized_count_limit,
             )
+        )
+
+        summary_result = map_fixed_source_labels(
+            source_locations_fixed=source_location_fixed,
+            source_labels_fixed=source_label_fixed,
+            summary_result=summary_result,
         )
 
         polygons = create_lla_polygons_from_xy_points(
@@ -1040,7 +1066,7 @@ class Plot:
             font_family="Futura",
             font_size=15,
         )
-        model_object.sensor_object.plot_sensor_location(self.figure_dict["count_map"])
+        sensor_object.plot_sensor_location(self.figure_dict["count_map"])
         self.figure_dict["count_map"].update_traces(showlegend=False)
 
         adjusted_result_weights = result_weighted.copy()
@@ -1066,7 +1092,7 @@ class Plot:
             font_family="Futura",
             font_size=15,
         )
-        model_object.sensor_object.plot_sensor_location(self.figure_dict["median_map"])
+        sensor_object.plot_sensor_location(self.figure_dict["median_map"])
         self.figure_dict["median_map"].update_traces(showlegend=False)
 
         iqr_of_all_emissions = np.nanquantile(a=adjusted_result_weights, q=0.75, axis=2) - np.nanquantile(
@@ -1091,7 +1117,7 @@ class Plot:
             font_family="Futura",
             font_size=15,
         )
-        model_object.sensor_object.plot_sensor_location(self.figure_dict["iqr_map"])
+        sensor_object.plot_sensor_location(self.figure_dict["iqr_map"])
         self.figure_dict["iqr_map"].update_traces(showlegend=False)
 
         if show_summary_results:

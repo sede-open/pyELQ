@@ -31,13 +31,16 @@ def fix_background_model(request):
     return background_model()
 
 
-@pytest.fixture(params=[None, Normal, NormalSlabAndSpike], ids=["none", "normal", "normal-ssp"], name="source_model")
+@pytest.fixture(params=[None,
+                        Normal(),
+                        NormalSlabAndSpike(),
+                        Normal(label_string="fixed"),
+                        [Normal(), Normal(label_string="fixed")]
+                        ],
+                        ids=["none", "normal", "normal-ssp", "normal_label", "source_model_list"], name="source_model")
 def fix_source_model(request):
     """Fix a particular type of source model."""
-    source_model = request.param
-    if source_model is None:
-        return None
-    return source_model()
+    return request.param
 
 
 @pytest.fixture(params=[None, PerSensor], ids=["none", "per-sns"], name="offset_model")
@@ -71,7 +74,12 @@ def fix_model(sensor_group, met_group, gas_species, background_model, source_mod
     if offset_model is not None:
         offset_model.update_precision = True
     if source_model is not None:
-        source_model.update_precision = True
+
+        if isinstance(source_model, list):
+            for source_model_i in source_model:
+                source_model_i.update_precision = True
+        else:
+            source_model.update_precision = True
     model = ELQModel(
         sensor_object=sensor_group,
         meteorology=met_group,

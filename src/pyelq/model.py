@@ -9,6 +9,7 @@ This module provides a class definition for the main functionalities of the code
 openMCMC repo and defining some plotting wrappers.
 
 """
+import re
 import warnings
 from dataclasses import dataclass, field
 from typing import Union
@@ -27,6 +28,7 @@ from pyelq.gas_species import GasSpecies
 from pyelq.meteorology import Meteorology, MeteorologyGroup
 from pyelq.plotting.plot import Plot
 from pyelq.sensor.sensor import SensorGroup
+from pyelq.coordinate_system import ENU
 
 
 @dataclass
@@ -62,10 +64,9 @@ class ELQModel:
         meteorology: Union[Meteorology, MeteorologyGroup],
         gas_species: GasSpecies,
         background: Background = SpatioTemporalBackground(),
-        source_model: SourceModel = Normal(),
+        source_model: Union[list, SourceModel] = Normal(),
         error_model: ErrorModel = BySensor(),
         offset_model: PerSensor = None,
-        source_model_fixed: SourceModel = None,
     ):
         """Initialise the ELQModel model.
 
@@ -83,7 +84,9 @@ class ELQModel:
             meteorology (Union[Meteorology, MeteorologyGroup]): meteorology data.
             gas_species (GasSpecies): gas species object.
             background (Background): background model specification. Defaults to SpatioTemporalBackground().
-            source_model (SourceModel): source model specification. Defaults to Normal().
+            source_model (Union[list, SourceModel]): source model specification. This can be a list of multiple
+            SourceModels or a single SourceModel. Defaults to Normal(). If a single SourceModel is used, it will
+            be converted to a list.
             error_model (Precision): measurement precision model specification. Defaults to BySensor().
             offset_model (PerSensor): offset model specification. Defaults to None.
             source_model_fixed (SourceModel): fixed source model specification. Defaults to None.
@@ -94,11 +97,19 @@ class ELQModel:
         self.gas_species = gas_species
         self.components = {
             "background": background,
-            "source": source_model,
             "error_model": error_model,
             "offset": offset_model,
-            "source_fixed": source_model_fixed,
         }
+
+        if source_model is not None:
+            if not isinstance(source_model, list):
+                source_model = [source_model]
+            for source in source_model:
+                if source.label_string is None:
+                    self.components["source"] = source
+                else:
+                    self.components["source_" + source.label_string] = source
+
         if error_model is None:
             self.components["error_model"] = BySensor()
             warnings.warn("None is not an allowed type for error_model: resetting to default BySensor model.")
@@ -110,23 +121,19 @@ class ELQModel:
         """Take data inputs and extract relevant properties."""
         self.form = {}
         self.transform = {}
-        component_keys = list(self.components.keys())
-        if "background" in component_keys:
-            self.form["bg"] = "B_bg"
-            self.transform["bg"] = False
-        if "source" in component_keys:
-            source_component_map = self.components["source"].map
-            self.transform[source_component_map["source"]] = False
-            self.form[source_component_map["source"]] = source_component_map["coupling_matrix"]
-        if "offset" in component_keys:
-            self.form["d"] = "B_d"
-            self.transform["d"] = False
-        if "source_fixed" in component_keys:
-            source_component_map_fixed = self.components["source_fixed"].map
-            self.transform[source_component_map_fixed["source"]] = False
-            self.form[source_component_map_fixed["source"]] = source_component_map_fixed["coupling_matrix"]
+        for key, component in self.components.items():
 
-        for key in component_keys:
+            if "background" in key:
+                self.form["bg"] = "B_bg"
+                self.transform["bg"] = False
+            if re.match("source", key):
+                source_component_map = component.map
+                self.transform[source_component_map["source"]] = False
+                self.form[source_component_map["source"]] = source_component_map["coupling_matrix"]
+            if "offset" in key:
+                self.form["d"] = "B_d"
+                self.transform["d"] = False
+
             self.components[key].initialise(self.sensor_object, self.meteorology, self.gas_species)
 
     def to_mcmc(self):
@@ -183,6 +190,76 @@ class ELQModel:
             component.from_mcmc(self.mcmc.store)
         for key in self.mcmc.store:
             state[key] = self.mcmc.store[key]
+
+        self.make_combined_source_model()
+
+    def make_combined_source_model(self):
+        """Aggregate multiple individual source models into a single combined source model.
+        This function iterates through the existing source models stored in `self.components` and consolidates them
+        into a unified source model named `"sources_combined"`. This is particularly useful when multiple source
+        models are involved in an analysis, and a merged representation is required for visualization.
+        
+        The combined source model is created as an instance of the `Normal` model, with the label string 
+        "sources_combined" with the following attributes:
+        - emission_rate: concatenated across all source models.
+        - all_source_locations: concatenated across all source models.
+        - number_on_sources: derived by summing the individual source counts across all source models
+        - label_string: concatenated across all source models. 
+        - individual_source_labels: concatenated across all source models.
+        
+        Once combined, the `"sources_combined"` model is stored in the `self.components` dictionary for later use.
+
+        """
+
+        combined_model = Normal(label_string="sources_combined")
+        combined_model.emission_rate = np.empty((0, self.mcmc.n_iter))
+        combined_model.all_source_locations = ENU(
+            ref_altitude=0,
+            ref_latitude=0,
+            ref_longitude=0,
+            east=np.empty((0, self.mcmc.n_iter)),
+            north=np.empty((0, self.mcmc.n_iter)),
+            up=np.empty((0, self.mcmc.n_iter)),
+        )
+        combined_model.number_on_sources = np.empty((0, self.mcmc.n_iter))
+
+        combined_model.label_string = []
+        individual_source_labels = []
+
+        for key, component in self.components.items():
+            if key.startswith("source"):
+
+                combined_model.emission_rate = np.concatenate((combined_model.emission_rate, component.emission_rate))
+                combined_model.number_on_sources = np.concatenate(
+                    (
+                        combined_model.number_on_sources.reshape((-1, self.mcmc.n_iter)),
+                        component.number_on_sources.reshape(-1, self.mcmc.n_iter),
+                    ),
+                    axis=0,
+                )
+                combined_model.label_string.append(component.label_string)
+                individual_source_labels.append(component.individual_source_labels)
+                for attr in ["east", "north", "up"]:
+                    setattr(
+                        combined_model.all_source_locations,
+                        attr,
+                        np.concatenate(
+                            (
+                                getattr(combined_model.all_source_locations, attr),
+                                getattr(component.all_source_locations, attr),
+                            ),
+                            axis=0,
+                        ),
+                    )
+
+                combined_model.all_source_locations.ref_latitude = component.all_source_locations.ref_latitude
+                combined_model.all_source_locations.ref_longitude = component.all_source_locations.ref_longitude
+                combined_model.all_source_locations.ref_altitude = component.all_source_locations.ref_altitude
+
+        combined_model.number_on_sources = np.sum(combined_model.number_on_sources, axis=0)
+        combined_model.individual_source_labels = [item for sublist in individual_source_labels for item in sublist]
+
+        self.components["sources_combined"] = combined_model
 
     def plot_log_posterior(self, burn_in_value: int, plot: Plot = Plot()) -> Plot():
         """Plots the trace of the log posterior over the iterations of the MCMC.

@@ -15,7 +15,7 @@ import numpy as np
 import pandas as pd
 from scipy.ndimage import label
 from shapely import geometry
-
+from sklearn.neighbors import BallTree
 from pyelq.coordinate_system import ENU
 
 if TYPE_CHECKING:
@@ -52,7 +52,8 @@ def is_regularly_spaced(array: np.ndarray, tolerance: float = 0.01, return_delta
 
 
 def calculate_rectangular_statistics(
-    model_object: "ELQModel",
+    emission_rates: np.ndarray,
+    source_locations: ENU,
     bin_size_x: float = 1,
     bin_size_y: float = 1,
     burn_in: int = 0,
@@ -70,7 +71,10 @@ def calculate_rectangular_statistics(
     likelihood of the blob.
 
     Args:
-        model_object (ELQModel): ELQModel object containing the results of the MCMC run.
+        emission_rates (np.ndarray): and array of shape (number_of_sources, number_of_iterations) 
+        containing emission rate estimates from the MCMC run.
+        source_locations (ENU): An object containing the east, north, and up coordinates of source locations, 
+        as well as reference latitude, longitude, and altitude.
         bin_size_x (float, optional): Size of the bins in the x-direction. Defaults to 1.
         bin_size_y  (float, optional): Size of the bins in the y-direction. Defaults to 1.
         burn_in (int, optional): Number of burn-in iterations used in the MCMC. Defaults to 0.
@@ -85,24 +89,9 @@ def calculate_rectangular_statistics(
         summary_result (pd.DataFrame): Summary statistics for each blob of estimates.
 
     """
-    nof_iterations = model_object.n_iter
-    ref_latitude = model_object.components["source"].dispersion_model.source_map.location.ref_latitude
-    ref_longitude = model_object.components["source"].dispersion_model.source_map.location.ref_longitude
-    ref_altitude = model_object.components["source"].dispersion_model.source_map.location.ref_altitude
+    nof_iterations = emission_rates.shape[1]
 
-    if model_object.components["source"].reversible_jump:
-        all_source_locations = model_object.mcmc.store["z_src"]
-    else:
-        source_locations = (
-            model_object.components["source"]
-            .dispersion_model.source_map.location.to_enu(
-                ref_longitude=ref_longitude, ref_latitude=ref_latitude, ref_altitude=ref_altitude
-            )
-            .to_array()
-        )
-        all_source_locations = np.repeat(source_locations.T[:, :, np.newaxis], model_object.mcmc.n_iter, axis=2)
-
-    if np.all(np.isnan(all_source_locations[:2, :, :])):
+    if np.all(np.isnan(source_locations.east)):
         warnings.warn("No sources found")
         result_weighted = np.array([[[np.nan]]])
         overall_count = np.array([[0]])
@@ -113,10 +102,10 @@ def calculate_rectangular_statistics(
 
         return result_weighted, overall_count, normalized_count, count_boolean, edges_result[:2], summary_result
 
-    min_x = np.nanmin(all_source_locations[0, :, :])
-    max_x = np.nanmax(all_source_locations[0, :, :])
-    min_y = np.nanmin(all_source_locations[1, :, :])
-    max_y = np.nanmax(all_source_locations[1, :, :])
+    min_x = np.nanmin(source_locations.east)
+    max_x = np.nanmax(source_locations.east)
+    min_y = np.nanmin(source_locations.north)
+    max_y = np.nanmax(source_locations.north)
 
     bin_min_x = np.floor(min_x - 0.1)
     bin_max_x = np.ceil(max_x + 0.1)
@@ -125,19 +114,20 @@ def calculate_rectangular_statistics(
     bin_min_iteration = burn_in + 0.5
     bin_max_iteration = nof_iterations + 0.5
 
-    max_nof_sources = all_source_locations.shape[1]
+    max_nof_sources = source_locations.east.shape[0]
 
     x_edges = np.arange(start=bin_min_x, stop=bin_max_x + bin_size_x, step=bin_size_x)
     y_edges = np.arange(start=bin_min_y, stop=bin_max_y + bin_size_y, step=bin_size_y)
     iteration_edges = np.arange(start=bin_min_iteration, stop=bin_max_iteration + bin_size_y, step=1)
 
-    result_x_vals = all_source_locations[0, :, :].flatten()
-    result_y_vals = all_source_locations[1, :, :].flatten()
-    result_z_vals = all_source_locations[2, :, :].flatten()
+    result_x_vals = source_locations.east.flatten()
+    result_y_vals = source_locations.north.flatten()
+    result_z_vals = source_locations.up.flatten()
 
     result_iteration_vals = np.array(range(nof_iterations)).reshape(1, -1) + 1
     result_iteration_vals = np.tile(result_iteration_vals, (max_nof_sources, 1)).flatten()
-    results_estimates = model_object.mcmc.store["s"].flatten()
+
+    results_estimates = emission_rates.flatten()
 
     result_weighted, _ = np.histogramdd(
         sample=np.array([result_x_vals, result_y_vals, result_iteration_vals]).T,
@@ -167,11 +157,10 @@ def calculate_rectangular_statistics(
         x_edges=x_edges,
         y_edges=y_edges,
         nof_iterations=nof_iterations,
-        ref_latitude=ref_latitude,
-        ref_longitude=ref_longitude,
-        ref_altitude=ref_altitude,
+        ref_latitude=source_locations.ref_latitude,
+        ref_longitude=source_locations.ref_longitude,
+        ref_altitude=source_locations.ref_altitude,
     )
-
     return result_weighted, overall_count, normalized_count, count_boolean, edges_result[:2], summary_result
 
 
@@ -374,4 +363,32 @@ def return_empty_summary_dataframe() -> pd.DataFrame:
     summary_result.loc[0, "iqr_estimate"] = np.nan
     summary_result.loc[0, "absolute_count_iterations"] = np.nan
     summary_result.loc[0, "blob_likelihood"] = np.nan
+    return summary_result
+
+
+def map_fixed_source_labels(
+    source_locations_fixed: np.ndarray, source_labels_fixed: list, summary_result: pd.DataFrame
+) -> pd.DataFrame:
+    """
+    Maps source labels to the closest indices in `summary_result` where `blob_likelihood == 1`
+    using a Haversine distance-based BallTree.
+    Args:
+        source_location_fixed (np.ndarray): Array of fixed source locations with shape (N, 3).
+        source_label_fixed (list): List of corresponding source labels.
+        summary_result (pd.DataFrame): Summary statistics for each blob of estimates.
+
+    Returns:
+        pd.DataFrame: Updated `summary_result` with modified index reflecting merged labels.
+    """
+
+    coord_array = summary_result.loc[summary_result["blob_likelihood"] == 1]
+    bt = BallTree(np.deg2rad(coord_array[["latitude", "longitude"]].values), metric="haversine")
+    index_mapping = {}
+    for source_index, target_coord in enumerate(source_locations_fixed):
+        _, indices = bt.query(np.deg2rad([target_coord[:2]]))
+        closest_index = coord_array.index[indices[0, 0]]
+        index_mapping.setdefault(closest_index, []).append(source_labels_fixed[source_index])
+
+    summary_result.index = summary_result.index.map(lambda x: index_mapping.get(x, x))
+    summary_result.index = summary_result.index.map(lambda x: ", ".join(x) if isinstance(x, list) else x)
     return summary_result
