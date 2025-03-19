@@ -978,12 +978,14 @@ class Plot:
     ):
         """Function to create a map with the quantification results of the model object.
 
-        This function takes the ELQModel object and calculates the statistics for the quantification results. It then
-        populates the figure dictionary with three different maps showing the normalized count, median emission rate
-        and the inter-quartile range of the emission rate estimates.
+        This function takes the "SourceModel" object and calculates the statistics for the quantification results. 
+        It then populates the figure dictionary with three different maps showing the normalized count, 
+        median emission rate and the inter-quartile range of the emission rate estimates.
 
         Args:
-            model_object (ELQModel): ELQModel object containing the quantification results
+            source_model (SourceModel): SourceModel object containing the quantification results,
+              i.e., all_source_locations, emission rate and individual_source_labels. The individual_source_labels
+              are used to add the label for the fixed sources on the quantification map. 
             bin_size_x (float, optional): Size of the bins in the x-direction. Defaults to 1.
             bin_size_y (float, optional): Size of the bins in the y-direction. Defaults to 1.
             normalized_count_limit (float, optional): Limit for the normalized count to show on the map.
@@ -1003,15 +1005,11 @@ class Plot:
         source_location_average.altitude = np.nanmean(source_location_lla.altitude, axis=1)
         source_location_average = source_location_average.to_array()
 
-        # source_location_fixed = np.empty((0,3))
         source_location_fixed = []
         source_label_fixed = []
         for source_label_index, source_label in enumerate(source_model.individual_source_labels):
             if source_label is not None:
-                # source_location_fixed = np.concatenate((source_location_fixed,
-                #                                         source_location_average[source_label_index,:].reshape(1, -1)))
-
-                source_location_fixed.append(source_location_average[source_label_index])  # No need for .reshape(1, -1)
+                source_location_fixed.append(source_location_average[source_label_index])
                 source_label_fixed.append(source_label)
 
         ref_latitude = source_locations.ref_latitude
