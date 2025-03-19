@@ -192,12 +192,20 @@ class ELQModel:
         self.make_combined_source_model()
 
     def make_combined_source_model(self):
-        """Combine the source models into a single source model.
-        This function is used to combine the source models into a single source model, which is useful for plotting
-        when multiple source models are used in the analysis. A Normal source model is created with the label
-        "sources_combined" and the emission rate, source locations and number of sources "one" are concatenated from the
-        individual source models. The total number of sources is calculated by summing the number of sources from each
-        source model. The combined source model is then added to the components dictionary.
+        """Aggregate multiple individual source models into a single combined source model.
+        This function iterates through the existing source models stored in `self.components` and consolidates them
+        into a unified source model named `"sources_combined"`. This is particularly useful when multiple source
+        models are involved in an analysis, and a merged representation is required for visualization.
+        
+        The combined source model is created as an instance of the `Normal` model, with the label string 
+        "sources_combined" with the following attributes:
+        - emission_rate: concatenated across all source models.
+        - all_source_locations: concatenated across all source models.
+        - number_on_sources: derived by summing the individual source counts across all source models
+        - label_string: concatenated across all source models. 
+        - individual_source_labels: concatenated across all source models.
+        
+        Once combined, the `"sources_combined"` model is stored in the `self.components` dictionary for later use.
 
         """
 
@@ -245,7 +253,7 @@ class ELQModel:
                 combined_model.all_source_locations.ref_latitude = component.all_source_locations.ref_latitude
                 combined_model.all_source_locations.ref_longitude = component.all_source_locations.ref_longitude
                 combined_model.all_source_locations.ref_altitude = component.all_source_locations.ref_altitude
-        
+
         combined_model.number_on_sources = np.sum(combined_model.number_on_sources, axis=0)
         combined_model.individual_source_labels = [item for sublist in individual_source_labels for item in sublist]
 
