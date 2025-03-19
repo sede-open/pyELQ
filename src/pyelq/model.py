@@ -100,13 +100,15 @@ class ELQModel:
             "error_model": error_model,
             "offset": offset_model,
         }
-        if not isinstance(source_model, list):
-            source_model = [source_model]
-        for source in source_model:
-            if source.label_string is None:
-                self.components["source"] = source
-            else:
-                self.components["source_" + source.label_string] = source
+
+        if source_model is not None:
+            if not isinstance(source_model, list):
+                source_model = [source_model]
+            for source in source_model:
+                if source.label_string is None:
+                    self.components["source"] = source
+                else:
+                    self.components["source_" + source.label_string] = source
 
         if error_model is None:
             self.components["error_model"] = BySensor()
