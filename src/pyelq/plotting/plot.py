@@ -22,6 +22,7 @@ from geojson import Feature, FeatureCollection
 from openmcmc.mcmc import MCMC
 from shapely import geometry
 
+
 from pyelq.component.background import TemporalBackground
 from pyelq.component.error_model import ErrorModel
 from pyelq.component.offset import PerSensor
@@ -33,6 +34,7 @@ from pyelq.support_functions.post_processing import (
     calculate_rectangular_statistics,
     create_lla_polygons_from_xy_points,
     is_regularly_spaced,
+    map_fixed_source_labels,
 )
 
 if TYPE_CHECKING:
@@ -778,7 +780,6 @@ class Plot:
         if self.layout is not None:
             fig.update_layout(template=self.layout)
 
-
         fig.update_layout(title=title_text)
         fig.update_xaxes(title_standoff=20, automargin=True, title_text=x_label)
         fig.update_yaxes(title_standoff=20, automargin=True, title_text=y_label)
@@ -827,13 +828,17 @@ class Plot:
 
         for source_idx in range(source_model_object.emission_rate.shape[0]):
             y_values = source_model_object.emission_rate[source_idx, :]
+            if source_model_object.individual_source_labels[source_idx] is not None:
+                source_label = source_model_object.individual_source_labels[source_idx]
+            else:
+                source_label = f"Source {source_idx}"
 
             fig = plot_single_scatter(
                 fig=fig,
                 x_values=x_values,
                 y_values=y_values,
                 color="rgb(102, 197, 204)",
-                name=f"Source {source_idx}",
+                name=source_label,
                 burn_in=burn_in,
                 show_legend=False,
                 legend_group="Source traces",
@@ -991,6 +996,24 @@ class Plot:
         source_locations = source_model.all_source_locations
         emission_rates = source_model.emission_rate
 
+        source_location_lla = source_locations.to_lla()
+        source_location_average = LLA()
+        source_location_average.latitude = np.nanmean(source_location_lla.latitude, axis=1)
+        source_location_average.longitude = np.nanmean(source_location_lla.longitude, axis=1)
+        source_location_average.altitude = np.nanmean(source_location_lla.altitude, axis=1)
+        source_location_average = source_location_average.to_array()
+
+        # source_location_fixed = np.empty((0,3))
+        source_location_fixed = []
+        source_label_fixed = []
+        for source_label_index, source_label in enumerate(source_model.individual_source_labels):
+            if source_label is not None:
+                # source_location_fixed = np.concatenate((source_location_fixed,
+                #                                         source_location_average[source_label_index,:].reshape(1, -1)))
+
+                source_location_fixed.append(source_location_average[source_label_index])  # No need for .reshape(1, -1)
+                source_label_fixed.append(source_label)
+
         ref_latitude = source_locations.ref_latitude
         ref_longitude = source_locations.ref_longitude
         ref_altitude = source_locations.ref_altitude
@@ -1000,13 +1023,19 @@ class Plot:
 
         result_weighted, _, normalized_count, count_boolean, enu_points, summary_result = (
             calculate_rectangular_statistics(
-                emission_rates= emission_rates,
+                emission_rates=emission_rates,
                 source_locations=source_locations,
                 bin_size_x=bin_size_x,
                 bin_size_y=bin_size_y,
                 burn_in=burn_in,
                 normalized_count_limit=normalized_count_limit,
             )
+        )
+
+        summary_result = map_fixed_source_labels(
+            source_locations_fixed=source_location_fixed,
+            source_labels_fixed=source_label_fixed,
+            summary_result=summary_result,
         )
 
         polygons = create_lla_polygons_from_xy_points(
