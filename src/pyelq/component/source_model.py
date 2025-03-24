@@ -901,7 +901,7 @@ class SourceModel(Component, SourceGrouping, SourceDistribution):
         self.from_mcmc_group(store)
         self.from_mcmc_dist(store)
         if self.individual_source_labels is None:
-            self.individual_source_labels = list(np.repeat(self.label_string, store[self.map["source"]].shape[0]))
+            self.individual_source_labels = list(np.repeat(None, store[self.map["source"]].shape[0]))
 
         if self.update_precision:
             self.precision_scalar = store[self.map["emission_rate_precision"]]
@@ -914,9 +914,9 @@ class SourceModel(Component, SourceGrouping, SourceDistribution):
                 ref_latitude=reference_latitude,
                 ref_longitude=reference_longitude,
                 ref_altitude=ref_altitude,
-                east=store["z_src"][0, :, :],
-                north=store["z_src"][1, :, :],
-                up=store["z_src"][2, :, :],
+                east=store[self.map["source_location"]][0, :, :],
+                north=store[self.map["source_location"]][1, :, :],
+                up=store[self.map["source_location"]][2, :, :],
             )
 
         else:
