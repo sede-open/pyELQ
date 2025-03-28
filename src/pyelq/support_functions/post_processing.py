@@ -71,9 +71,9 @@ def calculate_rectangular_statistics(
     likelihood of the blob.
 
     Args:
-        emission_rates (np.ndarray): and array of shape (number_of_sources, number_of_iterations) 
+        emission_rates (np.ndarray): and array of shape (number_of_sources, number_of_iterations)
         containing emission rate estimates from the MCMC run.
-        source_locations (ENU): An object containing the east, north, and up coordinates of source locations, 
+        source_locations (ENU): An object containing the east, north, and up coordinates of source locations,
         as well as reference latitude, longitude, and altitude.
         bin_size_x (float, optional): Size of the bins in the x-direction. Defaults to 1.
         bin_size_y  (float, optional): Size of the bins in the y-direction. Defaults to 1.

@@ -978,14 +978,14 @@ class Plot:
     ):
         """Function to create a map with the quantification results of the model object.
 
-        This function takes the "SourceModel" object and calculates the statistics for the quantification results. 
-        It then populates the figure dictionary with three different maps showing the normalized count, 
+        This function takes the "SourceModel" object and calculates the statistics for the quantification results.
+        It then populates the figure dictionary with three different maps showing the normalized count,
         median emission rate and the inter-quartile range of the emission rate estimates.
 
         Args:
             source_model (SourceModel): SourceModel object containing the quantification results,
               i.e., all_source_locations, emission rate and individual_source_labels. The individual_source_labels
-              are used to add the label for the fixed sources on the quantification map. 
+              are used to add the label for the fixed sources on the quantification map.
             bin_size_x (float, optional): Size of the bins in the x-direction. Defaults to 1.
             bin_size_y (float, optional): Size of the bins in the y-direction. Defaults to 1.
             normalized_count_limit (float, optional): Limit for the normalized count to show on the map.
