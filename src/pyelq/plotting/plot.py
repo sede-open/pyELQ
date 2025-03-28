@@ -22,7 +22,6 @@ from geojson import Feature, FeatureCollection
 from openmcmc.mcmc import MCMC
 from shapely import geometry
 
-
 from pyelq.component.background import TemporalBackground
 from pyelq.component.error_model import ErrorModel
 from pyelq.component.offset import PerSensor
@@ -978,8 +977,8 @@ class Plot:
     ):
         """Function to create a map with the quantification results of the model object.
 
-        This function takes the "SourceModel" object and calculates the statistics for the quantification results. 
-        It then populates the figure dictionary with three different maps showing the normalized count, 
+        This function takes the "SourceModel" object and calculates the statistics for the quantification results.
+        It then populates the figure dictionary with three different maps showing the normalized count,
         median emission rate and the inter-quartile range of the emission rate estimates.
 
         Args:

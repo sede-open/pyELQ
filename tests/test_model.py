@@ -31,13 +31,17 @@ def fix_background_model(request):
     return background_model()
 
 
-@pytest.fixture(params=[None,
-                        Normal(),
-                        NormalSlabAndSpike(),
-                        Normal(label_string="fixed"),
-                        [Normal(), Normal(label_string="fixed")]
-                        ],
-                        ids=["none", "normal", "normal-ssp", "normal_label", "source_model_list"], name="source_model")
+@pytest.fixture(
+    params=[
+        None,
+        Normal(),
+        NormalSlabAndSpike(),
+        Normal(label_string="fixed"),
+        [Normal(), Normal(label_string="fixed")],
+    ],
+    ids=["none", "normal", "normal-ssp", "normal_label", "source_model_list"],
+    name="source_model",
+)
 def fix_source_model(request):
     """Fix a particular type of source model."""
     return request.param

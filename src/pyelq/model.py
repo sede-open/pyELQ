@@ -24,11 +24,11 @@ from pyelq.component.background import Background, SpatioTemporalBackground
 from pyelq.component.error_model import BySensor, ErrorModel
 from pyelq.component.offset import PerSensor
 from pyelq.component.source_model import Normal, SourceModel
+from pyelq.coordinate_system import ENU
 from pyelq.gas_species import GasSpecies
 from pyelq.meteorology import Meteorology, MeteorologyGroup
 from pyelq.plotting.plot import Plot
 from pyelq.sensor.sensor import SensorGroup
-from pyelq.coordinate_system import ENU
 
 
 @dataclass
@@ -198,15 +198,15 @@ class ELQModel:
         This function iterates through the existing source models stored in `self.components` and consolidates them
         into a unified source model named `"sources_combined"`. This is particularly useful when multiple source
         models are involved in an analysis, and a merged representation is required for visualization.
-        
-        The combined source model is created as an instance of the `Normal` model, with the label string 
+
+        The combined source model is created as an instance of the `Normal` model, with the label string
         "sources_combined" with the following attributes:
         - emission_rate: concatenated across all source models.
         - all_source_locations: concatenated across all source models.
         - number_on_sources: derived by summing the individual source counts across all source models
-        - label_string: concatenated across all source models. 
+        - label_string: concatenated across all source models.
         - individual_source_labels: concatenated across all source models.
-        
+
         Once combined, the `"sources_combined"` model is stored in the `self.components` dictionary for later use.
 
         """
