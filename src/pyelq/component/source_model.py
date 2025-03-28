@@ -219,7 +219,6 @@ class NullGrouping(SourceGrouping):
         Args:
             store (dict): dictionary containing samples from the MCMC.
         """
-
         self.number_on_sources = np.count_nonzero(np.logical_not(np.isnan(store[self.map["source"]])), axis=0)
 
 

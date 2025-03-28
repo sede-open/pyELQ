@@ -370,9 +370,9 @@ def return_empty_summary_dataframe() -> pd.DataFrame:
 def map_fixed_source_labels(
     source_locations_fixed: np.ndarray, source_labels_fixed: list, summary_result: pd.DataFrame
 ) -> pd.DataFrame:
-    """
-    Maps source labels to the closest indices in `summary_result` where `blob_likelihood == 1`
+    """Maps source labels to the closest indices in `summary_result` where `blob_likelihood == 1`
     using a Haversine distance-based BallTree.
+
     Args:
         source_location_fixed (np.ndarray): Array of fixed source locations with shape (N, 3).
         source_label_fixed (list): List of corresponding source labels.
@@ -381,7 +381,6 @@ def map_fixed_source_labels(
     Returns:
         pd.DataFrame: Updated `summary_result` with modified index reflecting merged labels.
     """
-
     coord_array = summary_result.loc[summary_result["blob_likelihood"] == 1]
     bt = BallTree(np.deg2rad(coord_array[["latitude", "longitude"]].values), metric="haversine")
     index_mapping = {}
