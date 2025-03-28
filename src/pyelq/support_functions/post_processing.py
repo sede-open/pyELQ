@@ -16,6 +16,7 @@ import pandas as pd
 from scipy.ndimage import label
 from shapely import geometry
 from sklearn.neighbors import BallTree
+
 from pyelq.coordinate_system import ENU
 
 if TYPE_CHECKING:

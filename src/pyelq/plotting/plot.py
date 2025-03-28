@@ -22,7 +22,6 @@ from geojson import Feature, FeatureCollection
 from openmcmc.mcmc import MCMC
 from shapely import geometry
 
-
 from pyelq.component.background import TemporalBackground
 from pyelq.component.error_model import ErrorModel
 from pyelq.component.offset import PerSensor
