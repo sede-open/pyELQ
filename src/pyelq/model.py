@@ -195,7 +195,7 @@ class ELQModel:
 
     def make_combined_source_model(self):
         """Aggregate multiple individual source models into a single combined source model.
-        
+
         This function iterates through the existing source models stored in `self.components` and consolidates them
         into a unified source model named `"sources_combined"`. This is particularly useful when multiple source
         models are involved in an analysis, and a merged representation is required for visualization.
