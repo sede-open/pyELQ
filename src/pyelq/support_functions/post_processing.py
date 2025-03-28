@@ -371,7 +371,7 @@ def map_fixed_source_labels(
     source_locations_fixed: np.ndarray, source_labels_fixed: list, summary_result: pd.DataFrame
 ) -> pd.DataFrame:
     """Function to map the source labels.
-    
+
     Maps source labels to the closest indices in `summary_result` where `blob_likelihood == 1`
     using a Haversine distance-based BallTree.
 
