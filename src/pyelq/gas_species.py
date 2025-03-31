@@ -230,3 +230,26 @@ class NO2(GasSpecies):
 
     global_background = 0
     half_life = 12
+
+
+@dataclass
+class H2(GasSpecies):
+    """Defines the properties of H2."""
+
+    @property
+    def name(self):
+        """Str: Name of gas."""
+        return "Hydrogen"
+
+    @property
+    def molar_mass(self):
+        """Float: Molar Mass [g/mol]."""
+        return 2.01568
+
+    @property
+    def formula(self):
+        """Str: Chemical formula of gas."""
+        return "H2"
+
+    global_background = 0.5
+    # half_life = ???
