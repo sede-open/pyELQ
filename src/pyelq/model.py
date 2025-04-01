@@ -210,6 +210,10 @@ class ELQModel:
 
         Once combined, the `"sources_combined"` model is stored in the `self.components` dictionary for later use.
 
+        Raises:
+            ValueError: If the reference locations of the individual source models are inconsistent.
+            This is checked by comparing the reference latitude, longitude, and altitude of each source model.
+
         """
         combined_model = Normal(label_string="sources_combined")
         combined_model.emission_rate = np.empty((0, self.mcmc.n_iter))
@@ -225,6 +229,30 @@ class ELQModel:
 
         combined_model.label_string = []
         individual_source_labels = []
+
+
+        ref_latitude = None
+        ref_longitude = None
+        ref_altitude = None
+        for key, component in self.components.items():
+            if key.startswith("source"):
+                comp_ref_latitude = component.all_source_locations.ref_latitude
+                comp_ref_longitude = component.all_source_locations.ref_longitude
+                comp_ref_altitude = component.all_source_locations.ref_altitude
+                if ref_latitude is None and ref_longitude is None and ref_altitude is None:
+                    ref_latitude = comp_ref_latitude
+                    ref_longitude = comp_ref_longitude
+                    ref_altitude = comp_ref_altitude
+                else:
+                    if (not np.isclose(ref_latitude, comp_ref_latitude) or
+                        not np.isclose(ref_longitude, comp_ref_longitude) or
+                        not np.isclose(ref_altitude, comp_ref_altitude)):
+                        raise ValueError(f"Inconsistent reference locations in component '{key}'. "
+                                        "All source models must share the same reference location.")
+
+        combined_model.all_source_locations.ref_latitude = ref_latitude
+        combined_model.all_source_locations.ref_longitude = ref_longitude
+        combined_model.all_source_locations.ref_altitude = ref_altitude
 
         for key, component in self.components.items():
             if key.startswith("source"):
@@ -251,10 +279,6 @@ class ELQModel:
                             axis=0,
                         ),
                     )
-
-                combined_model.all_source_locations.ref_latitude = component.all_source_locations.ref_latitude
-                combined_model.all_source_locations.ref_longitude = component.all_source_locations.ref_longitude
-                combined_model.all_source_locations.ref_altitude = component.all_source_locations.ref_altitude
 
         combined_model.number_on_sources = np.sum(combined_model.number_on_sources, axis=0)
         combined_model.individual_source_labels = [item for sublist in individual_source_labels for item in sublist]
