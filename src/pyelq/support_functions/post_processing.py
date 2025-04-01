@@ -373,7 +373,13 @@ def map_fixed_source_labels(
     """Function to map the source labels.
 
     Maps source labels to the closest indices in `summary_result` where `blob_likelihood == 1`
-    using a Haversine distance-based BallTree.
+    using a Haversine distance-based BallTree. The reed for this function results from the
+    fact that the source locations are not necessarily the same as the locations of the
+    blobs in the summary result as the summary result is based on the aggregated estimates.
+    Therefore, we need to find the closest blob in the summary result to each fixed source
+    location. Then, the labels of the fixed source locations are mapped to the corresponding
+    blobs in the summary result and these labels are used when plotting the
+    quantification results and traces of the source emission rate.
 
     Args:
         source_location_fixed (np.ndarray): Array of fixed source locations with shape (N, 3).
