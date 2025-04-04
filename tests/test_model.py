@@ -22,7 +22,9 @@ def fix_model_default(sensor_group, met_group, gas_species):
     return model
 
 
-@pytest.fixture(params=[None, SpatioTemporalBackground], ids=["none", "spt"], name="background_model")
+@pytest.fixture(
+    params=[None, SpatioTemporalBackground], ids=["none-background", "spt-background"], name="background_model"
+)
 def fix_background_model(request):
     """Fix a particular type of background model."""
     background_model = request.param
@@ -39,7 +41,7 @@ def fix_background_model(request):
         Normal(label_string="fixed"),
         [Normal(), Normal(label_string="fixed")],
     ],
-    ids=["none", "normal", "normal-ssp", "normal_label", "source_model_list"],
+    ids=["none-model", "normal-model", "normal-ssp-model", "normal_label-model", "source-list-model"],
     name="source_model",
 )
 def fix_source_model(request):
@@ -47,7 +49,7 @@ def fix_source_model(request):
     return request.param
 
 
-@pytest.fixture(params=[None, PerSensor], ids=["none", "per-sns"], name="offset_model")
+@pytest.fixture(params=[None, PerSensor], ids=["none-offset", "per-sns-offset"], name="offset_model")
 def fix_offset_model(request):
     """Fix a particular type of offset model."""
     offset_model = request.param
@@ -56,7 +58,7 @@ def fix_offset_model(request):
     return offset_model()
 
 
-@pytest.fixture(params=[None, BySensor], ids=["none", "by-sns"], name="error_model")
+@pytest.fixture(params=[None, BySensor], ids=["none-error", "by-sns-error"], name="error_model")
 def fix_error_model(request):
     """Fix a particular type of error model.
 
