@@ -89,7 +89,6 @@ class ELQModel:
             be converted to a list.
             error_model (Precision): measurement precision model specification. Defaults to BySensor().
             offset_model (PerSensor): offset model specification. Defaults to None.
-            source_model_fixed (SourceModel): fixed source model specification. Defaults to None.
 
         """
         self.sensor_object = sensor_object
