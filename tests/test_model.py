@@ -72,7 +72,7 @@ def fix_error_model(request):
 
 @pytest.fixture(name="model")
 def fix_model(sensor_group, met_group, gas_species, background_model, source_model, error_model, offset_model):
-    """Create the ELQModel object using the data/model specifications.""" 
+    """Create the ELQModel object using the data/model specifications."""
     local_source_model = deepcopy(source_model)
     if background_model is not None:
         background_model.update_precision = True
