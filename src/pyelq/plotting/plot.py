@@ -1032,11 +1032,12 @@ class Plot:
             )
         )
 
-        summary_result = map_fixed_source_labels(
-            source_locations_fixed=source_location_fixed,
-            source_labels_fixed=source_label_fixed,
-            summary_result=summary_result,
-        )
+        if "fixed" in source_model.label_string:
+            summary_result = map_fixed_source_labels(
+                source_locations_fixed=source_location_fixed,
+                source_labels_fixed=source_label_fixed,
+                summary_result=summary_result,
+            )
 
         polygons = create_lla_polygons_from_xy_points(
             points_array=enu_points,
