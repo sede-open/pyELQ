@@ -252,4 +252,3 @@ class H2(GasSpecies):
         return "H2"
 
     global_background = 0.5
-    # half_life = ???
