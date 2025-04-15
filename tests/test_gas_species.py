@@ -13,7 +13,7 @@ This module provides tests for the gas species superclass in pyELQ
 import numpy as np
 import pytest
 
-from pyelq.gas_species import C2H6, C3H8, CH4, CO2, NO2, H2
+from pyelq.gas_species import C2H6, C3H8, CH4, CO2, H2, NO2
 
 
 @pytest.mark.parametrize("gas_species", [CH4, C2H6, C3H8, CO2, NO2, H2])
