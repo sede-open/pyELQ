@@ -22,7 +22,9 @@ def fix_model_default(sensor_group, met_group, gas_species):
     return model
 
 
-@pytest.fixture(params=[None, SpatioTemporalBackground], ids=["none", "spt"], name="background_model")
+@pytest.fixture(
+    params=[None, SpatioTemporalBackground], ids=["none-background", "spt-background"], name="background_model"
+)
 def fix_background_model(request):
     """Fix a particular type of background model."""
     background_model = request.param
@@ -31,16 +33,23 @@ def fix_background_model(request):
     return background_model()
 
 
-@pytest.fixture(params=[None, Normal, NormalSlabAndSpike], ids=["none", "normal", "normal-ssp"], name="source_model")
+@pytest.fixture(
+    params=[
+        None,
+        Normal(),
+        NormalSlabAndSpike(),
+        Normal(label_string="fixed"),
+        [Normal(), Normal(label_string="fixed")],
+    ],
+    ids=["none-model", "normal-model", "normal-ssp-model", "normal_label-model", "source-list-model"],
+    name="source_model",
+)
 def fix_source_model(request):
     """Fix a particular type of source model."""
-    source_model = request.param
-    if source_model is None:
-        return None
-    return source_model()
+    return request.param
 
 
-@pytest.fixture(params=[None, PerSensor], ids=["none", "per-sns"], name="offset_model")
+@pytest.fixture(params=[None, PerSensor], ids=["none-offset", "per-sns-offset"], name="offset_model")
 def fix_offset_model(request):
     """Fix a particular type of offset model."""
     offset_model = request.param
@@ -49,7 +58,7 @@ def fix_offset_model(request):
     return offset_model()
 
 
-@pytest.fixture(params=[None, BySensor], ids=["none", "by-sns"], name="error_model")
+@pytest.fixture(params=[None, BySensor], ids=["none-error", "by-sns-error"], name="error_model")
 def fix_error_model(request):
     """Fix a particular type of error model.
 
@@ -66,18 +75,24 @@ def fix_error_model(request):
 @pytest.fixture(name="model")
 def fix_model(sensor_group, met_group, gas_species, background_model, source_model, error_model, offset_model):
     """Create the ELQModel object using the data/model specifications."""
+    local_source_model = deepcopy(source_model)
     if background_model is not None:
         background_model.update_precision = True
     if offset_model is not None:
         offset_model.update_precision = True
-    if source_model is not None:
-        source_model.update_precision = True
+    if local_source_model is not None:
+
+        if isinstance(local_source_model, list):
+            for source_model_i in local_source_model:
+                source_model_i.update_precision = True
+        else:
+            local_source_model.update_precision = True
     model = ELQModel(
         sensor_object=sensor_group,
         meteorology=met_group,
         gas_species=gas_species,
         background=background_model,
-        source_model=source_model,
+        source_model=local_source_model,
         error_model=error_model,
         offset_model=offset_model,
     )
