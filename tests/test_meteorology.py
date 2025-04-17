@@ -198,7 +198,7 @@ def test_meteorology_group():
         assert np.allclose(temp_object.v_component, np.array([-1, 0, 1, 0]))
 
 
-def test_calculate_wind_turbulence_horizontal():
+def test_calculate_wind_turbulence_horizontal_deg():
     """Checks that the wind turbulence values are calculated correctly.
 
     To verify horizontal wind turbulence calculations, we define winds as draws from a normal distribution. We then check that the mean of the
@@ -219,7 +219,7 @@ def test_calculate_wind_turbulence_horizontal():
         pd.date_range(dt.datetime(2023, 1, 1), dt.datetime(2023, 1, 2), freq="5s"), dtype="datetime64[ns]"
     )
     met.wind_direction = np.random.normal(180, sigma, met.time.shape[0])
-    met.calculate_wind_turbulence_horizontal(window="300s")
+    met.calculate_wind_turbulence_horizontal_deg(window="300s")
 
     tolerance = 3 * np.std(met.wind_turbulence_horizontal)
     mean_turbulence = np.mean(met.wind_turbulence_horizontal)
