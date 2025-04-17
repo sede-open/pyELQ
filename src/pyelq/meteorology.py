@@ -155,7 +155,11 @@ class Meteorology:
         theta_mean = np.arctan2(v_mean.values, u_mean.values)
 
         perpendicular_components = -np.sin(theta_mean) * self.u_component + np.cos(theta_mean) * self.v_component
-        data_aggregate = pd.Series(data=perpendicular_components, index=self.time).rolling(window=window).std()
+        data_aggregate = (
+            pd.Series(data=perpendicular_components, index=self.time)
+            .rolling(window=window, center=True, min_periods=3)
+            .std()
+        )
         self.wind_turbulence_horizontal_meter_per_sec = data_aggregate.values
 
     def calculate_wind_turbulence_vertical_meter_per_sec(self, window: str) -> None:
