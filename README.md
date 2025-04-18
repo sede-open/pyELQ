@@ -6,8 +6,8 @@ SPDX-License-Identifier: Apache-2.0
 
 <div align="center">
 
-[![PyPI version](https://img.shields.io/pypi/v/pyelq-sdk.svg?logo=pypi&logoColor=FFE873)](https://pypi.org/project/pyelq-sdk/)
-[![Supported Python versions](https://img.shields.io/pypi/pyversions/pyelq-sdk.svg?logo=python&logoColor=FFE873)](https://pypi.org/project/pyelq-sdk/)
+[![PyPI version](https://img.shields.io/pypi/v/pyelq.svg?logo=pypi&logoColor=FFE873)](https://pypi.org/project/pyelq/)
+[![Supported Python versions](https://img.shields.io/pypi/pyversions/pyelq.svg?logo=python&logoColor=FFE873)](https://pypi.org/project/pyelq/)
 [![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 [![Code Style Black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
 
@@ -73,8 +73,8 @@ Therefore, careful interpretation of the data is always required.
 ***
 # Installing pyELQ as a package
 Suppose you want to use this pyELQ package in a different project.
-You can install it from [PyPi](https://pypi.org/project/pyelq-sdk/) through pip 
-`pip install pyelq-sdk`.
+You can install it from [PyPi](https://pypi.org/project/pyelq/) through pip 
+`pip install pyelq`.
 Or you could clone the repository and install it from the source code. 
 After activating the environment you want to install pyELQ in, open a terminal, move to the main pyELQ folder
 where pyproject.toml is located and run `pip install .`, optionally you can pass the `-e` flag is for editable mode.

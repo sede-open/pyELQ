@@ -109,18 +109,7 @@ def calculate_rectangular_statistics(
         normalized_count = np.array([[0]])
         count_boolean = np.array([[False]])
         edges_result = [np.array([np.nan])] * 2
-        summary_result = pd.DataFrame()
-        summary_result.index.name = "source_ID"
-        summary_result.loc[0, "latitude"] = np.nan
-        summary_result.loc[0, "longitude"] = np.nan
-        summary_result.loc[0, "altitude"] = np.nan
-        summary_result.loc[0, "height"] = np.nan
-        summary_result.loc[0, "median_estimate"] = np.nan
-        summary_result.loc[0, "quantile_025"] = np.nan
-        summary_result.loc[0, "quantile_975"] = np.nan
-        summary_result.loc[0, "iqr_estimate"] = np.nan
-        summary_result.loc[0, "absolute_count_iterations"] = np.nan
-        summary_result.loc[0, "blob_likelihood"] = np.nan
+        summary_result = return_empty_summary_dataframe()
 
         return result_weighted, overall_count, normalized_count, count_boolean, edges_result[:2], summary_result
 
@@ -197,7 +186,8 @@ def create_lla_polygons_from_xy_points(
 
     This function takes a grid of East-North points, these points are used as center points for a pixel grid. The pixel
     grid is then converted to LLA coordinates and these center points are used to create a polygon in LLA coordinates.
-    A polygon is only created if the boolean mask for that pixel is True.
+    A polygon is only created if the boolean mask for that pixel is True. In case one unique East-North point is
+    available, a predefined grid size of 1e-6 (equaling to 0.0036 seconds) is assumed.
 
     Args:
         points_array (list[np.ndarray]): List of arrays of grid of points in ENU coordinates.
@@ -228,6 +218,11 @@ def create_lla_polygons_from_xy_points(
 
     _, gridsize_lat = is_regularly_spaced(lla_object_full_grid.latitude, tolerance=1e-6)
     _, gridsize_lon = is_regularly_spaced(lla_object_full_grid.longitude, tolerance=1e-6)
+
+    if np.isnan(gridsize_lat):
+        gridsize_lat = 1e-6
+    if np.isnan(gridsize_lon):
+        gridsize_lon = 1e-6
 
     polygons = [
         geometry.box(
@@ -293,19 +288,7 @@ def create_aggregation(
     labeled_array, num_features = label(input=count_boolean, structure=np.ones((3, 3)))
 
     if num_features == 0:
-        summary_result = pd.DataFrame()
-        summary_result.index.name = "source_ID"
-        summary_result.loc[0, "latitude"] = np.nan
-        summary_result.loc[0, "longitude"] = np.nan
-        summary_result.loc[0, "altitude"] = np.nan
-        summary_result.loc[0, "height"] = np.nan
-        summary_result.loc[0, "median_estimate"] = np.nan
-        summary_result.loc[0, "quantile_025"] = np.nan
-        summary_result.loc[0, "quantile_975"] = np.nan
-        summary_result.loc[0, "iqr_estimate"] = np.nan
-        summary_result.loc[0, "absolute_count_iterations"] = np.nan
-        summary_result.loc[0, "blob_likelihood"] = np.nan
-
+        summary_result = return_empty_summary_dataframe()
         return summary_result
 
     burn_in_bool = result_iteration_vals > burn_in
@@ -374,4 +357,21 @@ def create_aggregation(
 
     summary_result = summary_result.astype({"absolute_count_iterations": "int"})
 
+    return summary_result
+
+
+def return_empty_summary_dataframe() -> pd.DataFrame:
+    """Helper function to create and return an empty summary dataframe with predifined columns."""
+    summary_result = pd.DataFrame()
+    summary_result.index.name = "source_ID"
+    summary_result.loc[0, "latitude"] = np.nan
+    summary_result.loc[0, "longitude"] = np.nan
+    summary_result.loc[0, "altitude"] = np.nan
+    summary_result.loc[0, "height"] = np.nan
+    summary_result.loc[0, "median_estimate"] = np.nan
+    summary_result.loc[0, "quantile_025"] = np.nan
+    summary_result.loc[0, "quantile_975"] = np.nan
+    summary_result.loc[0, "iqr_estimate"] = np.nan
+    summary_result.loc[0, "absolute_count_iterations"] = np.nan
+    summary_result.loc[0, "blob_likelihood"] = np.nan
     return summary_result

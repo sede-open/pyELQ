@@ -55,8 +55,8 @@ Therefore, careful interpretation of the data is always required.
 ***
 # Installing pyELQ as a package
 Suppose you want to use this pyELQ package in a different project.
-You can install it from [PyPi](https://pypi.org/project/pyelq-sdk/) through pip 
-`pip install pyelq-sdk`.
+You can install it from [PyPi](https://pypi.org/project/pyelq/) through pip 
+`pip install pyelq`.
 Or you could clone the repository and install it from the source code. 
 After activating the environment you want to install pyELQ in, open a terminal, move to the main pyELQ folder
 where pyproject.toml is located and run `pip install .`, optionally you can pass the `-e` flag is for editable mode.
