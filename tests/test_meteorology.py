@@ -221,6 +221,6 @@ def test_calculate_wind_turbulence_horizontal_deg():
     met.wind_direction = np.random.normal(180, sigma, met.time.shape[0])
     met.calculate_wind_turbulence_horizontal_deg(window="300s")
 
-    tolerance = 3 * np.std(met.wind_turbulence_horizontal)
-    mean_turbulence = np.mean(met.wind_turbulence_horizontal)
+    tolerance = 3 * np.std(met.wind_turbulence_horizontal_deg)
+    mean_turbulence = np.mean(met.wind_turbulence_horizontal_deg)
     assert (mean_turbulence - tolerance) < sigma < (mean_turbulence + tolerance)

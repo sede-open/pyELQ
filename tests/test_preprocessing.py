@@ -80,8 +80,8 @@ def fix_meteorology(request, sensor_group):
     meteorology.time = pd.array(pd.date_range(min_time, max_time, freq="1s"), dtype="datetime64[ns]")
     meteorology.wind_speed = 1.9 + 0.2 * np.random.random_sample(size=meteorology.time.shape)
     meteorology.wind_direction = np.mod(358.0 + 4.0 * np.random.random_sample(size=meteorology.time.shape), 360)
-    meteorology.wind_turbulence_horizontal = 10.0 * np.ones(shape=meteorology.time.shape)
-    meteorology.wind_turbulence_vertical = 10.0 * np.ones(shape=meteorology.time.shape)
+    meteorology.wind_turbulence_horizontal_deg = 10.0 * np.ones(shape=meteorology.time.shape)
+    meteorology.wind_turbulence_vertical_deg = 10.0 * np.ones(shape=meteorology.time.shape)
     meteorology.temperature = 293.0 * np.ones(shape=meteorology.time.shape)
     meteorology.pressure = 101.0 * np.ones(shape=meteorology.time.shape)
     if with_nans:
@@ -90,8 +90,8 @@ def fix_meteorology(request, sensor_group):
             [
                 "wind_speed",
                 "wind_direction",
-                "wind_turbulence_horizontal",
-                "wind_turbulence_vertical",
+                "wind_turbulence_horizontal_deg",
+                "wind_turbulence_vertical_deg",
                 "temperature",
                 "pressure",
             ],

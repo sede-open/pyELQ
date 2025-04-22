@@ -24,7 +24,7 @@ from pyelq.sensor.beam import Beam
 from pyelq.sensor.satellite import Satellite
 from pyelq.sensor.sensor import Sensor, SensorGroup
 from pyelq.source_map import SourceMap
-from pyelq.dispersion_model.turbulence_model import TurbulenceModel, AngularModel
+from pyelq.dispersion_model.turbulence_model import TurbulenceModel, AngularModel, DraxlerModel
 
 
 @dataclass
@@ -383,6 +383,25 @@ class GaussianPlume:
                 parameters.
 
         """
+
+        if isinstance(self.turbulence_model_horizontal, DraxlerModel):
+            unit_turbulence_horizontal = "meter_per_sec"
+        elif isinstance(self.turbulence_model_horizontal, AngularModel):
+            unit_turbulence_horizontal = "deg"
+        else:
+            raise ValueError(
+                f"Unit for unknown horizontal turbulence model '{self.turbulence_model_horizontal.__class__.__name__}' undefined."
+            )
+
+        if isinstance(self.turbulence_model_horizontal, DraxlerModel):
+            unit_turbulence_vertical = "meter_per_sec"
+        elif isinstance(self.turbulence_model_horizontal, AngularModel):
+            unit_turbulence_vertical = "deg"
+        else:
+            raise ValueError(
+                f"Unit for unknown vertical turbulence model '{self.turbulence_model_vertical.__class__.__name__}' undefined."
+            )
+
         if run_interpolation:
             gas_density = self.calculate_gas_density(
                 meteorology=meteorology, sensor_object=sensor_object, gas_object=gas_object
@@ -394,22 +413,26 @@ class GaussianPlume:
                 meteorology=meteorology, variable_name="v_component", sensor_object=sensor_object
             )
             wind_turbulence_horizontal = self.interpolate_meteorology(
-                meteorology=meteorology, variable_name="wind_turbulence_horizontal", sensor_object=sensor_object
+                meteorology=meteorology,
+                variable_name=f"wind_turbulence_horizontal_{unit_turbulence_horizontal}",
+                sensor_object=sensor_object,
             )
             wind_turbulence_vertical = self.interpolate_meteorology(
-                meteorology=meteorology, variable_name="wind_turbulence_vertical", sensor_object=sensor_object
+                meteorology=meteorology,
+                variable_name=f"wind_turbulence_vertical_{unit_turbulence_vertical}",
+                sensor_object=sensor_object,
             )
         else:
             gas_density = gas_object.gas_density(temperature=meteorology.temperature, pressure=meteorology.pressure)
             gas_density = gas_density.reshape((gas_density.size, 1))
             u_interpolated = meteorology.u_component.reshape((meteorology.u_component.size, 1))
             v_interpolated = meteorology.v_component.reshape((meteorology.v_component.size, 1))
-            wind_turbulence_horizontal = meteorology.wind_turbulence_horizontal.reshape(
-                (meteorology.wind_turbulence_horizontal.size, 1)
+            turbulence_array_horizontal = getattr(
+                meteorology, f"wind_turbulence_horizontal_{unit_turbulence_horizontal}"
             )
-            wind_turbulence_vertical = meteorology.wind_turbulence_vertical.reshape(
-                (meteorology.wind_turbulence_vertical.size, 1)
-            )
+            turbulence_array_vertical = getattr(meteorology, f"wind_turbulence_vertical_{unit_turbulence_vertical}")
+            wind_turbulence_horizontal = turbulence_array_horizontal.reshape((turbulence_array_horizontal.size, 1))
+            wind_turbulence_vertical = turbulence_array_vertical.reshape((turbulence_array_vertical.size, 1))
 
         return gas_density, u_interpolated, v_interpolated, wind_turbulence_horizontal, wind_turbulence_vertical
 
