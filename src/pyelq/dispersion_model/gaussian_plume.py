@@ -393,9 +393,9 @@ class GaussianPlume:
                 f"Unit for unknown horizontal turbulence model '{self.turbulence_model_horizontal.__class__.__name__}' undefined."
             )
 
-        if isinstance(self.turbulence_model_horizontal, DraxlerModel):
+        if isinstance(self.turbulence_model_vertical, DraxlerModel):
             unit_turbulence_vertical = "meter_per_sec"
-        elif isinstance(self.turbulence_model_horizontal, AngularModel):
+        elif isinstance(self.turbulence_model_vertical, AngularModel):
             unit_turbulence_vertical = "deg"
         else:
             raise ValueError(
