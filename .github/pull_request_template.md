@@ -8,6 +8,8 @@ SPDX-License-Identifier: Apache-2.0
 
 Please include a summary of the changes and the related issue. Please also include relevant motivation and context. List any dependencies that are required for this change.
 
+If this PR is related to an issue please link it correctly, see ['linking a pull request to an issue'](https://docs.github.com/en/issues/tracking-your-work-with-issues/using-issues/linking-a-pull-request-to-an-issue)
+
 Fixes # (issue)
 
 ## Type of change
