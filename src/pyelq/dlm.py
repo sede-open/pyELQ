@@ -130,7 +130,7 @@ class DLM:
             else:
                 state[:, [i]] = (
                     self.g_matrix @ state[:, [i - 1]]
-                    + random_generatorm.multivariate_normal(mean_state_noise, self.w_matrix, size=1).T
+                    + random_generator.multivariate_normal(mean_state_noise, self.w_matrix, size=1).T
                 )
             obs[:, [i]] = (
                 self.f_matrix.T @ state[:, [i]]
