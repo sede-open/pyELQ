@@ -119,20 +119,22 @@ class DLM:
         mean_state_noise = np.zeros(self.nof_state_parameters)
         mean_observation_noise = np.zeros(self.nof_observables)
 
+        random_generator = np.random.default_rng(seed=None)
+
         for i in range(nof_timesteps):
             if i == 0:
                 state[:, [i]] = (
                     self.g_matrix @ init_state
-                    + np.random.multivariate_normal(mean_state_noise, self.w_matrix, size=1).T
+                    + random_generator.multivariate_normal(mean_state_noise, self.w_matrix, size=1).T
                 )
             else:
                 state[:, [i]] = (
                     self.g_matrix @ state[:, [i - 1]]
-                    + np.random.multivariate_normal(mean_state_noise, self.w_matrix, size=1).T
+                    + random_generatorm.multivariate_normal(mean_state_noise, self.w_matrix, size=1).T
                 )
             obs[:, [i]] = (
                 self.f_matrix.T @ state[:, [i]]
-                + np.random.multivariate_normal(mean_observation_noise, self.v_matrix, size=1).T
+                + random_generator.multivariate_normal(mean_observation_noise, self.v_matrix, size=1).T
             )
 
         return state, obs
