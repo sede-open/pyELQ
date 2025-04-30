@@ -29,7 +29,7 @@ pymap3d = ">=3.1.0"
 geojson = ">=3.2.0"
 shapely = ">=2.0.7"
 scikit-learn = ">=1.6.1"
-openmcmc = "==1.0.5"
+openmcmc = "==1.0.6"
 
 [tool.poetry.group.contributor]
 optional = true
