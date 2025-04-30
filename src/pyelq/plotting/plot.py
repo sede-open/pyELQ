@@ -41,6 +41,7 @@ if TYPE_CHECKING:
 RGB_LIGHT_BLUE = "rgb(102, 197, 204)"
 MCMC_ITERATION_NUMBER_LITERAL = "MCMC Iteration Number"
 
+
 def lighter_rgb(rbg_string: str) -> str:
     """Takes in an RGB string and returns a lighter version of this colour.
 
