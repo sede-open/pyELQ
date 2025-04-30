@@ -5,7 +5,7 @@ SPDX-License-Identifier: Apache-2.0
 -->
 
 # Getting started with contributing
-We're happy for everyone to contribute to the package by proposing new features, implementing them in a new branch and 
+We're happy for everyone to contribute to the package by proposing new features, implementing them in a fork and 
 creating a pull request. In order to keep the codebase consistent we use some common standards and tools for formatting 
 of the code. We are using poetry to keep our development environment up to date. Please follow the instructions here 
 https://python-poetry.org/docs/ to install poetry. Next, pull the repo to your local machine, open a terminal window 
@@ -23,8 +23,8 @@ if you do not want to reformat the code in place but just check if files need to
 in the pyproject.toml file. Used in order to get consistent documentation, can be used as a check from the command line 
 but will not be able to replace any text, `pydocstyle .`
 
-In case you're unfamiliar with the tools, don't worry we have set up GitHub actions accordingly to format the code to 
-standard automatically on each push.
+In case you're unfamiliar with the tools, don't worry we have set up GitHub actions accordingly to format the code before 
+a push to main.
 
 When you implement a new feature you also need to write additional (unit) tests to show the feature you've implemented 
 is also working as it should. Do so by creating a file in the appropriate test folder and call that file 
@@ -33,8 +33,8 @@ test. The settings in the pyproject.toml file are such that we automatically tes
 through the command line `pytest .`, use the `--cov-report term-missing` flag to show which lines are missing in the 
 coverage. All test are required to pass before merging into main.
 
-Whenever we merge new code into main, the release version gets automatically incremented as a micro version update.
-Minor and major version releases need to be labeled manually. Version release convention used is major.minor.micro.
+Whenever we merge new code into main, we increase the version of the package manually.
+Version release convention used is major.minor.micro.
 
 # Notice
 
