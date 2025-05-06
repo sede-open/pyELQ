@@ -44,8 +44,8 @@ def fixture_met_object():
     met_object.calculate_wind_speed_from_uv()
     met_object.temperature = np.random.randint(low=270, high=275, size=time.shape)
     met_object.pressure = np.random.randint(low=99, high=103, size=time.shape)
-    met_object.wind_turbulence_horizontal = 5 + 10 * np.random.random(size=time.shape)
-    met_object.wind_turbulence_vertical = 5 + 10 * np.random.random(size=time.shape)
+    met_object.wind_turbulence_horizontal_deg = 5 + 10 * np.random.random(size=time.shape)
+    met_object.wind_turbulence_vertical_deg = 5 + 10 * np.random.random(size=time.shape)
     return met_object
 
 
@@ -68,8 +68,8 @@ def fixture_met_object_single():
     met_object.calculate_wind_speed_from_uv()
     met_object.temperature = np.random.randint(low=270, high=275, size=time.shape)
     met_object.pressure = np.random.randint(low=99, high=103, size=time.shape)
-    met_object.wind_turbulence_horizontal = 5 * np.ones(time.shape)
-    met_object.wind_turbulence_vertical = 5 * np.ones(time.shape)
+    met_object.wind_turbulence_horizontal_deg = 5 * np.ones(time.shape)
+    met_object.wind_turbulence_vertical_deg = 5 * np.ones(time.shape)
     return met_object
 
 
@@ -433,11 +433,11 @@ def test_interpolate_meteorology(sourcemap_type, met_object, sensor_object, sate
         assert return_values.shape == (temp_sensor.nof_observations, 1)
 
         return_values = plume_object.interpolate_meteorology(
-            meteorology=met_object, variable_name="wind_turbulence_horizontal", sensor_object=temp_sensor
+            meteorology=met_object, variable_name="wind_turbulence_horizontal_deg", sensor_object=temp_sensor
         )
         assert return_values.shape == (temp_sensor.nof_observations, 1)
-        if met_object.wind_turbulence_horizontal.size == 1:
-            assert np.all(return_values == met_object.wind_turbulence_horizontal)
+        if met_object.wind_turbulence_horizontal_deg.size == 1:
+            assert np.all(return_values == met_object.wind_turbulence_horizontal_deg)
 
     return_values = plume_object.interpolate_meteorology(
         meteorology=met_object, variable_name="u_component", sensor_object=satellite_object
@@ -445,11 +445,11 @@ def test_interpolate_meteorology(sourcemap_type, met_object, sensor_object, sate
     assert return_values.shape == (1, plume_object.source_map.nof_sources)
 
     return_values = plume_object.interpolate_meteorology(
-        meteorology=met_object, variable_name="wind_turbulence_horizontal", sensor_object=satellite_object
+        meteorology=met_object, variable_name="wind_turbulence_horizontal_deg", sensor_object=satellite_object
     )
     assert return_values.shape == (1, plume_object.source_map.nof_sources)
-    if met_object.wind_turbulence_horizontal.size == 1:
-        assert np.all(return_values == met_object.wind_turbulence_horizontal)
+    if met_object.wind_turbulence_horizontal_deg.size == 1:
+        assert np.all(return_values == met_object.wind_turbulence_horizontal_deg)
 
     met_object.pressure = None
     return_values = plume_object.interpolate_meteorology(
@@ -465,16 +465,16 @@ def test_interpolate_all_meteorology(met_object, sensor_object):
         gas_density,
         u_interpolated,
         v_interpolated,
-        wind_turbulence_horizontal,
-        wind_turbulence_vertical,
+        wind_turbulence_horizontal_deg,
+        wind_turbulence_vertical_deg,
     ) = plume_object.interpolate_all_meteorology(
         sensor_object=sensor_object, meteorology=met_object, gas_object=CH4(), run_interpolation=False
     )
     assert np.all(gas_density == CH4().gas_density(temperature=met_object.temperature, pressure=met_object.pressure))
     assert np.all(u_interpolated == met_object.u_component)
     assert np.all(v_interpolated == met_object.v_component)
-    assert np.all(wind_turbulence_horizontal == met_object.wind_turbulence_horizontal)
-    assert np.all(wind_turbulence_vertical == met_object.wind_turbulence_vertical)
+    assert np.all(wind_turbulence_horizontal_deg == met_object.wind_turbulence_horizontal_deg)
+    assert np.all(wind_turbulence_vertical_deg == met_object.wind_turbulence_vertical_deg)
 
 
 @pytest.mark.parametrize("sourcemap_type", ["central", "hypercube"])

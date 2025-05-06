@@ -102,8 +102,8 @@ def fix_met_group(sensor_group):
         met_group[name].time = sns.time
         met_group[name].wind_speed = 2.0 + 3.0 * np.random.random_sample(size=met_group[name].time.shape)
         met_group[name].wind_direction = 360.0 * np.random.random_sample(size=met_group[name].time.shape)
-        met_group[name].wind_turbulence_horizontal = 10.0 * np.ones(shape=met_group[name].time.shape)
-        met_group[name].wind_turbulence_vertical = 10.0 * np.ones(shape=met_group[name].time.shape)
+        met_group[name].wind_turbulence_horizontal_deg = 10.0 * np.ones(shape=met_group[name].time.shape)
+        met_group[name].wind_turbulence_vertical_deg = 10.0 * np.ones(shape=met_group[name].time.shape)
         met_group[name].temperature = 293.0 * np.ones(shape=met_group[name].time.shape)
         met_group[name].pressure = 101.0 * np.ones(shape=met_group[name].time.shape)
         met_group[name].calculate_uv_from_wind_speed_direction()

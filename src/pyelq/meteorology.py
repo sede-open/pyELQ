@@ -16,6 +16,7 @@ import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
 from pandas.arrays import DatetimeArray
+from scipy.stats import circmean
 
 from pyelq.coordinate_system import Coordinate
 from pyelq.sensor.sensor import SensorGroup
@@ -34,10 +35,14 @@ class Meteorology:
         u_component (np.ndarray, optional): u component of wind [m/s] in the easterly direction
         v_component (np.ndarray, optional): v component of wind [m/s] in the northerly direction
         w_component (np.ndarray, optional): w component of wind [m/s] in the vertical direction
-        wind_turbulence_horizontal (np.ndarray, optional): Parameter of the wind stability in
+        wind_turbulence_horizontal_deg (np.ndarray, optional): Parameter of the wind stability in
             horizontal direction [deg]
-        wind_turbulence_vertical (np.ndarray, optional): Parameter of the wind stability in
+        wind_turbulence_vertical_deg (np.ndarray, optional): Parameter of the wind stability in
             vertical direction [deg]
+        wind_turbulence_horizontal_meter_per_sec (np.ndarray, optional): Parameter of the wind
+            stability in the horizontal direction [m/s]
+        wind_turbulence_vertical_meter_per_sec (np.ndarray, optional): Parameter of the wind
+            stability in the vertical direction [m/s]
         pressure (np.ndarray, optional): Pressure [kPa]
         temperature (np.ndarray, optional): Temperature [K]
         atmospheric_boundary_layer (np.ndarray, optional): Atmospheric boundary layer [m]
@@ -54,8 +59,10 @@ class Meteorology:
     u_component: np.ndarray = field(init=False, default=None)
     v_component: np.ndarray = field(init=False, default=None)
     w_component: np.ndarray = field(init=False, default=None)
-    wind_turbulence_horizontal: np.ndarray = field(init=False, default=None)
-    wind_turbulence_vertical: np.ndarray = field(init=False, default=None)
+    wind_turbulence_horizontal_deg: np.ndarray = field(init=False, default=None)
+    wind_turbulence_vertical_deg: np.ndarray = field(init=False, default=None)
+    wind_turbulence_horizontal_meter_per_sec: np.ndarray = field(init=False, default=None)
+    wind_turbulence_vertical_meter_per_sec: np.ndarray = field(init=False, default=None)
     pressure: np.ndarray = field(init=False, default=None)
     temperature: np.ndarray = field(init=False, default=None)
     atmospheric_boundary_layer: np.ndarray = field(init=False, default=None)
@@ -98,8 +105,8 @@ class Meteorology:
         self.u_component = -1 * self.wind_speed * np.sin(self.wind_direction * (np.pi / 180))
         self.v_component = -1 * self.wind_speed * np.cos(self.wind_direction * (np.pi / 180))
 
-    def calculate_wind_turbulence_horizontal(self, window: str) -> None:
-        """Calculate the horizontal wind turbulence values from the wind direction attribute.
+    def calculate_wind_turbulence_horizontal_deg(self, window: str) -> None:
+        """Calculate the angular horizontal wind turbulence values from the wind direction attribute.
 
         Wind turbulence values are calculated as the circular standard deviation of wind direction
         (https://docs.scipy.org/doc/scipy/reference/generated/scipy.stats.circstd.html).
@@ -109,7 +116,7 @@ class Meteorology:
 
         Outputted values are calculated at the center of the window and at least 3 observations are required in a
         window for the calculation. If the window contains less values the result will be np.nan.
-        The result of the calculation will be stored as the wind_turbulence_horizontal attribute.
+        The result of the calculation will be stored as the wind_turbulence_horizontal_deg attribute.
 
         Args:
             window (str): The size of the window in which values are aggregated specified as an offset alias:
@@ -120,7 +127,60 @@ class Meteorology:
         sin_rolling = (np.sin(data_series * np.pi / 180)).rolling(window=window, center=True, min_periods=3).mean()
         cos_rolling = (np.cos(data_series * np.pi / 180)).rolling(window=window, center=True, min_periods=3).mean()
         aggregated_data = np.sqrt(-2 * np.log((sin_rolling**2 + cos_rolling**2) ** 0.5)) * 180 / np.pi
-        self.wind_turbulence_horizontal = aggregated_data.values
+        self.wind_turbulence_horizontal_deg = aggregated_data.values
+
+    def calculate_wind_turbulence_horizontal_meter_per_sec(self, window: str) -> None:
+        """Calculate the horizontal wind turbulence values in meters per second from the u and v components.
+
+        The horizontal wind turbulence is calculated as the standard deviation of the horizontal
+        wind components along the vector perpendicular to the mean wind direction. This calculation is
+        performed using a rolling window.
+
+        Outputted values are calculated at the center of the window and at least 3 observations are required in a
+        window for the calculation. If the window contains less values the result will be np.nan.
+        The result of the calculation will be stored as the wind_turbulence_horizontal_meter_per_sec
+        attribute.
+
+        Args:
+            window (str): The size of the window in which values are aggregated specified as an offset alias:
+                https://pandas.pydata.org/docs/user_guide/timeseries.html#timeseries-offset-aliases
+
+        """
+
+        u_series = pd.Series(data=self.u_component, index=self.time)
+        v_series = pd.Series(data=self.v_component, index=self.time)
+        u_mean = u_series.rolling(window=window, center=True, min_periods=3).mean()
+        v_mean = v_series.rolling(window=window, center=True, min_periods=3).mean()
+        theta_mean = np.arctan2(v_mean.values, u_mean.values)
+
+        perpendicular_components = -np.sin(theta_mean) * self.u_component + np.cos(theta_mean) * self.v_component
+        data_aggregate = (
+            pd.Series(data=perpendicular_components, index=self.time)
+            .rolling(window=window, center=True, min_periods=3)
+            .std()
+        )
+        self.wind_turbulence_horizontal_meter_per_sec = data_aggregate.values
+
+    def calculate_wind_turbulence_vertical_meter_per_sec(self, window: str) -> None:
+        """Caculate the vertical wind turbulence values in meters per second from the w component.
+
+        The vertical turbulence value is calculated as the standard deviation of the vertical
+        wind component.
+
+        Outputted values are calculated at the center of the window and at least 3 observations are required in a
+        window for the calculation. If the window contains less values the result will be np.nan.
+        The result of the calculation will be stored as the wind_turbulence_vertical_meter_per_sec
+        attribute.
+
+        Args:
+            window (str): The size of the window in which values are aggregated specified as an offset alias:
+                https://pandas.pydata.org/docs/user_guide/timeseries.html#timeseries-offset-aliases
+
+        """
+
+        data_series = pd.Series(data=self.w_component, index=self.time)
+        std_rolling = data_series.rolling(window=window, center=True, min_periods=3).std()
+        self.wind_turbulence_vertical_meter_per_sec = std_rolling.values
 
     def plot_polar_hist(self, nof_sectors: int = 16, nof_divisions: int = 5, template: object = None) -> go.Figure():
         """Plots a histogram of wind speed and wind direction in polar Coordinates.
