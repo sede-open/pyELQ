@@ -38,6 +38,9 @@ from pyelq.support_functions.post_processing import (
 if TYPE_CHECKING:
     from pyelq.model import ELQModel
 
+RGB_LIGHT_BLUE = "rgb(102, 197, 204)"
+MCMC_ITERATION_NUMBER_LITERAL = "MCMC Iteration Number"
+
 
 def lighter_rgb(rbg_string: str) -> str:
     """Takes in an RGB string and returns a lighter version of this colour.
@@ -162,7 +165,7 @@ def create_trace_specifics(object_to_plot: Union[Type[SlabAndSpike], SourceModel
     if isinstance(object_to_plot, SourceModel):
         dict_key = kwargs.pop("dict_key", "number_of_sources_plot")
         title_text = "Number of Sources 'on' against MCMC iterations"
-        x_label = "MCMC Iteration Number"
+        x_label = MCMC_ITERATION_NUMBER_LITERAL
         y_label = "Number of Sources 'on'"
         emission_rates = object_to_plot.emission_rate
         if isinstance(object_to_plot, SlabAndSpike):
@@ -179,11 +182,11 @@ def create_trace_specifics(object_to_plot: Union[Type[SlabAndSpike], SourceModel
     elif isinstance(object_to_plot, MCMC):
         dict_key = kwargs.pop("dict_key", "log_posterior_plot")
         title_text = "Log posterior values against MCMC iterations"
-        x_label = "MCMC Iteration Number"
+        x_label = MCMC_ITERATION_NUMBER_LITERAL
         y_label = "Log Posterior<br>Value"
         y_values = object_to_plot.store["log_post"].flatten()
         x_values = np.array(range(y_values.size))
-        color = "rgb(102, 197, 204)"
+        color = RGB_LIGHT_BLUE
         name = "Log Posterior"
 
         if "burn_in" not in kwargs:
@@ -245,7 +248,7 @@ def create_plot_specifics(
         if plot_type == "line":
             dict_key = kwargs.pop("dict_key", "error_model_iterations")
             title_text = "Estimated Error Model Values"
-            x_label = "MCMC Iteration Number"
+            x_label = MCMC_ITERATION_NUMBER_LITERAL
             y_label = "Estimated Error Model<br>Standard Deviation (ppm)"
 
         elif plot_type == "box":
@@ -270,7 +273,7 @@ def create_plot_specifics(
         if plot_type == "line":
             dict_key = kwargs.pop("dict_key", "offset_iterations")
             title_text = f"Estimated Value of Offset w.r.t. {offset_sensor_name}"
-            x_label = "MCMC Iteration Number"
+            x_label = MCMC_ITERATION_NUMBER_LITERAL
             y_label = "Estimated Offset<br>Value (ppm)"
 
         elif plot_type == "box":
@@ -816,7 +819,7 @@ class Plot:
 
         dict_key = "estimated_values_plot"
         title_text = "Estimated Values of Sources With Respect to MCMC Iterations"
-        x_label = "MCMC Iteration Number"
+        x_label = MCMC_ITERATION_NUMBER_LITERAL
         y_label = "Estimated Emission<br>Values (kg/hr)"
 
         fig = go.Figure()
@@ -838,7 +841,7 @@ class Plot:
                 fig=fig,
                 x_values=x_values,
                 y_values=y_values,
-                color="rgb(102, 197, 204)",
+                color=RGB_LIGHT_BLUE,
                 name=f"Source {source_idx}",
                 burn_in=burn_in,
                 show_legend=False,
@@ -849,7 +852,7 @@ class Plot:
             fig=fig,
             x_values=np.array([None]),
             y_values=np.array([None]),
-            color="rgb(102, 197, 204)",
+            color=RGB_LIGHT_BLUE,
             name="Source traces",
             burn_in=0,
             show_legend=True,
