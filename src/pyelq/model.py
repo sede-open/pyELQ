@@ -224,7 +224,7 @@ class ELQModel:
             north=np.empty((0, self.mcmc.n_iter)),
             up=np.empty((0, self.mcmc.n_iter)),
         )
-        combined_model.number_on_sources = np.empty((0, self.mcmc.n_iter))
+        number_on_sources = np.empty((0, self.mcmc.n_iter))
 
         combined_model.label_string = []
         individual_source_labels = []
@@ -233,7 +233,7 @@ class ELQModel:
         ref_longitude = None
         ref_altitude = None
         for key, component in self.components.items():
-            if key.startswith("source"):
+            if re.match("source", key):
                 comp_ref_latitude = component.all_source_locations.ref_latitude
                 comp_ref_longitude = component.all_source_locations.ref_longitude
                 comp_ref_altitude = component.all_source_locations.ref_altitude
@@ -251,24 +251,17 @@ class ELQModel:
                             f"Inconsistent reference locations in component '{key}'. "
                             "All source models must share the same reference location."
                         )
-
-        combined_model.all_source_locations.ref_latitude = ref_latitude
-        combined_model.all_source_locations.ref_longitude = ref_longitude
-        combined_model.all_source_locations.ref_altitude = ref_altitude
-
-        for key, component in self.components.items():
-            if key.startswith("source"):
-
                 combined_model.emission_rate = np.concatenate((combined_model.emission_rate, component.emission_rate))
-                combined_model.number_on_sources = np.concatenate(
+                number_on_sources = np.concatenate(
                     (
-                        combined_model.number_on_sources.reshape((-1, self.mcmc.n_iter)),
+                        number_on_sources.reshape((-1, self.mcmc.n_iter)),
                         component.number_on_sources.reshape(-1, self.mcmc.n_iter),
                     ),
                     axis=0,
                 )
                 combined_model.label_string.append(component.label_string)
                 individual_source_labels.append(component.individual_source_labels)
+
                 for attr in ["east", "north", "up"]:
                     setattr(
                         combined_model.all_source_locations,
@@ -282,10 +275,13 @@ class ELQModel:
                         ),
                     )
 
-        combined_model.number_on_sources = np.sum(combined_model.number_on_sources, axis=0)
+        combined_model.all_source_locations.ref_latitude = ref_latitude
+        combined_model.all_source_locations.ref_longitude = ref_longitude
+        combined_model.all_source_locations.ref_altitude = ref_altitude
+        combined_model.number_on_sources = np.sum(number_on_sources, axis=0)
         combined_model.individual_source_labels = [item for sublist in individual_source_labels for item in sublist]
-
         self.components["sources_combined"] = combined_model
+
 
     def plot_log_posterior(self, burn_in_value: int, plot: Plot = Plot()) -> Plot():
         """Plots the trace of the log posterior over the iterations of the MCMC.
