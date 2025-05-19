@@ -372,8 +372,8 @@ def map_fixed_source_labels(
 ) -> pd.DataFrame:
     """Function to map the source labels.
 
-    Maps source labels to the closest indices in `summary_result` where `blob_likelihood == 1`
-    using a Haversine distance-based BallTree. The reed for this function results from the
+    Maps fixed source labels to the closest indices in `summary_result` where `blob_likelihood == 1`
+    using a Haversine distance-based BallTree. The need for this function results from the
     fact that the source locations are not necessarily the same as the locations of the
     blobs in the summary result as the summary result is based on the aggregated estimates.
     Therefore, we need to find the closest blob in the summary result to each fixed source
@@ -382,8 +382,9 @@ def map_fixed_source_labels(
     quantification results and traces of the source emission rate.
 
     Args:
-        source_location_fixed (np.ndarray): Array of fixed source locations with shape (N, 3).
-        source_label_fixed (list): List of corresponding source labels.
+        source_locations_fixed (np.ndarray): Array of fixed source locations with shape 
+        (number of fixed sources x 3).
+        source_labels_fixed (list): List of corresponding source labels.
         summary_result (pd.DataFrame): Summary statistics for each blob of estimates.
 
     Returns:
