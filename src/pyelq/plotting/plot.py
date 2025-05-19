@@ -987,7 +987,6 @@ class Plot:
               are used to add the label for the fixed sources on the quantification map.
             sensor_object (Union[SensorGroup, Sensor]): SensorGroup object associated with the source_model
               attached to the source_model object can be used to add labels for the fixed sources on the source map.
-            sensor_object (Union[SensorGroup, Sensor]): Sensor object associated with the analysis.
             bin_size_x (float, optional): Size of the bins in the x-direction. Defaults to 1.
             bin_size_y (float, optional): Size of the bins in the y-direction. Defaults to 1.
             normalized_count_limit (float, optional): Limit for the normalized count to show on the map.
