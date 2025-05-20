@@ -159,7 +159,7 @@ class NullGrouping(SourceGrouping):
         2) The case where the dimensionality of the source map is changing during the inversion, and a common prior
             mean and precision term are used for all sources.
 
-    Attributes:
+        Attributes:
         number_on_sources (np.ndarray): number of sources switched on in the solution, per iteration. Extracted as a
             property from the MCMC samples in self.from_mcmc_group().
 
@@ -215,7 +215,7 @@ class NullGrouping(SourceGrouping):
         return state
 
     def from_mcmc_group(self, store: dict):
-        """Extract posterior source characteristics from the MCMC sampler, attach them to the class.
+        """Extract posterior allocation samples from the MCMC sampler, attach them to the class.
 
         Gets the number of sources present in each iteration of the MCMC sampler, and attaches this as a class property.
 
@@ -236,6 +236,8 @@ class SlabAndSpike(SourceGrouping):
         slab_probability (float): prior probability of allocation to the slab component. Defaults to 0.05.
         allocation (np.ndarray): set of allocation samples, with shape=(n_sources, n_iterations). Attached to
             the class by self.from_mcmc_group().
+        number_on_sources (np.ndarray): number of sources switched on in the solution, per iteration. Extracted as a
+            property from the MCMC samples in self.from_mcmc_group().
 
     """
 
