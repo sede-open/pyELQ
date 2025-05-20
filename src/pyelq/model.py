@@ -215,18 +215,12 @@ class ELQModel:
 
         """
         combined_model = Normal(label_string="sources_combined")
-        combined_model.emission_rate = np.empty((0, self.mcmc.n_iter))
-        combined_model.all_source_locations = ENU(
-            ref_altitude=0,
-            ref_latitude=0,
-            ref_longitude=0,
-            east=np.empty((0, self.mcmc.n_iter)),
-            north=np.empty((0, self.mcmc.n_iter)),
-            up=np.empty((0, self.mcmc.n_iter)),
-        )
+        emission_rate = np.empty((0, self.mcmc.n_iter))
+        all_source_locations_east = np.empty((0, self.mcmc.n_iter))
+        all_source_locations_north = np.empty((0, self.mcmc.n_iter))
+        all_source_locations_up = np.empty((0, self.mcmc.n_iter))
         number_on_sources = np.empty((0, self.mcmc.n_iter))
-
-        combined_model.label_string = []
+        label_string = []
         individual_source_labels = []
 
         ref_latitude = None
@@ -251,7 +245,7 @@ class ELQModel:
                             f"Inconsistent reference locations in component '{key}'. "
                             "All source models must share the same reference location."
                         )
-                combined_model.emission_rate = np.concatenate((combined_model.emission_rate, component.emission_rate))
+                emission_rate = np.concatenate((emission_rate, component.emission_rate))
                 number_on_sources = np.concatenate(
                     (
                         number_on_sources.reshape((-1, self.mcmc.n_iter)),
@@ -259,25 +253,42 @@ class ELQModel:
                     ),
                     axis=0,
                 )
-                combined_model.label_string.append(component.label_string)
+                label_string.append(component.label_string)
                 individual_source_labels.append(component.individual_source_labels)
 
-                for attr in ["east", "north", "up"]:
-                    setattr(
-                        combined_model.all_source_locations,
-                        attr,
-                        np.concatenate(
-                            (
-                                getattr(combined_model.all_source_locations, attr),
-                                getattr(component.all_source_locations, attr),
-                            ),
-                            axis=0,
-                        ),
-                    )
+                all_source_locations_east = np.concatenate(	
+                    (
+                        all_source_locations_east,
+                        component.all_source_locations.east.reshape((-1, self.mcmc.n_iter)),
+                    ),
+                    axis=0,
+                )
+                all_source_locations_north = np.concatenate(
+                    (
+                        all_source_locations_north,
+                        component.all_source_locations.north.reshape((-1, self.mcmc.n_iter)),
+                    ),
+                    axis=0,
+                )
+                all_source_locations_up = np.concatenate(
+                    (
+                        all_source_locations_up,
+                        component.all_source_locations.up.reshape((-1, self.mcmc.n_iter)),
+                    ),
+                    axis=0,
+                )
 
-        combined_model.all_source_locations.ref_latitude = ref_latitude
-        combined_model.all_source_locations.ref_longitude = ref_longitude
-        combined_model.all_source_locations.ref_altitude = ref_altitude
+        combined_model.all_source_locations = ENU(
+            ref_altitude=ref_altitude,
+            ref_latitude=ref_latitude,
+            ref_longitude=ref_longitude,
+            east=all_source_locations_east,
+            north=all_source_locations_north,
+            up=all_source_locations_up,
+        )
+
+        combined_model.emission_rate = emission_rate
+        combined_model.label_string = label_string
         combined_model.number_on_sources = np.sum(number_on_sources, axis=0)
         combined_model.individual_source_labels = [item for sublist in individual_source_labels for item in sublist]
         self.components["sources_combined"] = combined_model
