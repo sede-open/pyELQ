@@ -553,6 +553,11 @@ class SourceModel(Component, SourceGrouping, SourceDistribution):
     label_string: Optional[str] = None
 
     def __post_init__(self):
+        """Post-initialisation of the class.
+        This function is called after the class has been initialised,
+        and is used to set up the mapping dictionary for the class by applying the
+        append_string function to the mapping dictionary.
+        """	
         if self.label_string is not None:
             self.append_string(self.label_string)
 
