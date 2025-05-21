@@ -365,39 +365,3 @@ def return_empty_summary_dataframe() -> pd.DataFrame:
     summary_result.loc[0, "absolute_count_iterations"] = np.nan
     summary_result.loc[0, "blob_likelihood"] = np.nan
     return summary_result
-
-
-def map_fixed_source_labels(
-    source_locations_fixed: np.ndarray, source_labels_fixed: list, summary_result: pd.DataFrame
-) -> pd.DataFrame:
-    """Function to map the source labels.
-
-    Maps fixed source labels to the closest indices in `summary_result` where `blob_likelihood == 1`
-    using a Haversine distance-based BallTree. The need for this function results from the
-    fact that the source locations are not necessarily the same as the locations of the
-    blobs in the summary result as the summary result is based on the aggregated estimates.
-    Therefore, we need to find the closest blob in the summary result to each fixed source
-    location. Then, the labels of the fixed source locations are mapped to the corresponding
-    blobs in the summary result and these labels are used when plotting the
-    quantification results and traces of the source emission rate.
-
-    Args:
-        source_locations_fixed (np.ndarray): Array of fixed source locations with shape 
-        (number of fixed sources x 3).
-        source_labels_fixed (list): List of corresponding source labels.
-        summary_result (pd.DataFrame): Summary statistics for each blob of estimates.
-
-    Returns:
-        pd.DataFrame: Updated `summary_result` with modified index reflecting merged labels.
-    """
-    coord_array = summary_result.loc[summary_result["blob_likelihood"] == 1]
-    bt = BallTree(np.deg2rad(coord_array[["latitude", "longitude"]].values), metric="haversine")
-    index_mapping = {}
-    for source_index, target_coord in enumerate(source_locations_fixed):
-        _, indices = bt.query(np.deg2rad([target_coord[:2]]))
-        closest_index = coord_array.index[indices[0, 0]]
-        index_mapping.setdefault(closest_index, []).append(source_labels_fixed[source_index])
-
-    summary_result.index = summary_result.index.map(lambda x: index_mapping.get(x, x))
-    summary_result.index = summary_result.index.map(lambda x: ", ".join(x) if isinstance(x, list) else x)
-    return summary_result
