@@ -10,12 +10,14 @@ definition.
 
 """
 import warnings
+import re
 from copy import deepcopy
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any, Callable, Type, Union
 
 import numpy as np
 import pandas as pd
+import plotly.express as px
 import plotly.figure_factory as ff
 import plotly.graph_objects as go
 from geojson import Feature, FeatureCollection
@@ -32,8 +34,7 @@ from pyelq.sensor.sensor import Sensor, SensorGroup
 from pyelq.support_functions.post_processing import (
     calculate_rectangular_statistics,
     create_lla_polygons_from_xy_points,
-    is_regularly_spaced,
-    map_fixed_source_labels,
+    is_regularly_spaced
 )
 
 if TYPE_CHECKING:
@@ -967,8 +968,8 @@ class Plot:
 
     def plot_quantification_results_on_map(
         self,
-        source_model: "SourceModel",
-        sensor_object: "Union[SensorGroup, Sensor]",
+        model_object: "ELQModel",
+        source_model_to_plot_key: str = None,
         bin_size_x: float = 1,
         bin_size_y: float = 1,
         normalized_count_limit: float = 0.005,
@@ -996,22 +997,14 @@ class Plot:
             show_summary_results (bool, optional): Flag to show the summary results on the map. Defaults to True.
 
         """
+        if source_model_to_plot_key is None:
+            source_model_to_plot_key = "sources_combined"
+
+        source_model = model_object.components[source_model_to_plot_key]
+        sensor_object = model_object.sensor_object
+
         source_locations = source_model.all_source_locations
         emission_rates = source_model.emission_rate
-
-        source_location_lla = source_locations.to_lla()
-        source_location_average = LLA()
-        source_location_average.latitude = np.nanmean(source_location_lla.latitude, axis=1)
-        source_location_average.longitude = np.nanmean(source_location_lla.longitude, axis=1)
-        source_location_average.altitude = np.nanmean(source_location_lla.altitude, axis=1)
-        source_location_average = source_location_average.to_array()
-
-        source_location_fixed = []
-        source_label_fixed = []
-        for source_label_index, source_label in enumerate(source_model.individual_source_labels):
-            if source_label is not None:
-                source_location_fixed.append(source_location_average[source_label_index])
-                source_label_fixed.append(source_label)
 
         ref_latitude = source_locations.ref_latitude
         ref_longitude = source_locations.ref_longitude
@@ -1030,13 +1023,6 @@ class Plot:
                 normalized_count_limit=normalized_count_limit,
             )
         )
-
-        if "fixed" in source_model.label_string:
-            summary_result = map_fixed_source_labels(
-                source_locations_fixed=source_location_fixed,
-                source_labels_fixed=source_label_fixed,
-                summary_result=summary_result,
-            )
 
         polygons = create_lla_polygons_from_xy_points(
             points_array=enu_points,
@@ -1122,6 +1108,41 @@ class Plot:
         sensor_object.plot_sensor_location(self.figure_dict["iqr_map"])
         self.figure_dict["iqr_map"].update_traces(showlegend=False)
 
+        colormap_fixed = px.colors.qualitative.G10
+        marker_dict = {"size": 10, "opacity": 0.8}
+        # for source_idx, source_label in enumerate(source_model.individual_source_labels):
+        #     marker_dict["color"] = colormap_fixed[source_idx % len(colormap_fixed)]
+        for key, _ in model_object.components.items():
+            if bool(re.search("fixed", key)):
+                source_model_fixed = model_object.components[key]
+                source_locations_fixed = source_model_fixed.all_source_locations
+                source_location_fixed_lla = source_locations_fixed.to_lla()
+                source_location_fixed_average = LLA(
+                    latitude=np.nanmean(source_location_fixed_lla.latitude, axis=1),
+                    longitude=np.nanmean(source_location_fixed_lla.longitude, axis=1),
+                    altitude=np.nanmean(source_location_fixed_lla.altitude, axis=1),
+                )
+
+                for lat_fixed, lon_fixed, label_fixed in zip(
+                    source_location_fixed_average.latitude,
+                    source_location_fixed_average.longitude,
+                    source_model_fixed.individual_source_labels,
+                ):
+                    color_idx = source_model_fixed.individual_source_labels.index(label_fixed)
+                    marker_dict["color"] = colormap_fixed[color_idx % len(colormap_fixed)]
+
+                    fixed_source_location_trace = go.Scattermap(
+                        mode="markers",
+                        lon=np.array(lon_fixed),
+                        lat=np.array(lat_fixed),
+                        name=label_fixed,
+                        marker=marker_dict,
+                    )
+                    self.figure_dict["count_map"].add_trace(fixed_source_location_trace)
+                    self.figure_dict["median_map"].add_trace(fixed_source_location_trace)
+                    self.figure_dict["iqr_map"].add_trace(fixed_source_location_trace)
+
+
         if show_summary_results:
             self.figure_dict["count_map"].add_trace(summary_trace)
             self.figure_dict["count_map"].update_traces(showlegend=True)
@@ -1129,6 +1150,7 @@ class Plot:
             self.figure_dict["median_map"].update_traces(showlegend=True)
             self.figure_dict["iqr_map"].add_trace(summary_trace)
             self.figure_dict["iqr_map"].update_traces(showlegend=True)
+
 
     def plot_coverage(
         self,
