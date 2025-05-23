@@ -587,7 +587,7 @@ class GaussianPlume:
         coupling_threshold = threshold_function(couplings, **kwargs)
         no_warning_threshold = np.where(coupling_threshold <= 1e-100, 1, coupling_threshold)
         no_warning_estimated_emission_rates = np.where(coupling_threshold <= 1e-100, np.inf, 1 / no_warning_threshold)
-        coverage = no_warning_estimated_emission_rates <= coverage_threshold
+        coverage = no_warning_estimated_emission_rates < coverage_threshold
 
         return coverage
 
