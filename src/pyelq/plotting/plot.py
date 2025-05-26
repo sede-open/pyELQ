@@ -9,8 +9,8 @@ Large module containing all the plotting code used to create various plots. Cont
 definition.
 
 """
-import warnings
 import re
+import warnings
 from copy import deepcopy
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any, Callable, Type, Union

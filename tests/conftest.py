@@ -8,7 +8,6 @@ from datetime import datetime, timedelta
 import numpy as np
 import pandas as pd
 import pytest
-
 from openmcmc.model import Model
 
 from pyelq.coordinate_system import ENU
