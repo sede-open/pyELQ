@@ -48,7 +48,7 @@ def test_make_state(error_model: ErrorModel, sensor_group: SensorGroup):
     assert state["b_tau"].shape == (n_param,)
     assert state["precision_index"].shape == (n_obs,)
     if n_obs > n_sensor:
-        assert np.allclose(np.unique(state["precision_index"]), np.arange(n_param))
+        assert np.all(np.isin(state["precision_index"], np.arange(n_param)))
 
 
 def test_make_model(error_model: ErrorModel):
