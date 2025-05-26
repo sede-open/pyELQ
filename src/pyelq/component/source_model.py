@@ -159,9 +159,9 @@ class NullGrouping(SourceGrouping):
         2) The case where the dimensionality of the source map is changing during the inversion, and a common prior
             mean and precision term are used for all sources.
 
-        Attributes:
-        number_on_sources (np.ndarray): number of sources switched on in the solution, per iteration. Extracted as a
-            property from the MCMC samples in self.from_mcmc_group().
+    Attributes:
+    number_on_sources (np.ndarray): number of sources switched on in the solution, per iteration. Extracted as a
+        property from the MCMC samples in self.from_mcmc_group().
 
     """
 
@@ -554,6 +554,7 @@ class SourceModel(Component, SourceGrouping, SourceDistribution):
 
     def __post_init__(self):
         """Post-initialisation of the class.
+        
         This function is called after the class has been initialised,
         and is used to set up the mapping dictionary for the class by applying the
         append_string function to the mapping dictionary.
