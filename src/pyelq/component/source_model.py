@@ -554,7 +554,7 @@ class SourceModel(Component, SourceGrouping, SourceDistribution):
 
     def __post_init__(self):
         """Post-initialisation of the class.
-        
+
         This function is called after the class has been initialised,
         and is used to set up the mapping dictionary for the class by applying the
         append_string function to the mapping dictionary.

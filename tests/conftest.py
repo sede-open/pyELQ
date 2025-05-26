@@ -121,7 +121,7 @@ def fix_gas_species():
 @pytest.fixture(name="dispersion_model", scope="module")
 def fix_dispersion_model(ref_longitude, ref_latitude, site_limits):
     """Set up the dispersion model.
-    
+
     The locacation of the sources is set to be on a straight line in the east direction.
     """
     nof_sources = 3
