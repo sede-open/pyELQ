@@ -3,7 +3,6 @@
 # SPDX-License-Identifier: Apache-2.0
 
 """Tests for the main ELQModel class."""
-
 from copy import deepcopy
 
 import pytest
@@ -37,11 +36,12 @@ def fix_background_model(request):
     params=[
         None,
         Normal(),
+        Normal(reversible_jump=True),
         NormalSlabAndSpike(),
         Normal(label_string="fixed"),
-        [Normal(), Normal(label_string="fixed")],
+        [Normal(reversible_jump=True), Normal(label_string="fixed")],
     ],
-    ids=["none-model", "normal-model", "normal-ssp-model", "normal_label-model", "source-list-model"],
+    ids=["none-model", "normal-model", "normal_rj", "normal-ssp-model", "normal_label-model", "source-list-model"],
     name="source_model",
 )
 def fix_source_model(request):
@@ -73,20 +73,25 @@ def fix_error_model(request):
 
 
 @pytest.fixture(name="model")
-def fix_model(sensor_group, met_group, gas_species, background_model, source_model, error_model, offset_model):
+def fix_model(sensor_group, met_group, gas_species, background_model, source_model, error_model, 
+              offset_model, site_limits, dispersion_model):
     """Create the ELQModel object using the data/model specifications."""
     local_source_model = deepcopy(source_model)
+
     if background_model is not None:
         background_model.update_precision = True
     if offset_model is not None:
         offset_model.update_precision = True
     if local_source_model is not None:
+        if not isinstance(local_source_model, list):
+            local_source_model = [deepcopy(local_source_model)]
 
-        if isinstance(local_source_model, list):
-            for source_model_i in local_source_model:
-                source_model_i.update_precision = True
-        else:
-            local_source_model.update_precision = True
+        for source_model_i in local_source_model:
+            source_model_i.dispersion_model = deepcopy(dispersion_model)
+            source_model_i.update_precision = True
+            if source_model_i.reversible_jump:
+                source_model_i.site_limits = site_limits
+
     model = ELQModel(
         sensor_object=sensor_group,
         meteorology=met_group,
@@ -124,5 +129,17 @@ def test_mcmc_iterations(model):
     model.to_mcmc()
     original_state = deepcopy(model.mcmc.state)
     model.run_mcmc()
-    for var in model.mcmc.state.keys():
-        assert model.mcmc.state[var].shape == original_state[var].shape
+
+    do_shape_test = True
+    if "source" in model.components.keys():
+        source_model = model.components["source"]
+        if not isinstance(source_model, list):
+            source_model = [source_model]
+        
+        for source_model_i in source_model:
+            if source_model_i.reversible_jump:
+                do_shape_test = False
+    
+    if do_shape_test:
+        for var in model.mcmc.state.keys():
+            assert model.mcmc.state[var].shape == original_state[var].shape
