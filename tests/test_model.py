@@ -73,8 +73,17 @@ def fix_error_model(request):
 
 
 @pytest.fixture(name="model")
-def fix_model(sensor_group, met_group, gas_species, background_model, source_model, error_model, 
-              offset_model, site_limits, dispersion_model):
+def fix_model(
+    sensor_group,
+    met_group,
+    gas_species,
+    background_model,
+    source_model,
+    error_model,
+    offset_model,
+    site_limits,
+    dispersion_model,
+):
     """Create the ELQModel object using the data/model specifications."""
     local_source_model = deepcopy(source_model)
 
@@ -135,11 +144,11 @@ def test_mcmc_iterations(model):
         source_model = model.components["source"]
         if not isinstance(source_model, list):
             source_model = [source_model]
-        
+
         for source_model_i in source_model:
             if source_model_i.reversible_jump:
                 do_shape_test = False
-    
+
     if do_shape_test:
         for var in model.mcmc.state.keys():
             assert model.mcmc.state[var].shape == original_state[var].shape

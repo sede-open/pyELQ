@@ -54,9 +54,7 @@ def fix_sensor_group(request, ref_longitude, ref_latitude):
     [n_time, n_sensor] = request.param
     sensor_x = np.linspace(10, 100, n_sensor).reshape(n_sensor, 1)
     sensor_y = np.zeros(shape=(n_sensor, 1))
-    locations = np.concatenate(
-        (sensor_x, sensor_y), axis=1
-    )
+    locations = np.concatenate((sensor_x, sensor_y), axis=1)
     sensor = SensorGroup()
     for k in range(n_sensor - 1):
         device_name = "device_" + str(k)
@@ -124,17 +122,17 @@ def fix_gas_species():
 @pytest.fixture(name="dispersion_model", scope="module")
 def fix_dispersion_model(ref_longitude, ref_latitude, site_limits):
     """Set up the dispersion model.
-        The locacation of the sources is set to be on a straight line in the east direction.
+    The locacation of the sources is set to be on a straight line in the east direction.
     """
     nof_sources = 3
     source_map = SourceMap()
-    source_location_east = np.linspace(site_limits[0, 0] + (site_limits[0, 1] - site_limits[0, 0])/10,
-                                       site_limits[0, 0] + (site_limits[0, 1] - site_limits[0, 0])/4,
-                                       nof_sources).reshape(nof_sources, 1)
-    source_location_north = np.zeros(shape=(nof_sources, 1))
-    source_location_up = np.linspace(
-        5.0, 5.0, nof_sources
+    source_location_east = np.linspace(
+        site_limits[0, 0] + (site_limits[0, 1] - site_limits[0, 0]) / 10,
+        site_limits[0, 0] + (site_limits[0, 1] - site_limits[0, 0]) / 4,
+        nof_sources,
     ).reshape(nof_sources, 1)
+    source_location_north = np.zeros(shape=(nof_sources, 1))
+    source_location_up = np.linspace(5.0, 5.0, nof_sources).reshape(nof_sources, 1)
 
     source_map.location = ENU(
         east=source_location_east,

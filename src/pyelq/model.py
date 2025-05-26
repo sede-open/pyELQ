@@ -256,7 +256,7 @@ class ELQModel:
                 label_string.append(component.label_string)
                 individual_source_labels.append(component.individual_source_labels)
 
-                all_source_locations_east = np.concatenate(	
+                all_source_locations_east = np.concatenate(
                     (
                         all_source_locations_east,
                         component.all_source_locations.east.reshape((-1, self.mcmc.n_iter)),
@@ -292,7 +292,6 @@ class ELQModel:
         combined_model.number_on_sources = np.sum(number_on_sources, axis=0)
         combined_model.individual_source_labels = [item for sublist in individual_source_labels for item in sublist]
         self.components["sources_combined"] = combined_model
-
 
     def plot_log_posterior(self, burn_in_value: int, plot: Plot = Plot()) -> Plot():
         """Plots the trace of the log posterior over the iterations of the MCMC.

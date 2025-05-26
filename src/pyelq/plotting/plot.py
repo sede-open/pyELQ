@@ -34,7 +34,7 @@ from pyelq.sensor.sensor import Sensor, SensorGroup
 from pyelq.support_functions.post_processing import (
     calculate_rectangular_statistics,
     create_lla_polygons_from_xy_points,
-    is_regularly_spaced
+    is_regularly_spaced,
 )
 
 if TYPE_CHECKING:
@@ -1142,7 +1142,6 @@ class Plot:
                     self.figure_dict["median_map"].add_trace(fixed_source_location_trace)
                     self.figure_dict["iqr_map"].add_trace(fixed_source_location_trace)
 
-
         if show_summary_results:
             self.figure_dict["count_map"].add_trace(summary_trace)
             self.figure_dict["count_map"].update_traces(showlegend=True)
@@ -1150,7 +1149,6 @@ class Plot:
             self.figure_dict["median_map"].update_traces(showlegend=True)
             self.figure_dict["iqr_map"].add_trace(summary_trace)
             self.figure_dict["iqr_map"].update_traces(showlegend=True)
-
 
     def plot_coverage(
         self,
