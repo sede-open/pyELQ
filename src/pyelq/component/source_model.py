@@ -876,8 +876,10 @@ class SourceModel(Component, SourceGrouping, SourceDistribution):
             sampler_list (list): list of samplers updated with samplers corresponding to RJMCMC routine.
 
         """
-        sampler_list[-1].max_variable_size = self.n_sources_max
-
+        for sampler in sampler_list:
+            if sampler.param == self.map['source']:
+                sampler.max_variable_size = self.n_sources_max
+        
         sampler_list.append(
             RandomWalkLoop(
                 self.map["source_location"],
