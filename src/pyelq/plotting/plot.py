@@ -1111,8 +1111,6 @@ class Plot:
 
         colormap_fixed = px.colors.qualitative.G10
         marker_dict = {"size": 10, "opacity": 0.8}
-        # for source_idx, source_label in enumerate(source_model.individual_source_labels):
-        #     marker_dict["color"] = colormap_fixed[source_idx % len(colormap_fixed)]
         for key, _ in model_object.components.items():
             if bool(re.search("fixed", key)):
                 source_model_fixed = model_object.components[key]
