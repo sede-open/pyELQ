@@ -4,6 +4,8 @@
 
 name: PullRequest
 
+permissions: write-all
+
 on:
   pull_request:
     types: [opened, synchronize, reopened, review_requested]
