@@ -4,6 +4,8 @@
 
 name: Main
 
+permissions: write-all
+
 on:
   push:
     branches:
