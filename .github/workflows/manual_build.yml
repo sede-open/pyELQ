@@ -4,6 +4,8 @@
 
 name: ManualBuild
 
+permissions: write-all
+
 on:
   workflow_dispatch:
 
