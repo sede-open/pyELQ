@@ -913,6 +913,10 @@ class SourceModel(Component, SourceGrouping, SourceDistribution):
     def from_mcmc(self, store: dict):
         """Extract results of mcmc from mcmc.store and attach to components.
 
+        For the reversible jump case we extract all estimated source locations
+        per iteration. For the fixed sources case we grab the source locations
+        from the inputted sourcemap and repeat those for all iterations.
+
         Args:
             store (dict): mcmc result dictionary.
 
