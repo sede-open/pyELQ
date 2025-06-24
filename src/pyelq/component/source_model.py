@@ -298,8 +298,7 @@ class SlabAndSpike(SourceGrouping):
 
         """
         self.allocation = store[self.map["allocation"]]
-        total_nof_sources = store[self.map["source"]].shape[0]
-        self.number_on_sources = total_nof_sources - np.sum(self.allocation, axis=0)
+        self.number_on_sources = self.allocation.shape[0] - np.sum(self.allocation, axis=0)
 
 
 @dataclass
