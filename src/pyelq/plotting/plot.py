@@ -997,7 +997,7 @@ class Plot:
             burn_in (int, optional): Number of burn-in iterations to discard before calculating the statistics.
                 Defaults to 0.
             show_summary_results (bool, optional): Flag to show the summary results on the map. Defaults to True.
-            show_fixed_source_locations (bool, optional): Flag to show the location fixed sources when present in one 
+            show_fixed_source_locations (bool, optional): Flag to show the location fixed sources when present in one
                 of the sourcemaps. Defaults to True.
 
         """
