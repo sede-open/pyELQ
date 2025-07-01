@@ -1120,7 +1120,6 @@ class Plot:
                     source_location_fixed_lla = source_locations_fixed.to_lla()
                     sources_lat = source_location_fixed_lla.latitude[:, 0]
                     sources_lon = source_location_fixed_lla.longitude[:, 0]
-                    print(source_location_fixed_lla.latitude.shape)
                     fixed_source_location_trace = go.Scattermap(
                         mode="markers",
                         lon=sources_lon,
