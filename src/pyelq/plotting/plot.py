@@ -978,6 +978,7 @@ class Plot:
         normalized_count_limit: float = 0.005,
         burn_in: int = 0,
         show_summary_results: bool = True,
+        show_fixed_source_locations: bool = True,
     ):
         """Function to create a map with the quantification results of the model object.
 
@@ -996,6 +997,8 @@ class Plot:
             burn_in (int, optional): Number of burn-in iterations to discard before calculating the statistics.
                 Defaults to 0.
             show_summary_results (bool, optional): Flag to show the summary results on the map. Defaults to True.
+            show_fixed_source_locations (bool, optional): Flag to show the location fixed sources when present in one 
+                of the sourcemaps. Defaults to True.
 
         """
         if source_model_to_plot_key is None:
@@ -1109,33 +1112,21 @@ class Plot:
         sensor_object.plot_sensor_location(self.figure_dict["iqr_map"])
         self.figure_dict["iqr_map"].update_traces(showlegend=False)
 
-        colormap_fixed = px.colors.qualitative.G10
-        marker_dict = {"size": 10, "opacity": 0.8}
-        for key, _ in model_object.components.items():
-            if bool(re.search("fixed", key)):
-                source_model_fixed = model_object.components[key]
-                source_locations_fixed = source_model_fixed.all_source_locations
-                source_location_fixed_lla = source_locations_fixed.to_lla()
-                source_location_fixed_average = LLA(
-                    latitude=np.nanmean(source_location_fixed_lla.latitude, axis=1),
-                    longitude=np.nanmean(source_location_fixed_lla.longitude, axis=1),
-                    altitude=np.nanmean(source_location_fixed_lla.altitude, axis=1),
-                )
-
-                for lat_fixed, lon_fixed, label_fixed in zip(
-                    source_location_fixed_average.latitude,
-                    source_location_fixed_average.longitude,
-                    source_model_fixed.individual_source_labels,
-                ):
-                    color_idx = source_model_fixed.individual_source_labels.index(label_fixed)
-                    marker_dict["color"] = colormap_fixed[color_idx % len(colormap_fixed)]
-
+        if show_fixed_source_locations:
+            for key, _ in model_object.components.items():
+                if bool(re.search("fixed", key)):
+                    source_model_fixed = model_object.components[key]
+                    source_locations_fixed = source_model_fixed.all_source_locations
+                    source_location_fixed_lla = source_locations_fixed.to_lla()
+                    sources_lat = source_location_fixed_lla.latitude[:, 0]
+                    sources_lon = source_location_fixed_lla.longitude[:, 0]
+                    print(source_location_fixed_lla.latitude.shape)
                     fixed_source_location_trace = go.Scattermap(
                         mode="markers",
-                        lon=np.array(lon_fixed),
-                        lat=np.array(lat_fixed),
-                        name=label_fixed,
-                        marker=marker_dict,
+                        lon=sources_lon,
+                        lat=sources_lat,
+                        name=f"Fixed source locations, {key}",
+                        marker={"size": 10, "opacity": 0.8},
                     )
                     self.figure_dict["count_map"].add_trace(fixed_source_location_trace)
                     self.figure_dict["median_map"].add_trace(fixed_source_location_trace)
