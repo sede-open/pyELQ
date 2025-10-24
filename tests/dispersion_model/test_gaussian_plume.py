@@ -14,14 +14,14 @@ from copy import deepcopy
 import numpy as np
 import pandas as pd
 import pytest
-from pyelq_internal.dispersion_model.gaussian_plume import GaussianPlume
-from pyelq_internal.sensor.beam import Beam
-from pyelq_internal.sensor.satellite import Satellite
-from pyelq_internal.sensor.sensor import Sensor, SensorGroup
 
 from pyelq.coordinate_system import ENU
+from pyelq.dispersion_model.gaussian_plume import GaussianPlume
 from pyelq.gas_species import CH4
 from pyelq.meteorology import Meteorology, MeteorologyGroup
+from pyelq.sensor.beam import Beam
+from pyelq.sensor.satellite import Satellite
+from pyelq.sensor.sensor import Sensor, SensorGroup
 from pyelq.source_map import SourceMap
 
 

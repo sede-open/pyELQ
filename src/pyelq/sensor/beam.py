@@ -13,7 +13,8 @@ from copy import deepcopy
 from dataclasses import dataclass
 
 import numpy as np
-from pyelq_internal.sensor.sensor import Sensor
+
+from pyelq.sensor.sensor import Sensor
 
 
 @dataclass

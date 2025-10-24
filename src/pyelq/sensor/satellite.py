@@ -14,7 +14,8 @@ http://www.tropomi.eu/data-products/methane
 from dataclasses import dataclass, field
 
 import numpy as np
-from pyelq_internal.sensor.sensor import Sensor
+
+from pyelq.sensor.sensor import Sensor
 
 
 @dataclass
