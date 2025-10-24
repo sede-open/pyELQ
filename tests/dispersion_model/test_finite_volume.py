@@ -2,11 +2,6 @@ import numpy as np
 import pandas as pd
 import pytest
 import scipy.sparse as sparse
-from pyelq.coordinate_system import ENU
-from pyelq.gas_species import CH4
-from pyelq.meteorology import Meteorology
-from pyelq.source_map import SourceMap
-
 from pyelq_internal.dispersion_model.finite_volume import (
     FiniteVolume,
     FiniteVolumeDimension,
@@ -17,6 +12,11 @@ from pyelq_internal.dispersion_model.finite_volume import (
 from pyelq_internal.meteorology_windfield import MeteorologyWindfield, SiteLayout
 from pyelq_internal.sensor.beam import Beam
 from pyelq_internal.sensor.sensor import Sensor, SensorGroup
+
+from pyelq.coordinate_system import ENU
+from pyelq.gas_species import CH4
+from pyelq.meteorology import Meteorology
+from pyelq.source_map import SourceMap
 
 
 @pytest.fixture(

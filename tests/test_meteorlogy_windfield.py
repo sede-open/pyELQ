@@ -2,10 +2,10 @@
 
 import numpy as np
 import pytest
+from pyelq_internal.meteorology_windfield import MeteorologyWindfield, SiteLayout
+
 from pyelq.coordinate_system import ENU
 from pyelq.meteorology import Meteorology
-
-from pyelq_internal.meteorology_windfield import MeteorologyWindfield, SiteLayout
 
 
 @pytest.fixture(

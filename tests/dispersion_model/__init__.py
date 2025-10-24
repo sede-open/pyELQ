@@ -2,6 +2,4 @@
 #
 # SPDX-License-Identifier: Apache-2.0
 """Data Access test module."""
-__all__ = [
-    "test_finite_volume","test_gaussian_plume"
-]
+__all__ = ["test_finite_volume", "test_gaussian_plume"]

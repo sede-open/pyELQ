@@ -15,13 +15,13 @@ from dataclasses import dataclass
 from typing import Callable, Union
 
 import numpy as np
+from pyelq_internal.sensor.satellite import Satellite
+from pyelq_internal.sensor.sensor import Sensor
+
 import pyelq.support_functions.spatio_temporal_interpolation as sti
 from pyelq.gas_species import GasSpecies
 from pyelq.meteorology import Meteorology
 from pyelq.source_map import SourceMap
-
-from pyelq_internal.sensor.satellite import Satellite
-from pyelq_internal.sensor.sensor import Sensor
 
 
 @dataclass

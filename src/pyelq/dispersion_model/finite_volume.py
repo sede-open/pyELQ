@@ -8,19 +8,19 @@ from typing import Union
 import numpy as np
 import pandas as pd
 import scipy.sparse as sp
-from pyelq.coordinate_system import ENU
-from pyelq.gas_species import GasSpecies
-from pyelq.meteorology import Meteorology
+from pyelq_internal.dispersion_model.dispersion_model import DispersionModel
+from pyelq_internal.meteorology_windfield import MeteorologyWindfield, SiteLayout
+from pyelq_internal.sensor.beam import Beam
+from pyelq_internal.sensor.sensor import SensorGroup
 from scipy.interpolate import RegularGridInterpolator
 from scipy.sparse import csr_array, dia_array
 from scipy.sparse.linalg import spsolve
 from scipy.spatial import KDTree
 from tqdm import tqdm
 
-from pyelq_internal.dispersion_model.dispersion_model import DispersionModel
-from pyelq_internal.meteorology_windfield import MeteorologyWindfield, SiteLayout
-from pyelq_internal.sensor.beam import Beam
-from pyelq_internal.sensor.sensor import SensorGroup
+from pyelq.coordinate_system import ENU
+from pyelq.gas_species import GasSpecies
+from pyelq.meteorology import Meteorology
 
 
 @dataclass

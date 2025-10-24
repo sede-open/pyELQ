@@ -15,14 +15,14 @@ from dataclasses import dataclass
 from typing import Union
 
 import numpy as np
-from pyelq.coordinate_system import ENU, LLA
-from pyelq.gas_species import GasSpecies
-from pyelq.meteorology import Meteorology, MeteorologyGroup
-
 from pyelq_internal.dispersion_model.dispersion_model import DispersionModel
 from pyelq_internal.sensor.beam import Beam
 from pyelq_internal.sensor.satellite import Satellite
 from pyelq_internal.sensor.sensor import Sensor, SensorGroup
+
+from pyelq.coordinate_system import ENU, LLA
+from pyelq.gas_species import GasSpecies
+from pyelq.meteorology import Meteorology, MeteorologyGroup
 
 
 @dataclass

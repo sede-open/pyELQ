@@ -6,9 +6,10 @@ from dataclasses import dataclass, field
 
 import numpy as np
 import pandas as pd
+from scipy import spatial
+
 from pyelq.coordinate_system import ENU
 from pyelq.meteorology import Meteorology
-from scipy import spatial
 
 
 @dataclass
