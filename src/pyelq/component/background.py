@@ -1,7 +1,6 @@
 # SPDX-FileCopyrightText: 2024 Shell Global Solutions International B.V. All Rights Reserved.
 #
 # SPDX-License-Identifier: Apache-2.0
-
 """Model components for background modelling."""
 
 from abc import abstractmethod
@@ -51,6 +50,7 @@ class Background(Component):
         initial_precision (float): initial value for the scalar precision parameter.
         basis_matrix (sparse.csr_array): [n_obs x n_time] matrix mapping the background model parameters on to the
             observations.
+        precision_time_0 (float): precision relating to the first time stamp in the model. Defaults to 0.01.
 
     """
 
@@ -65,6 +65,7 @@ class Background(Component):
     prior_precision_rate: float = 1e-3
     initial_precision: float = 1.0
     basis_matrix: sparse.csr_array = field(init=False)
+    precision_time_0: float = field(init=False, default=0.01)
 
     @abstractmethod
     def initialise(self, sensor_object: SensorGroup, meteorology: MeteorologyGroup, gas_species: GasSpecies):
@@ -180,6 +181,8 @@ class TemporalBackground(Background):
         self.n_parameter = len(self.time)
         self.basis_matrix = sparse.csr_array((np.ones(self.n_obs), (np.array(range(self.n_obs)), unique_inverse)))
         self.precision_matrix = gmrf.precision_temporal(time=self.time)
+        lam = self.precision_matrix[0, 0]
+        self.precision_matrix[0, 0] = lam * (2.0 - lam / (self.precision_time_0 + lam))
         if self.mean_bg is None:
             self.mean_bg = gas_species.global_background
 
@@ -226,7 +229,6 @@ class SpatioTemporalBackground(Background):
         spatial_precision_matrix (np.ndarray): spatial component of the precision matrix. The full model precision
             matrix is the Kronecker product of this matrix with the self.temporal_precision_matrix. Simply set to 1 if
             self.spatial_dependence is False.
-        precision_time_0 (float): precision relating to the first time stamp in the model. Defaults to 0.01.
 
     """
 
@@ -238,7 +240,6 @@ class SpatioTemporalBackground(Background):
     location: Coordinate = field(init=False)
     temporal_precision_matrix: Union[np.ndarray, sparse.csc_matrix] = field(init=False)
     spatial_precision_matrix: np.ndarray = field(init=False)
-    precision_time_0: float = field(init=False, default=0.01)
 
     def initialise(self, sensor_object: SensorGroup, meteorology: MeteorologyGroup, gas_species: GasSpecies):
         """Take data inputs and extract relevant properties.

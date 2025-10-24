@@ -19,7 +19,6 @@ import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
 from pandas.arrays import DatetimeArray
-
 from pyelq.coordinate_system import ECEF, ENU, LLA, Coordinate
 
 
@@ -107,6 +106,28 @@ class Sensor:
 
         return fig
 
+    def subset_sensor(self, section_index: np.ndarray) -> "Sensor":
+        """Subset the sensor based on the provided section index.
+
+        Args:
+            section_index (np.ndarray): Boolean or integer array indicating which observations to keep
+
+        Returns:
+            Sensor: A new Sensor object containing only the specified observations
+
+        """
+        section_indices = (self.source_on == section_index).flatten()
+        new_sensor = deepcopy(self)
+        new_sensor.time = self.time[section_indices]
+        new_sensor.concentration = self.concentration[section_indices]
+        location_object = self.location.to_array()
+        if location_object.shape[0] > 1:
+            location_object = location_object[section_indices, :]
+            new_sensor.location = self.location.from_array(location_object)
+
+        new_sensor.source_on = self.source_on[section_indices] if self.source_on is not None else None
+        return new_sensor
+
 
 @dataclass
 class SensorGroup(dict):
@@ -181,12 +202,12 @@ class SensorGroup(dict):
         overall_idx = np.array([])
         for curr_key in list(self.keys()):
             if self[curr_key].source_on is None:
-                temp_idx = np.ones(self[curr_key].nof_observations).astype(bool)
+                temp_idx = np.ones(self[curr_key].nof_observations).astype(int)
             else:
-                temp_idx = self[curr_key].source_on
+                temp_idx = self[curr_key].source_on.flatten()
 
             overall_idx = np.concatenate([overall_idx, temp_idx])
-        return overall_idx.astype(bool)
+        return overall_idx.astype(int)
 
     @property
     def nof_sensors(self) -> int:
@@ -239,3 +260,19 @@ class SensorGroup(dict):
             fig = sensor.plot_timeseries(fig, color=color_map[color_idx], mode=mode)
 
         return fig
+
+    def subset_sensor(self, section_index: np.ndarray) -> "SensorGroup":
+        """Subset the sensor based on the provided section index.
+
+        Args:
+            section_index (np.ndarray): Boolean or integer array indicating which observations to keep
+
+        Returns:
+            SensorGroup: A new SensorGroup object containing only the specified observations
+
+        """
+        subset_sensor = SensorGroup()
+        for _, sensor in enumerate(self.values()):
+            subset_sensor_i = sensor.subset_sensor(section_index)
+            subset_sensor.add_sensor(subset_sensor_i)
+        return subset_sensor

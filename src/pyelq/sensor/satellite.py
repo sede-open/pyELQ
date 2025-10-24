@@ -15,7 +15,7 @@ from dataclasses import dataclass, field
 
 import numpy as np
 
-from pyelq.sensor.sensor import Sensor
+from pyelq_internal.sensor.sensor import Sensor
 
 
 @dataclass

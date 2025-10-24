@@ -221,6 +221,7 @@ class NullGrouping(SourceGrouping):
 
         Args:
             store (dict): dictionary containing samples from the MCMC.
+
         """
         self.number_on_sources = np.count_nonzero(np.logical_not(np.isnan(store[self.map["source"]])), axis=0)
 
@@ -528,6 +529,7 @@ class SourceModel(Component, SourceGrouping, SourceDistribution):
     gas_species: GasSpecies = field(init=False, default=None)
 
     reversible_jump: bool = False
+    distribution_number_sources: str = "Poisson"
     random_walk_step_size: np.ndarray = field(default_factory=lambda: np.array([1.0, 1.0, 0.1], ndmin=2).T)
     site_limits: np.ndarray = None
     rate_num_sources: int = 5
@@ -553,9 +555,9 @@ class SourceModel(Component, SourceGrouping, SourceDistribution):
     def __post_init__(self):
         """Post-initialisation of the class.
 
-        This function is called after the class has been initialised,
-        and is used to set up the mapping dictionary for the class by applying the
-        append_string function to the mapping dictionary.
+        This function is called after the class has been initialised, and is used to set up the mapping dictionary for
+        the class by applying the append_string function to the mapping dictionary.
+
         """
         if self.label_string is not None:
             self.append_string(self.label_string)
@@ -813,7 +815,16 @@ class SourceModel(Component, SourceGrouping, SourceDistribution):
                     domain_response_upper=self.site_limits[:, [1]],
                 )
             )
-            model.append(Poisson(response=self.map["number_sources"], rate=self.map["number_source_rate"]))
+            if self.distribution_number_sources == "Uniform":
+                model.append(
+                    Uniform(
+                        response=self.map["number_sources"],
+                        domain_response_lower=1,
+                        domain_response_upper=self.n_sources_max,
+                    )
+                )
+            elif self.distribution_number_sources == "Poisson":
+                model.append(Poisson(response=self.map["number_sources"], rate=self.map["number_source_rate"]))
         return model
 
     def make_sampler(self, model: Model, sampler_list: list) -> list:
