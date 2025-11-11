@@ -539,9 +539,13 @@ class FiniteVolume(DispersionModel):
         self.source_grid_link is a sparse matrix linking the source map to the grid coordinates.
 
         """
-        if self.source_map.nof_sources == 0 or self.use_lookup_table:
+        if self.use_lookup_table:
+            # self.source_map.location = self.grid_coordinates
+            self.source_grid_link = sp.eye_array(self.total_number_cells, format="csr")
+        elif self.source_map.nof_sources == 0:
             self.source_map.location = self.grid_coordinates
             self.source_grid_link = sp.eye_array(self.total_number_cells, format="csr")
+
         else:
             n_sources = self.source_map.nof_sources
             tree = KDTree(self.grid_coordinates.to_array(dim=self.number_dimensions))
