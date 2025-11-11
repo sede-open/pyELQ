@@ -483,6 +483,8 @@ class SourceModel(Component, SourceGrouping, SourceDistribution):
 
         reversible_jump (bool): logical indicating whether the reversible jump algorithm for estimation of the number
             of sources and their locations should be run. Defaults to False.
+        distribution_number_sources (str): distribution for the number of sources "Poisson", "Uniform".
+            Defaults to Poisson.
         random_walk_step_size (np.ndarray): (3 x 1) array specifying the standard deviations of the distributions
             from which the random walk sampler draws new source locations. Defaults to np.array([1.0, 1.0, 0.1]).
         site_limits (np.ndarray): (3 x 2) array specifying the lower (column 0) and upper (column 1) limits of the
@@ -825,6 +827,9 @@ class SourceModel(Component, SourceGrouping, SourceDistribution):
                 )
             elif self.distribution_number_sources == "Poisson":
                 model.append(Poisson(response=self.map["number_sources"], rate=self.map["number_source_rate"]))
+            else {
+                raise ValueError("Invalid distribution type for number of sources.")
+            }
         return model
 
     def make_sampler(self, model: Model, sampler_list: list) -> list:
