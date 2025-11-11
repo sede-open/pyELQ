@@ -62,7 +62,7 @@ class Beam(Sensor):
             section_index (np.ndarray): Boolean or integer array indicating which observations to keep
 
         Returns:
-            Beam: A new Sensor object containing only the specified observations
+            new_sensor (Beam): A new Sensor object containing only the specified observations
 
         """
         section_indices = (self.source_on == section_index).flatten()

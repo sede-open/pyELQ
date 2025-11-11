@@ -114,7 +114,7 @@ class Sensor:
             section_index (np.ndarray): Boolean or integer array indicating which observations to keep
 
         Returns:
-            Sensor: A new Sensor object containing only the specified observations
+            new_sensor (Sensor): A new Sensor object containing only the specified observations
 
         """
         section_indices = (self.source_on == section_index).flatten()
