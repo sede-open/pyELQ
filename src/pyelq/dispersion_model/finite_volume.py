@@ -540,7 +540,7 @@ class FiniteVolume(DispersionModel):
 
         """
         if self.use_lookup_table or self.source_map.nof_sources == 0:
-            if  self.source_map.nof_sources == 0:
+            if self.source_map.nof_sources == 0:
                 self.source_map.location = self.grid_coordinates
             self.source_grid_link = sp.eye_array(self.total_number_cells, format="csr")
         else:
