@@ -4,7 +4,7 @@
 """Class for performing preprocessing on the loaded data."""
 
 from copy import deepcopy
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import Union
 
 import numpy as np
@@ -49,7 +49,6 @@ class Preprocessor:
         "wind_turbulence_horizontal",
         "wind_turbulence_vertical",
     ]
-    met_fields_location: list = field(init=False, default=None)
 
     def __post_init__(self) -> None:
         """Initialise the class.
@@ -100,12 +99,12 @@ class Preprocessor:
         """
         sensor_out = deepcopy(self.sensor_object)
         for sns_new, sns_old in zip(sensor_out.values(), self.sensor_object.values()):
-            for sensor_field in self.sensor_fields:
-                if (sensor_field != "time") and (getattr(sns_old, sensor_field) is not None):
+            for field in self.sensor_fields:
+                if (field != "time") and (getattr(sns_old, field) is not None):
                     time_out, resampled_values = temporal_resampling(
-                        sns_old.time, getattr(sns_old, sensor_field), self.time_bin_edges, self.aggregate_function
+                        sns_old.time, getattr(sns_old, field), self.time_bin_edges, self.aggregate_function
                     )
-                    setattr(sns_new, sensor_field, resampled_values)
+                    setattr(sns_new, field, resampled_values)
                     sns_new.time = time_out
 
         met_out = MeteorologyGroup()
@@ -137,12 +136,12 @@ class Preprocessor:
             sns_in = self.sensor_object[sns_key]
             met_in = self.met_object[met_key]
             filter_index = np.ones(sns_in.nof_observations, dtype=bool)
-            for sensor_field in self.sensor_fields:
-                if (sensor_field != "time") and (getattr(sns_in, sensor_field) is not None):
-                    filter_index = np.logical_and(filter_index, np.logical_not(np.isnan(getattr(sns_in, sensor_field))))
-            for sensor_field in self.met_fields:
-                if (sensor_field != "time") and (getattr(met_in, sensor_field) is not None):
-                    filter_index = np.logical_and(filter_index, np.logical_not(np.isnan(getattr(met_in, sensor_field))))
+            for field in self.sensor_fields:
+                if (field != "time") and (getattr(sns_in, field) is not None):
+                    filter_index = np.logical_and(filter_index, np.logical_not(np.isnan(getattr(sns_in, field))))
+            for field in self.met_fields:
+                if (field != "time") and (getattr(met_in, field) is not None):
+                    filter_index = np.logical_and(filter_index, np.logical_not(np.isnan(getattr(met_in, field))))
 
             self.sensor_object[sns_key] = self.filter_object_fields(sns_in, self.sensor_fields, filter_index)
             self.met_object[met_key] = self.filter_object_fields(met_in, self.met_fields, filter_index)
@@ -160,28 +159,18 @@ class Preprocessor:
         for sns_key in self.sensor_object:
             sns_in = self.sensor_object[sns_key]
             filter_index = np.ones(sns_in.nof_observations, dtype=bool)
-            for sensor_field in self.sensor_fields:
-                if (sensor_field != "time") and (getattr(sns_in, sensor_field) is not None):
-                    filter_index = np.logical_and(filter_index, np.logical_not(np.isnan(getattr(sns_in, sensor_field))))
+            for field in self.sensor_fields:
+                if (field != "time") and (getattr(sns_in, field) is not None):
+                    filter_index = np.logical_and(filter_index, np.logical_not(np.isnan(getattr(sns_in, field))))
             self.sensor_object[sns_key] = self.filter_object_fields(sns_in, self.sensor_fields, filter_index)
 
         filter_index = np.ones(self.met_object.nof_observations, dtype=bool)
-        for met_field in self.met_fields:
-            if (met_field != "time" and met_field != "location") and (getattr(self.met_object, met_field) is not None):
+        for field in self.met_fields:
+            if (field not in ("time", "location")) and (getattr(self.met_object, field) is not None):
                 filter_index = np.logical_and(
-                    filter_index, np.logical_not(np.isnan(getattr(self.met_object, met_field)))
+                    filter_index, np.logical_not(np.isnan(getattr(self.met_object, field)))
                 )
         self.met_object = self.filter_object_fields(self.met_object, self.met_fields, filter_index)
-
-        self.set_location_fields(self.met_object.location)
-        for met_field in self.met_fields_location:
-            if hasattr(self.met_object.location, met_field):
-                filter_index = np.logical_and(
-                    filter_index, np.logical_not(np.isnan(getattr(self.met_object.location, met_field)))
-                )
-        self.met_object.location = self.filter_object_fields(
-            self.met_object.location, self.met_fields_location, filter_index
-        )
 
     def filter_on_met(self, filter_variable: list, lower_limit: list = None, upper_limit: list = None) -> None:
         """Filter the supplied data on given properties of the meteorological data.
@@ -300,9 +289,9 @@ class Preprocessor:
 
         """
         return_object = deepcopy(data_object)
-        for obj_field in fields:
-            if getattr(return_object, obj_field) is not None:
-                setattr(return_object, obj_field, getattr(return_object, obj_field)[index])
+        for field in fields:
+            if getattr(return_object, field) is not None:
+                setattr(return_object, field, getattr(return_object, field)[index])
         return return_object
 
     def interpolate_single_met_object(self, met_in_object: Meteorology) -> Meteorology:
@@ -317,8 +306,8 @@ class Preprocessor:
         """
         met_out_object = Meteorology()
         time_out = None
-        for met_field in self.met_fields:
-            if (met_field != "time") and (getattr(met_in_object, met_field) is not None):
+        for field in self.met_fields:
+            if (field != "time") and (getattr(met_in_object, field) is not None):
                 time_out, resampled_values = temporal_resampling(
                     met_in_object.time,
                     getattr(met_in_object, field),
@@ -331,28 +320,3 @@ class Preprocessor:
             met_out_object.time = time_out
 
         return met_out_object
-
-    def set_location_fields(self, location_obj: Union[ENU, LLA]) -> None:
-        """Set the location fields based on the coordinate system of the location object.
-
-        If the location object uses a geographic coordinate system (latitude, longitude, altitude),
-        the corresponding fields are set. If it uses a Cartesian coordinate system (east, north, up),
-        those fields are set instead.
-
-        Args:
-            location_obj (Union[ENU, LLA]): The location object whose coordinate system is to be determined.
-
-        Raises:
-            ValueError: If the coordinate system is unknown.
-
-        """
-        if (
-            hasattr(location_obj, "latitude")
-            and hasattr(location_obj, "longitude")
-            and hasattr(location_obj, "altitude")
-        ):
-            self.met_fields_location = ["latitude", "longitude", "altitude"]
-        elif hasattr(location_obj, "east") and hasattr(location_obj, "north") and hasattr(location_obj, "up"):
-            self.met_fields_location = ["east", "north", "up"]
-        else:
-            raise ValueError("Unknown coordinate system in location object.")
