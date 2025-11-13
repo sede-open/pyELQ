@@ -5,7 +5,7 @@
 
 from copy import deepcopy
 from dataclasses import dataclass, field
-from typing import Optional, Union
+from typing import Union
 
 import numpy as np
 import pandas as pd
@@ -100,13 +100,13 @@ class Preprocessor:
         """
         sensor_out = deepcopy(self.sensor_object)
         for sns_new, sns_old in zip(sensor_out.values(), self.sensor_object.values()):
-            for field in self.sensor_fields:
-                if (field != "time") and (getattr(sns_old, field) is not None):
+            for sensor_field in self.sensor_fields:
+                if (sensor_field != "time") and (getattr(sns_old, sensor_field) is not None):
                     time_out, resampled_values = temporal_resampling(
-                        sns_old.time, getattr(sns_old, field), self.time_bin_edges, self.aggregate_function
+                        sns_old.time, getattr(sns_old, sensor_field), self.time_bin_edges, self.aggregate_function
                     )
-                    setattr(sns_new, field, resampled_values)
-            sns_new.time = time_out
+                    setattr(sns_new, sensor_field, resampled_values)
+                    sns_new.time = time_out
 
         met_out = MeteorologyGroup()
         if isinstance(self.met_object, Meteorology):
@@ -137,12 +137,12 @@ class Preprocessor:
             sns_in = self.sensor_object[sns_key]
             met_in = self.met_object[met_key]
             filter_index = np.ones(sns_in.nof_observations, dtype=bool)
-            for field in self.sensor_fields:
-                if (field != "time") and (getattr(sns_in, field) is not None):
-                    filter_index = np.logical_and(filter_index, np.logical_not(np.isnan(getattr(sns_in, field))))
-            for field in self.met_fields:
-                if (field != "time") and (getattr(met_in, field) is not None):
-                    filter_index = np.logical_and(filter_index, np.logical_not(np.isnan(getattr(met_in, field))))
+            for sensor_field in self.sensor_fields:
+                if (sensor_field != "time") and (getattr(sns_in, sensor_field) is not None):
+                    filter_index = np.logical_and(filter_index, np.logical_not(np.isnan(getattr(sns_in, sensor_field))))
+            for sensor_field in self.met_fields:
+                if (sensor_field != "time") and (getattr(met_in, sensor_field) is not None):
+                    filter_index = np.logical_and(filter_index, np.logical_not(np.isnan(getattr(met_in, sensor_field))))
 
             self.sensor_object[sns_key] = self.filter_object_fields(sns_in, self.sensor_fields, filter_index)
             self.met_object[met_key] = self.filter_object_fields(met_in, self.met_fields, filter_index)
@@ -160,22 +160,24 @@ class Preprocessor:
         for sns_key in self.sensor_object:
             sns_in = self.sensor_object[sns_key]
             filter_index = np.ones(sns_in.nof_observations, dtype=bool)
-            for field in self.sensor_fields:
-                if (field != "time") and (getattr(sns_in, field) is not None):
-                    filter_index = np.logical_and(filter_index, np.logical_not(np.isnan(getattr(sns_in, field))))
+            for sensor_field in self.sensor_fields:
+                if (sensor_field != "time") and (getattr(sns_in, sensor_field) is not None):
+                    filter_index = np.logical_and(filter_index, np.logical_not(np.isnan(getattr(sns_in, sensor_field))))
             self.sensor_object[sns_key] = self.filter_object_fields(sns_in, self.sensor_fields, filter_index)
 
         filter_index = np.ones(self.met_object.nof_observations, dtype=bool)
-        for field in self.met_fields:
-            if (field != "time" and field != "location") and (getattr(self.met_object, field) is not None):
-                filter_index = np.logical_and(filter_index, np.logical_not(np.isnan(getattr(self.met_object, field))))
+        for met_field in self.met_fields:
+            if (met_field != "time" and met_field != "location") and (getattr(self.met_object, met_field) is not None):
+                filter_index = np.logical_and(
+                    filter_index, np.logical_not(np.isnan(getattr(self.met_object, met_field)))
+                )
         self.met_object = self.filter_object_fields(self.met_object, self.met_fields, filter_index)
 
         self.set_location_fields(self.met_object.location)
-        for field in self.met_fields_location:
-            if hasattr(self.met_object.location, field):
+        for met_field in self.met_fields_location:
+            if hasattr(self.met_object.location, met_field):
                 filter_index = np.logical_and(
-                    filter_index, np.logical_not(np.isnan(getattr(self.met_object.location, field)))
+                    filter_index, np.logical_not(np.isnan(getattr(self.met_object.location, met_field)))
                 )
         self.met_object.location = self.filter_object_fields(
             self.met_object.location, self.met_fields_location, filter_index
@@ -298,9 +300,9 @@ class Preprocessor:
 
         """
         return_object = deepcopy(data_object)
-        for field in fields:
-            if getattr(return_object, field) is not None:
-                setattr(return_object, field, getattr(return_object, field)[index])
+        for obj_field in fields:
+            if getattr(return_object, obj_field) is not None:
+                setattr(return_object, obj_field, getattr(return_object, obj_field)[index])
         return return_object
 
     def interpolate_single_met_object(self, met_in_object: Meteorology) -> Meteorology:
@@ -315,8 +317,8 @@ class Preprocessor:
         """
         met_out_object = Meteorology()
         time_out = None
-        for field in self.met_fields:
-            if (field != "time") and (getattr(met_in_object, field) is not None):
+        for met_field in self.met_fields:
+            if (met_field != "time") and (getattr(met_in_object, met_field) is not None):
                 time_out, resampled_values = temporal_resampling(
                     met_in_object.time,
                     getattr(met_in_object, field),
