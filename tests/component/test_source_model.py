@@ -9,7 +9,7 @@ from copy import deepcopy
 import numpy as np
 import pytest
 from openmcmc import parameter
-from openmcmc.distribution.distribution import Gamma, Uniform, Poisson
+from openmcmc.distribution.distribution import Gamma, Poisson, Uniform
 from openmcmc.distribution.location_scale import Normal as mcmcNormal
 from openmcmc.sampler.sampler import NormalNormal
 
