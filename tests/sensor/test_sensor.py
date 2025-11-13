@@ -10,8 +10,10 @@ This module provides tests for the sensor superclass in pyELQ
 """
 
 import numpy as np
+import pandas as pd
 import pytest
 
+from pyelq.coordinate_system import LLA
 from pyelq.sensor.sensor import Sensor
 
 
@@ -28,3 +30,31 @@ def test_nof_observables(nof_observations: int):
         sensor.concentration = np.random.rand(nof_observations, 1)
 
     assert sensor.nof_observations == nof_observations
+
+
+@pytest.mark.parametrize(
+    "source_on",
+    [
+        np.array([0, 0, 0, 1, 1, 1, 0, 0, 2, 2, 2, 2, 0, 0]),
+        np.ones(10, dtype=bool),
+    ],
+    ids=["multiple_sections", "single_section"],
+)
+def test_subset_sensor(source_on):
+    """Test Sensor.subset_sensor method."""
+
+    sensor = Sensor()
+    sensor.label = "sensor_0"
+    sensor.time = pd.array(pd.date_range("2024-01-01", periods=len(source_on)), dtype="datetime64[ns]")
+    sensor.concentration = np.random.rand(len(source_on), 1)
+    sensor.location = LLA(latitude=np.array([10]), longitude=np.array([40]), altitude=np.array([0]))
+    sensor.source_on = source_on
+
+    number_of_sections = max(sensor.source_on) + 1
+    for section in range(1, number_of_sections + 1):
+        subset_sensor = sensor.subset_sensor(section_index=section)
+
+        assert subset_sensor.nof_observations == np.sum(sensor.source_on == section)
+        assert subset_sensor.source_on.size == np.sum(sensor.source_on == section)
+        if subset_sensor.nof_observations > 0:
+            assert np.all(subset_sensor.source_on == sensor.source_on[sensor.source_on == section])
