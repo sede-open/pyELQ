@@ -96,7 +96,7 @@ def test_find_index_obstacles(site_layout, grid_coordinates, height):
     assert np.all(site_layout.id_obstacles)
 
 
-def test_meterology_windfield(meteorology_windfield, meteorology, grid_coordinates):
+def test_meteorology_windfield(meteorology_windfield, meteorology, grid_coordinates):
     """Test the MeteorologyWindfield class.
 
     Check that the wind field is correctly calculated for different wind components.
