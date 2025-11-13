@@ -13,8 +13,8 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from pyelq.sensor.sensor import Sensor
 from pyelq.coordinate_system import LLA
+from pyelq.sensor.sensor import Sensor
 
 
 @pytest.mark.parametrize("nof_observations", [0, 1, 10])
