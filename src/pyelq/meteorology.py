@@ -67,9 +67,9 @@ class Meteorology:
     @property
     def nof_observations(self) -> int:
         """Number of observations."""
-        if self.location is None:
+        if self.time is None:
             return 0
-        return self.location.nof_observations
+        return self.time.size
 
     def calculate_wind_speed_from_uv(self) -> None:
         """Calculate wind speed.
