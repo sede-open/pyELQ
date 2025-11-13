@@ -352,7 +352,7 @@ def test_finite_volume_time_step_solver(finite_volume, meteorology):
             coupling_matrix=coupling_matrix,
         )
 
-        assert coupling_matrix.shape == (finite_volume.total_number_cells, finite_volume.source_map.nof_sources)
+        assert coupling_matrix.shape == (finite_volume.total_number_cells, finite_volume.source_grid_link.shape[1])
         assert sparse.issparse(coupling_matrix)
         assert np.min(coupling_matrix) >= 0
 
