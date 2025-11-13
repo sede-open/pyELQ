@@ -9,7 +9,7 @@ from copy import deepcopy
 import numpy as np
 import pytest
 from openmcmc import parameter
-from openmcmc.distribution.distribution import Gamma
+from openmcmc.distribution.distribution import Gamma, Uniform, Poisson
 from openmcmc.distribution.location_scale import Normal as mcmcNormal
 from openmcmc.sampler.sampler import NormalNormal
 
@@ -18,18 +18,45 @@ from tests.conftest import initialise_sampler
 
 
 @pytest.fixture(
+    name="distribution_num_sources_prior",
+    params=[Uniform, Poisson],
+    ids=lambda p: p.__name__,
+)
+def fix_distribution_num_sources(request):
+    """Set up the distribution class and id for number of sources prior."""
+
+    distrubution_class = request.param
+    distribution_id = distrubution_class.__name__
+    return distrubution_class, distribution_id
+
+
+# @pytest.fixture(
+#     name="distribution_num_sources_prior",
+#     params=[Uniform, Poisson],
+#     ids=["Uniform", "Poisson"],
+# )
+# def fix_distribution_num_sources(request):
+#     """Set up the source model based on all previous fixtures."""
+#     return request.param
+
+
+@pytest.fixture(
     name="source_model",
     params=[(Normal, False), (NormalSlabAndSpike, False), (Normal, True), (NormalSlabAndSpike, True)],
     ids=["Normal", "Normal_SlabAndSpike", "Normal_RJ", "Normal_SlabAndSpike_RJ"],
 )
-def fix_source_model(request, sensor_group, met_group, gas_species, dispersion_model, site_limits):
+def fix_source_model(
+    request, sensor_group, met_group, gas_species, dispersion_model, site_limits, distribution_num_sources_prior
+):
     """Set up the source model based on all previous fixtures."""
     call_fun, rj_flag = request.param
+    _, distribution_num_sources_prior_id = distribution_num_sources_prior
     source_model = call_fun()
     source_model.dispersion_model = dispersion_model
     source_model.update_precision = True
     source_model.reversible_jump = rj_flag
     source_model.site_limits = site_limits
+    source_model.distribution_number_sources = distribution_num_sources_prior_id
     source_model.initialise(sensor_object=sensor_group, meteorology=met_group, gas_species=gas_species)
     return source_model
 
@@ -66,13 +93,14 @@ def test_make_state(source_model, sensor_group):
     assert state["mu_s"].shape == prior_param_shape
 
 
-def test_make_model(source_model):
+def test_make_model(source_model, distribution_num_sources_prior):
     """Test the make_model() function.
 
     Tests the following aspects of the model
 
     """
     model = source_model.make_model(model=[])
+    distribution_num_sources_prior_class, _ = distribution_num_sources_prior
 
     if isinstance(source_model, Normal):
         assert model[0].response == "s"
@@ -88,6 +116,7 @@ def test_make_model(source_model):
         if source_model.reversible_jump:
             assert model[-3].response == "lambda_s"
             assert isinstance(model[-3], Gamma)
+            assert isinstance(model[-1], distribution_num_sources_prior_class)
         else:
             assert model[-1].response == "lambda_s"
             assert isinstance(model[-1], Gamma)
