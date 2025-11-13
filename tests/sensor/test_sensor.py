@@ -47,7 +47,9 @@ def test_subset_sensor(source_on):
     sensor.label = "sensor_0"
     sensor.time = pd.array(pd.date_range("2024-01-01", periods=len(source_on)), dtype="datetime64[ns]")
     sensor.concentration = np.random.rand(len(source_on), 1)
-    sensor.location = LLA(latitude=np.array([10]), longitude=np.array([40]), altitude=np.array([0]))
+    sensor.location = LLA(latitude=np.ones((len(source_on),1))*10,
+                          longitude=np.ones((len(source_on),1))*40,
+                          altitude=np.ones((len(source_on),1))*0)
     sensor.source_on = source_on
 
     number_of_sections = max(sensor.source_on) + 1

@@ -84,15 +84,12 @@ def test_wind_direction(u_component, v_component, truth):
 def test_nof_observations():
     """Test if nof_observation property works as expected."""
     n_samples = np.random.randint(1, 100)
-    array = np.random.random((n_samples, 2))
-
-    lla_object = LLA()
-    lla_object.from_array(array)
+    time = np.random.random((n_samples, 1))
 
     met_object = Meteorology()
     assert met_object.nof_observations == 0
 
-    met_object.location = lla_object
+    met_object.time = time
     assert met_object.nof_observations == n_samples
 
 

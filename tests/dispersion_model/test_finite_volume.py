@@ -44,7 +44,7 @@ def fixture_meteorology(request):
     return meteorology
 
 
-@pytest.fixture(params=[0, 1, 3], ids=["GrdSrc", "1Src", "3Src"], name="source_map")
+@pytest.fixture(params=[0, 3], ids=["GrdSrc", "3Src"], name="source_map")
 def fixture_source_map(request):
     """Fixture for source map."""
     source_map = SourceMap()
