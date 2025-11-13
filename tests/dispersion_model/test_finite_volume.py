@@ -1,3 +1,9 @@
+
+"""Test module for finite volume dispersion model.
+
+This module provides various tests for the Finite volume related code part of pyELQ
+
+"""
 import numpy as np
 import pandas as pd
 import pytest
@@ -325,7 +331,7 @@ def test_forward_matrix(finite_volume, meteorology):
     assert np.allclose(check_value, 0, atol=1e-10)
 
 
-def test_compute_coupling_grid(finite_volume, meteorology):
+def test_finite_volume_time_step_solver(finite_volume, meteorology):
     """Test the compute_coupling method of the FiniteVolume class.
 
     This test checks that the coupling matrix is correctly computed for different wind components.
@@ -368,7 +374,6 @@ def test_compute_coupling(finite_volume, meteorology, sensor_group, output_stack
         sensor_object=sensor_group, met_windfield=meteorology_windfield, gas_object=CH4(), output_stacked=output_stacked
     )
 
-    # Check the result
     if output_stacked:
         assert output.shape == (sensor_group.nof_observations, finite_volume.source_map.nof_sources)
         assert output.dtype == "float64"
