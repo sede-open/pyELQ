@@ -25,7 +25,7 @@ def get_time_lims(sensor_group):
 
 
 @pytest.fixture(params=[None, "bins"], ids=["none", "bins"], name="time_bin_edges")
-def fix_time_bin_edges(request,sensor_group):
+def fix_time_bin_edges(request, sensor_group):
     """Fix the time bin edges to be used for aggregation.
 
     Case with none should not do regularisation.
@@ -139,6 +139,7 @@ def test_initialize(sensor_mod, meteorology, time_bin_edges):
             met_group.add_object(temp_object)
         wrapper_initialise(sensor_mod, met_group, time_bin_edges)
 
+
 def wrapper_initialise(sensor_mod_input, meteorology_input, time_bin_edges_input):
     """Tests that the preprocessing class initialises successfully, and that the attached attributes have the correct
     properties.
@@ -165,7 +166,7 @@ def wrapper_initialise(sensor_mod_input, meteorology_input, time_bin_edges_input
         met_out = preprocess.met_object
     else:
         met_out = {}
-        met_out['met_station'] = preprocess.met_object
+        met_out["met_station"] = preprocess.met_object
 
     for met in met_out.values():
         assert np.all(
@@ -195,8 +196,6 @@ def wrapper_initialise(sensor_mod_input, meteorology_input, time_bin_edges_input
 
         for met in preprocess_limit_low.met_object.values():
             assert np.all(met.wind_speed >= limit)
-
-
 
 
 def test_block_data(sensor_mod, meteorology, time_bin_edges, block_times):
