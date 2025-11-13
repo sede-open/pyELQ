@@ -1,4 +1,13 @@
-"""Methods and classes for the finite volume method for the dispersion model."""
+# SPDX-FileCopyrightText: 2024 Shell Global Solutions International B.V. All Rights Reserved.
+#
+# SPDX-License-Identifier: Apache-2.0
+
+# -*- coding: utf-8 -*-
+"""Finite Volume Dispersion Model module.
+
+Methods and classes for the finite volume method for the dispersion model.
+
+"""
 
 from abc import ABC, abstractmethod
 from copy import deepcopy
@@ -25,8 +34,9 @@ from pyelq.sensor.sensor import SensorGroup
 
 @dataclass
 class FiniteVolume(DispersionModel):
-    """Dispersion model object which creates a coupling matrix using a finite volume solver for the advection-diffusion
-    equation.
+    """Dispersion model object which creates a coupling matrix using a finite volume solver.
+
+    Uses for the advection-diffusion solver to create coupling matrix.
 
     Args:
         dimensions (list): list of FiniteVolumeDimension for each grid dimension (e.g., x, y, z).
@@ -283,7 +293,9 @@ class FiniteVolume(DispersionModel):
     def propagate_solver_single_time_step(
         self, met_windfield: MeteorologyWindfield, coupling_matrix: np.ndarray = None
     ) -> sp.csr_array:
-        """Time-step the finite volume solver to map the coupling matrix at time t to the coupling matrix at time (t +
+        """Time-step the finite volume solver.
+
+        Time-step the finite volume solver to map the coupling matrix at time t to the coupling matrix at time (t +
         dt).
 
         For each time step, the forward matrix is computed based on the current wind field. The coupling matrix is then
@@ -390,7 +402,6 @@ class FiniteVolume(DispersionModel):
         The overall diagonals are cumulated by looping over the solver dimensions, and the cell faces in each dimension.
 
         """
-
         num_off_diags = self.number_dimensions * 2
         self.adv_diff_terms = {"advection": SolverDiagonals(), "diffusion": SolverDiagonals()}
         for key, term in self.adv_diff_terms.items():
@@ -483,8 +494,7 @@ class FiniteVolume(DispersionModel):
         self.forward_matrix = self._forward_matrix_transpose.T
 
     def _setup_grid(self) -> None:
-        """Initializes a structured Cartesian grid using the specified site limits and number of cells in each
-        dimension.
+        """Initializes a structured Cartesian grid using the site limits and number of cells in each dimension.
 
         ENU CoordinateSystem reference location is taken from self.source_map.
 
@@ -524,8 +534,9 @@ class FiniteVolume(DispersionModel):
         self._setup_source_link()
 
     def _setup_source_link(self) -> None:
-        """Setup the source link between the source map and the grid coordinates. This method creates a sparse matrix
-        that links the source map to the grid coordinates.
+        """Setup the source link between the source map and the grid coordinates.
+
+        This method creates a sparse matrix that links the source map to the grid coordinates.
 
         Used in the coupling matrix to link the source map to the grid coordinates.
 
@@ -681,7 +692,9 @@ class FiniteVolume(DispersionModel):
         i_time: int,
         coupling_sensor: dict,
     ) -> dict:
-        """Calculate the coupling for each sensor at a given time step. This function interpolates plume coupling values
+        """Interpolate coupling grid values to sensor locations.
+
+        Calculate the coupling for each sensor at a given time step. This function interpolates plume coupling values
         from the coupling matrix to each sensor's location for a specific time step, and updates the output dictionary
         with the results.
 
@@ -714,7 +727,10 @@ class FiniteVolume(DispersionModel):
     def _build_interpolator(
         self, tabular_values: np.ndarray, locations_to_interpolate: np.ndarray, method: str = "linear"
     ) -> np.ndarray:
-        """Interpolates values at specified locations using interpolation with the method of choosing within the grid,
+        """Build an interpolator for given tabular values and interpolate at specified locations.
+
+        Interpolates values at specified locations using interpolation
+        with the method of choosing within the grid,
         and nearest-neighbor extrapolation for out-of-bounds points.
 
         Args:
@@ -778,7 +794,9 @@ class FiniteVolume(DispersionModel):
         return sensor_object_beam_knots_added
 
     def _calculate_number_burn_steps(self, meteorology_object: Meteorology) -> int:
-        """Calculate the number of burn steps based on the maximum distance a plume can travel in the wind field. This
+        """Compute the number of burn-in steps for plume stabilization.
+
+        Calculate the number of burn steps based on the maximum distance a plume can travel in the wind field. This
         is used to determine how many initial time steps should be considered for the plume to stabilize before the
         actual coupling calculations begin.
 
@@ -843,10 +861,10 @@ class FiniteVolumeDimension:
     faces: list = field(init=False)
 
     def __post_init__(self):
-        """Post-initialization processing. Validates the external boundary types and initializes the face objects for
-        the dimension.
+        """Post-initialization processing.
 
-        Also calls get_dimensions to calculate and store geometric properties of the dimension.
+        Validates the external boundary types and initializes the face objects for the dimension. Also calls
+        get_dimensions to calculate and store geometric properties of the dimension.
 
         Raises:
             ValueError: external_boundary_type must one of ['dirichlet', 'neumann'].
@@ -931,8 +949,7 @@ class FiniteVolumeFace(ABC):
             self.boundary_type[np.logical_or(faces_affected_obstacle, site_layout.id_obstacles)] = "neumann"
 
     def assign_advection(self, wind_vector: np.ndarray) -> tuple:
-        """Assigns the advection terms for the defined set of interfaces to adv_diff_terms['advection'], using the
-        supplied wind conditions.
+        """Assigns the advection terms for the defined set of interfaces to adv_diff_terms['advection'].
 
         Uses an upwind scheme for the discretization of the advection term:
         https://en.wikipedia.org/wiki/Upwind_scheme#:~:text=In#20computational#20physics#2C#20the#20term,derivatives#20in#20a#20flow#20field.

@@ -1,5 +1,14 @@
-"""Version of the meteorology class that deals with spatial wind fields and can calculate the wind filed around
-cylindrical obstacles."""
+# SPDX-FileCopyrightText: 2024 Shell Global Solutions International B.V. All Rights Reserved.
+#
+# SPDX-License-Identifier: Apache-2.0
+
+# -*- coding: utf-8 -*-
+"""Meteorology windfield module.
+
+Version of the meteorology class that deals with spatial wind fields and can calculate the wind field around
+cylindrical obstacles.
+
+"""
 
 import datetime as dt
 from dataclasses import dataclass, field
@@ -17,7 +26,7 @@ class SiteLayout:
     """Class for site layout defining cylindrical obstacles in the environment.
 
     These are used with MeteorologyWindfield to calculate the wind field at each grid point with a potential flow
-    around the cyclindrical obstacles.
+    around the cylindrical obstacles.
 
     Attributes:
         cylinders_coordinate (ENU): The coordinates of the cylindrical obstacles in the site layout.
@@ -78,8 +87,7 @@ class SiteLayout:
 
 @dataclass
 class MeteorologyWindfield(Meteorology):
-    """Represents a spatially resolved wind field based on meteorological measurements and the presence of obstacles
-    (cylinders) in the environment.
+    """Represents a spatially resolved wind field based on meteorological measurements and the presence of obstacles.
 
     This class extends the base `Meteorology` class by providing methods to compute
     the local wind vector (u and v components) at every grid point, factoring in
@@ -96,7 +104,9 @@ class MeteorologyWindfield(Meteorology):
     site_layout: SiteLayout = None
 
     def calculate_spatial_wind_field(self, grid_coordinates, time_index: int = None):
-        """Computes the full spatial wind field over a grid considering both ambient meteorological conditions and local
+        """Calculates the spatial wind field over a grid considering obstacles.
+
+        Computes the full spatial wind field over a grid considering both ambient meteorological conditions and local
         distortions due to obstacles.
 
         The method:
@@ -193,7 +203,7 @@ class MeteorologyWindfield(Meteorology):
         rotated_grid: np.ndarray,
         rotated_cylinders: np.ndarray,
     ):
-        """Calculates the distorted wind field components (u_x, u_y) in the wind-aligned (cardinal) frame..
+        """Calculates the distorted wind field components (u_x, u_y) in the wind-aligned (cardinal) frame.
 
         The method:
         - Determines whether each grid point is influenced by nearby cylinders based on distance and cylinder radius.
@@ -216,7 +226,6 @@ class MeteorologyWindfield(Meteorology):
             v_rot (np.ndarray): The y-component of the wind field at the grid points.
 
         """
-
         diff = rotated_grid[:, np.newaxis, :, :] - rotated_cylinders[np.newaxis, :, :, :]
         radial_distance = np.linalg.norm(diff, axis=2)
         x_diff = diff[:, :, 0, :]
