@@ -69,6 +69,5 @@ class Beam(Sensor):
         new_sensor = deepcopy(self)
         new_sensor.time = self.time[section_indices]
         new_sensor.concentration = self.concentration[section_indices]
-
         new_sensor.source_on = self.source_on[section_indices] if self.source_on is not None else None
         return new_sensor
