@@ -10,7 +10,6 @@ from typing import Union
 import numpy as np
 import pandas as pd
 
-from pyelq.coordinate_system import ENU, LLA
 from pyelq.meteorology import Meteorology, MeteorologyGroup
 from pyelq.sensor.sensor import Sensor, SensorGroup
 from pyelq.support_functions.spatio_temporal_interpolation import temporal_resampling
