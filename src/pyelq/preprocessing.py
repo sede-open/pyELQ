@@ -27,7 +27,6 @@ class Preprocessor:
         aggregate_function (str): function to be used for aggregation of data. Defaults to mean.
         sensor_fields (list): standard list of sensor attributes that we wish to regularize and/or filter.
         met_fields (list): standard list of meteorology attributes that we wish to regularize/filter.
-        met_fields_location (list): standard list of meteorology attributes that we wish to filter.
 
     """
 
