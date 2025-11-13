@@ -827,9 +827,8 @@ class SourceModel(Component, SourceGrouping, SourceDistribution):
                 )
             elif self.distribution_number_sources == "Poisson":
                 model.append(Poisson(response=self.map["number_sources"], rate=self.map["number_source_rate"]))
-            else {
+            else: 
                 raise ValueError("Invalid distribution type for number of sources.")
-            }
         return model
 
     def make_sampler(self, model: Model, sampler_list: list) -> list:
