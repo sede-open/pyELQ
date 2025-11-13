@@ -166,9 +166,7 @@ class Preprocessor:
         filter_index = np.ones(self.met_object.nof_observations, dtype=bool)
         for field in self.met_fields:
             if (field not in ("time", "location")) and (getattr(self.met_object, field) is not None):
-                filter_index = np.logical_and(
-                    filter_index, np.logical_not(np.isnan(getattr(self.met_object, field)))
-                )
+                filter_index = np.logical_and(filter_index, np.logical_not(np.isnan(getattr(self.met_object, field))))
         self.met_object = self.filter_object_fields(self.met_object, self.met_fields, filter_index)
 
     def filter_on_met(self, filter_variable: list, lower_limit: list = None, upper_limit: list = None) -> None:
