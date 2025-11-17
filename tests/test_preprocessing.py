@@ -218,8 +218,8 @@ def test_block_data(sensor_mod, meteorology, time_bin_edges, block_times):
     with pytest.raises(TypeError):
         preprocess.block_data(block_times, data_object="bad_argument")
 
-    sensor_list = preprocess.block_data(block_times, preprocess.sensor_object)
-    met_list = preprocess.block_data(block_times, preprocess.met_object)
+    sensor_list = preprocess.block_data(block_times, deepcopy(preprocess.sensor_object))
+    met_list = preprocess.block_data(block_times, deepcopy(preprocess.met_object))
 
     for sns in sensor_list:
         check_field_values(data_object=sns, field_list=preprocess.sensor_fields)
