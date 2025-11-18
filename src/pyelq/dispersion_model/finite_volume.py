@@ -245,7 +245,7 @@ class FiniteVolume(DispersionModel):
             else:
                 gas_density_i = gas_density
                 coupling_grid = self.propagate_solver_single_time_step(met_windfield, coupling_matrix=coupling_grid)
-                scaled_coupling = coupling_grid * (1e6 / (gas_density_i.flatten() * 3600)).item()
+                scaled_coupling = coupling_grid * (1e6 / (gas_density_i.item() * 3600))
                 coupling_sensor = self.interpolate_coupling_grid_to_sensor(
                     sensor_object,
                     scaled_coupling=scaled_coupling,
