@@ -31,7 +31,7 @@ from pyelq.source_map import SourceMap
     name="meteorology",
 )
 def fixture_meteorology(request):
-    """Create a wind component for the test."""
+    """Create a wind time series for the tests."""
     wind_vector = np.array(request.param)
     meteorology = Meteorology()
     time = pd.array(
@@ -46,7 +46,7 @@ def fixture_meteorology(request):
 
 @pytest.fixture(params=[0, 3], ids=["GrdSrc", "3Src"], name="source_map")
 def fixture_source_map(request):
-    """Fixture for source map."""
+    """Create a source map for the tests."""
     source_map = SourceMap()
     source_map.location = ENU(ref_latitude=0, ref_longitude=0, ref_altitude=0)
 
@@ -99,9 +99,9 @@ def fixture_dimension(request, number_cells, external_boundary_type):
     return dimension
 
 
-@pytest.fixture(params=[False, True], ids=["explicit", "implicit"], name="implicit_solver")
-def fixture_implicit_solver(request):
-    """Fixture for implicit solver."""
+@pytest.fixture(params=[False, True], ids=["explicit", "implicit"], name="solver_type")
+def fixture_solver_type(request):
+    """Fixture for the type of solver (implicit or explicit)."""
     return request.param
 
 
@@ -118,14 +118,14 @@ def fixture_use_lookup_table(request):
 
 
 @pytest.fixture(name="finite_volume")
-def fixture_finite_volume(implicit_solver, use_obstacle, dimension, source_map, use_lookup_table):
+def fixture_finite_volume(solver_type, use_obstacle, dimension, source_map, use_lookup_table):
     """Create a finite volume object with the given dimension.
 
     Diffusion constants are set to 1.0 for all dimensions. The time step is set to 0.1. An obstacle is created in the
     middle of the grid if use_obstacle is True.
 
     Arguments:
-        implicit_solver (bool): Whether to use an implicit solver.
+        solver_type (bool): Whether to use an implicit solver.
         use_obstacle (bool): Whether to include an obstacle in the grid.
         dimension (list): List of FiniteVolumeDimension objects defining the grid.
         source_map (SourceMap): Source map object defining the sources.
@@ -154,7 +154,7 @@ def fixture_finite_volume(implicit_solver, use_obstacle, dimension, source_map, 
         site_layout=site_layout,
         source_map=source_map,
         use_lookup_table=use_lookup_table,
-        implicit_solver=implicit_solver,
+        implicit_solver=solver_type,
         minimum_contribution=1e-6,
     )
 
@@ -231,7 +231,6 @@ def test_finite_volume(finite_volume):
     assert len(finite_volume.dimensions) == finite_volume.number_dimensions
     assert finite_volume.total_number_cells == np.prod([dim.number_cells for dim in finite_volume.dimensions])
     assert isinstance(finite_volume.grid_coordinates, ENU)
-
     if finite_volume.site_layout is not None:
         assert finite_volume.site_layout.id_obstacles.shape == (finite_volume.total_number_cells, 1)
         assert finite_volume.site_layout.id_obstacles.dtype == bool
@@ -250,30 +249,28 @@ def test_forward_matrix(finite_volume, meteorology):
     """Unit test to verify that mass balance is correctly preserved in the numerical scheme implemented by the finite
     volume solver.
 
-    This test evaluates conservation properties for a discretized advection-diffusion
-    transport model. The physical principle being tested is mass conservation, i.e.,
-    the net change in mass within a control volume (grid cell) must equal the net fluxes
-    across its boundaries plus any sources/sinks. The test ensures that the numerical
+    This test evaluates conservation properties for a discretized advection-diffusion transport model. The physical
+    principle being tested is mass conservation, i.e. the net change in mass within a control volume (grid cell) must
+    equal the net fluxes across its boundaries plus any sources/sinks. The test ensures that the numerical
     implementation of the flux terms (diffusion and advection) respects this balance.
-    Parameters:
 
     The test performs mass balance checks at multiple levels of the finite volume assembly:
-    1. Face-Level Diffusion Check:
-        For each face of each spatial dimension, it verifies that the sum of all diffusion
-        flux contributions (neighbor term, central term, Dirichlet, and Neumann)
-        equals zero. This ensures local consistency of the diffusion operator.
-    2. Global Advection and Diffusion Check:
-        For each term (advection and diffusion), the test checks that the combined contribution
-        from neighbor interactions, central terms, and boundary conditions sum to zero for each cell.
-        Additionally, it checks that all term arrays have the expected shapes.
-    3. Combined Operator Check:
-        It checks that the total contribution from the assembled transport operator,
-        including all internal and boundary effects (from `adv_diff_terms['combined']`),
-        balances with the implicit time-stepping sink term (`cell_volume / dt`).
-    4. Matrix-Level Mass Balance:
-        It validates that the assembled system matrix `A` and right-hand-side vector `b`,
-        obtained from `solver_matrix`, also satisfy the mass balance against the
-        implicit time sink (`cell_volume / dt`), ensuring the global solver preserves conservation.
+        1. Face-Level Diffusion Check:
+            For each face of each spatial dimension, it verifies that the sum of all diffusion flux contributions
+            (neighbor terms, central term, Dirichlet, and Neumann) equals zero. This ensures local consistency of the
+            diffusion operator.
+        2. Global Advection and Diffusion Check:
+            For each term (advection and diffusion), the test checks that the combined contribution from neighbor
+            interactions, central terms, and boundary conditions sum to zero for each cell. Additionally, it checks that
+            all term arrays have the expected shapes.
+        3. Combined Operator Check:
+            It checks that the total contribution from the assembled transport operator, including all internal and
+            boundary effects (from `adv_diff_terms['combined']`), balances with the implicit time-stepping sink term
+            (`cell_volume / dt`).
+        4. Matrix-Level Mass Balance:
+            It validates that the assembled system matrix `A` and right-hand-side vector `b`, obtained from
+            `solver_matrix`, also satisfy the mass balance against the implicit time sink (`cell_volume / dt`), ensuring
+            the global solver preserves conservation.
 
     """
 
