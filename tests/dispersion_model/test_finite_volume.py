@@ -273,15 +273,11 @@ def test_forward_matrix(finite_volume, meteorology):
             the global solver preserves conservation.
 
     """
-
     fe = finite_volume
     fe.set_dt_cfl(meteorology)
-
     assert fe.dt > 0
-
     meteorology_windfield = MeteorologyWindfield(site_layout=fe.site_layout, static_wind_field=meteorology)
     meteorology_windfield.calculate_spatial_wind_field(time_index=0, grid_coordinates=fe.grid_coordinates)
-
     fe.compute_forward_matrix(meteorology_windfield)
 
     for dim in fe.dimensions:
@@ -293,14 +289,12 @@ def test_forward_matrix(finite_volume, meteorology):
                     + face.adv_diff_terms[term].b_dirichlet
                     + face.adv_diff_terms[term].b_neumann
                 )
-
                 assert np.allclose(check_value, 0, atol=1e-10)
 
     if fe.implicit_solver:
         volume_term = fe.cell_volume / fe.dt
     else:
         volume_term = -fe.cell_volume / fe.dt
-
     for term in ["advection", "diffusion"]:
         check_value = (
             np.sum(fe.adv_diff_terms[term].B_neighbour, axis=1).reshape(-1, 1)
@@ -313,7 +307,6 @@ def test_forward_matrix(finite_volume, meteorology):
         assert fe.adv_diff_terms[term].b_dirichlet.shape == (fe.total_number_cells, 1)
         assert fe.adv_diff_terms[term].b_neumann.shape == (fe.total_number_cells, 1)
         assert fe.adv_diff_terms[term].B_neighbour.shape == (fe.total_number_cells, len(fe.dimensions) * 2)
-
         check_value = (
             np.sum(fe.adv_diff_terms["combined"].B, axis=1).reshape(-1, 1)
             + fe.adv_diff_terms["combined"].b_dirichlet
@@ -324,7 +317,6 @@ def test_forward_matrix(finite_volume, meteorology):
     check_value = (
         np.sum(fe.forward_matrix, axis=1).reshape(-1, 1) + fe.adv_diff_terms["combined"].b_dirichlet + volume_term
     )
-
     assert np.allclose(check_value, 0, atol=1e-10)
 
 
@@ -335,20 +327,17 @@ def test_finite_volume_time_step_solver(finite_volume, meteorology):
 
     """
     finite_volume.set_dt_cfl(meteorology)
-
     meteorology_windfield = MeteorologyWindfield(
         site_layout=finite_volume.site_layout,
         static_wind_field=meteorology,
     )
     meteorology_windfield.calculate_spatial_wind_field(time_index=0, grid_coordinates=finite_volume.grid_coordinates)
-
     coupling_matrix = None
     for _ in range(2):
         coupling_matrix = finite_volume.propagate_solver_single_time_step(
             meteorology_windfield,
             coupling_matrix=coupling_matrix,
         )
-
         assert coupling_matrix.shape == (finite_volume.total_number_cells, finite_volume.source_grid_link.shape[1])
         assert sparse.issparse(coupling_matrix)
         assert np.min(coupling_matrix) >= 0
@@ -358,7 +347,6 @@ def test_finite_volume_time_step_solver(finite_volume, meteorology):
 @pytest.mark.parametrize("sections", [False, True], ids=["single", "2 sections"])
 def test_compute_coupling(finite_volume, meteorology, sensor_group, output_stacked, sections):
     """Test the compute_coupling method of the FiniteVolume class."""
-
     meteorology_windfield = MeteorologyWindfield(
         site_layout=None,
         static_wind_field=meteorology,
@@ -366,11 +354,9 @@ def test_compute_coupling(finite_volume, meteorology, sensor_group, output_stack
     if sections is True:
         for sensor in sensor_group.values():
             sensor.source_on = np.round(np.linspace(1, 2, sensor.nof_observations)).reshape(-1, 1)
-
     output = finite_volume.compute_coupling(
         sensor_object=sensor_group, met_windfield=meteorology_windfield, gas_object=CH4(), output_stacked=output_stacked
     )
-
     if output_stacked:
         assert output.shape == (sensor_group.nof_observations, finite_volume.source_map.nof_sources)
         assert output.dtype == "float64"
@@ -389,17 +375,13 @@ def test_compute_coupling(finite_volume, meteorology, sensor_group, output_stack
 def test_compute_time_bins(finite_volume, sensor_group, meteorology):
     """Test the compute_time_bins method of the FiniteVolume class.
 
-    Time bins are defined from range(sensor) so all time_index_sensor should be well defined
+    Time bins are defined from range(sensor) so all time_index_sensor should be well defined.
 
     Meteorology time bins may not be well defined if the time range is not the same as the sensor time range.
 
     """
-
-    # Compute the time bins
     (time_bins, time_index_sensor, time_index_met) = finite_volume.compute_time_bins(sensor_group, meteorology)
-
     n_bins = len(time_bins)
-    # Check the result
     assert time_bins[1] - time_bins[0] == pd.Timedelta(finite_volume.dt, unit="s")
 
     for key, sensor in sensor_group.items():
@@ -408,7 +390,6 @@ def test_compute_time_bins(finite_volume, sensor_group, meteorology):
         assert time_index_sensor[key].dtype == "int64"
         assert np.all(time_index_sensor[key] >= 0)
         assert np.all(time_index_sensor[key] <= n_bins)
-
     assert time_index_met.shape == (n_bins,)
     assert time_index_met.dtype == "int64"
     assert np.all(time_index_met >= 0)
