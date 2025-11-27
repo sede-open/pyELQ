@@ -231,5 +231,5 @@ def test_block_data(sensor_mod, meteorology, time_bin_edges, block_times):
         if ((block_times[k] < min_time) and (block_times[k + 1] < min_time)) or (
             (block_times[k] > max_time) and (block_times[k + 1] > max_time)
         ):
-            assert len(sensor_list[k].keys()) == 0
-            assert len(met_list[k].keys()) == 0
+            assert len(sensor_list[k]) == 0
+            assert len(met_list[k]) == 0
