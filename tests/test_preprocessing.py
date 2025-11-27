@@ -17,7 +17,8 @@ from pyelq.preprocessing import Preprocessor
 
 def get_time_lims(sensor_group):
     """Extract the time limits from the sensor group."""
-    min_time, max_time = datetime.now(), datetime.now()
+    start_time = datetime(2024, 1, 1, 0, 0, 0)
+    min_time, max_time = start_time, start_time
     for sns in sensor_group.values():
         min_time = np.minimum(min_time, np.min(sns.time))
         max_time = np.maximum(max_time, np.max(sns.time))
