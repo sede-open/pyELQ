@@ -42,6 +42,7 @@ class SiteLayout:
     cylinders_radius: np.ndarray = None
 
     id_obstacles: np.ndarray = field(init=False)
+    id_obstacles_index: np.ndarray = field(init=False)
 
     @property
     def nof_cylinders(self) -> int:
@@ -81,6 +82,7 @@ class SiteLayout:
 
         indices_conc = np.unique(np.concatenate(indices, axis=0)).astype(int)
 
+        self.id_obstacles_index = indices_conc
         self.id_obstacles = np.zeros((grid_coordinates.nof_observations, 1), dtype=bool)
         self.id_obstacles[indices_conc, 0] = True
 
