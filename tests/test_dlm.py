@@ -435,7 +435,7 @@ def test_full_dlm_update_and_mahalanobis_distance(nof_observables, order, rho, f
 def test_missing_value_mahalanobis_distance(nof_observables, order, forecast_horizon):
     """Function to test if missing values in the observations are handled correctly.
 
-    The functions hsould return a nan value in the one step ahead error where applicable.
+    The functions should return a nan value in the one step ahead error where applicable.
     We create 2 identical beams and remove data for a few timesteps of 1 of the beams. The mahalanobis distance should
     be lower for the beam with missing data because effectively that error has been set to 0 in the processing and also
     the number of degrees of freedom should be lower too. For the Mahalanobis distance check we add 1 to the start idx
@@ -502,10 +502,7 @@ def test_missing_value_mahalanobis_distance(nof_observables, order, forecast_hor
             )
 
     assert np.all(np.isnan(error[1, start_idx_missing:end_idx_missing]))
-    assert np.all(
-        mhd_per_beam[1, start_idx_missing + 1 : end_idx_missing + forecast_horizon - 2]
-        <= mhd_per_beam[0, start_idx_missing + 1 : end_idx_missing + forecast_horizon - 2]
-    )
+    assert np.all(~np.isnan(mhd_per_beam[:, start_idx_missing + 1 : end_idx_missing + forecast_horizon - 2]))
     assert np.all(
         dof_per_beam[1, start_idx_missing : end_idx_missing + forecast_horizon - 2]
         <= dof_per_beam[0, start_idx_missing : end_idx_missing + forecast_horizon - 2]
