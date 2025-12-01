@@ -138,6 +138,9 @@ class FiniteVolume(DispersionModel):
                 a np.array containing the stacked coupling matrices.
 
         """
+        if met_windfield.site_layout != self.site_layout:
+            raise ValueError("MeteorologyWindfield site layout does not match FiniteVolume site layout.")
+
         if (not self.use_lookup_table) or (self.coupling_lookup_table is None):
             coupling_sensor = self.compute_coupling_sections(sensor_object, met_windfield, gas_object)
             if self.use_lookup_table:
@@ -333,6 +336,8 @@ class FiniteVolume(DispersionModel):
             if sp.issparse(coupling_matrix):
                 coupling_matrix.data[abs(coupling_matrix.data) <= self.minimum_contribution] = 0
                 coupling_matrix.eliminate_zeros()
+        if self.site_layout is not None:
+            coupling_matrix[self.site_layout.id_obstacles.flatten(), :] = 0
         return coupling_matrix
 
     def compute_forward_matrix(self, met_windfield: MeteorologyWindfield) -> None:

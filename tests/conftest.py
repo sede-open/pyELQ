@@ -54,12 +54,13 @@ def fix_sensor_group(request, ref_longitude, ref_latitude):
     sensor_x = np.linspace(10, 100, n_sensor).reshape(n_sensor, 1)
     sensor_y = np.zeros(shape=(n_sensor, 1))
     locations = np.concatenate((sensor_x, sensor_y), axis=1)
+    start_time = datetime(2024, 1, 1, 0, 0, 0)
     sensor = SensorGroup()
     for k in range(n_sensor - 1):
         device_name = "device_" + str(k)
         sensor[device_name] = Sensor()
         sensor[device_name].time = pd.array(
-            pd.date_range(start=datetime.now(), end=datetime.now() + timedelta(hours=1.0), periods=n_time),
+            pd.date_range(start=start_time, end=start_time + timedelta(hours=1.0), periods=n_time),
             dtype="datetime64[ns]",
         )
         sensor[device_name].concentration = np.random.random_sample(size=(n_time,))
@@ -78,7 +79,7 @@ def fix_sensor_group(request, ref_longitude, ref_latitude):
     device_name = "device_" + str(k)
     sensor[device_name] = Beam()
     sensor[device_name].time = pd.array(
-        pd.date_range(start=datetime.now(), end=datetime.now() + timedelta(hours=1.0), periods=n_time),
+        pd.date_range(start=start_time, end=start_time + timedelta(hours=1.0), periods=n_time),
         dtype="datetime64[ns]",
     )
     sensor[device_name].concentration = np.random.random_sample(size=(n_time,))
