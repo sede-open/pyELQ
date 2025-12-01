@@ -363,7 +363,7 @@ def test_compute_coupling(finite_volume, meteorology, sensor_group, output_stack
     """Test the compute_coupling method of the FiniteVolume class."""
 
     meteorology_windfield = MeteorologyWindfield(
-        site_layout=None,
+        site_layout=finite_volume.site_layout,
         static_wind_field=meteorology,
     )
     if sections is True:

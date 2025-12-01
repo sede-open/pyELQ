@@ -138,7 +138,6 @@ class FiniteVolume(DispersionModel):
                 a np.array containing the stacked coupling matrices.
 
         """
-
         if met_windfield.site_layout != self.site_layout:
             raise ValueError("MeteorologyWindfield site layout does not match FiniteVolume site layout.")
 
