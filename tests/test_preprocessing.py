@@ -17,7 +17,8 @@ from pyelq.preprocessing import Preprocessor
 
 def get_time_lims(sensor_group):
     """Extract the time limits from the sensor group."""
-    min_time, max_time = datetime.now(), datetime.now()
+    start_time = datetime(2024, 1, 1, 0, 0, 0)
+    min_time, max_time = start_time, start_time
     for sns in sensor_group.values():
         min_time = np.minimum(min_time, np.min(sns.time))
         max_time = np.maximum(max_time, np.max(sns.time))
@@ -218,8 +219,8 @@ def test_block_data(sensor_mod, meteorology, time_bin_edges, block_times):
     with pytest.raises(TypeError):
         preprocess.block_data(block_times, data_object="bad_argument")
 
-    sensor_list = preprocess.block_data(block_times, deepcopy(preprocess.sensor_object))
-    met_list = preprocess.block_data(block_times, deepcopy(preprocess.met_object))
+    sensor_list = preprocess.block_data(block_times, preprocess.sensor_object)
+    met_list = preprocess.block_data(block_times, preprocess.met_object)
 
     for sns in sensor_list:
         check_field_values(data_object=sns, field_list=preprocess.sensor_fields)
@@ -231,5 +232,5 @@ def test_block_data(sensor_mod, meteorology, time_bin_edges, block_times):
         if ((block_times[k] < min_time) and (block_times[k + 1] < min_time)) or (
             (block_times[k] > max_time) and (block_times[k + 1] > max_time)
         ):
-            assert not list(sensor_list[k].keys())
-            assert not list(met_list[k].keys())
+            assert len(sensor_list[k]) == 0
+            assert len(met_list[k]) == 0
