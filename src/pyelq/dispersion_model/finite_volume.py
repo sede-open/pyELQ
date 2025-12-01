@@ -716,7 +716,7 @@ class FiniteVolume(DispersionModel):
             if np.any(observation_index):
                 sensor_location = sensor.location.to_array(dim=self.number_dimensions)
                 coupling_interp = self._build_interpolator(
-                    scaled_coupling.toarray(), locations_to_interpolate=sensor_location, method="linear"
+                    scaled_coupling.toarray(), locations_to_interpolate=sensor_location, method="nearest"
                 )
                 if isinstance(sensor, Beam):
                     coupling_sensor[key][observation_index, :] = np.mean(coupling_interp, axis=0)
