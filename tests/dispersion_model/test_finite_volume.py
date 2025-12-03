@@ -353,7 +353,12 @@ def test_compute_coupling(finite_volume, meteorology, sensor_group, output_stack
     )
     if sections is True:
         for sensor in sensor_group.values():
-            sensor.source_on = np.round(np.linspace(1, 2, sensor.nof_observations)).reshape(-1, 1)
+            index = np.linspace(0, sensor.nof_observations - 1, sensor.nof_observations).astype(int)
+            index = np.floor(index / sensor.nof_observations * 2 * 2)
+            index = index * np.mod(index, 2)
+            index = np.ceil(index * 0.5).astype(int)
+            sensor.source_on = index
+
     output = finite_volume.compute_coupling(
         sensor_object=sensor_group, met_windfield=meteorology_windfield, gas_object=CH4(), output_stacked=output_stacked
     )
