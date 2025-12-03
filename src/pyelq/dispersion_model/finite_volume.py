@@ -182,7 +182,7 @@ class FiniteVolume(DispersionModel):
         number_of_sections = max(sensor_object.source_on)
         coupling_sensor = {}
         for key, sensor in sensor_object.items():
-            coupling_sensor[key] = np.full((sensor.time.shape[0], self.source_grid_link.shape[1]), fill_value=np.nan)
+            coupling_sensor[key] = np.full((sensor.time.shape[0], self.source_grid_link.shape[1]), fill_value=0.0)
         for section in range(1, number_of_sections + 1):
             subset_sensor_object = sensor_object.subset_sensor(section_index=section)
             coupling_sensor_section = self.finite_volume_time_step_solver(
@@ -229,7 +229,7 @@ class FiniteVolume(DispersionModel):
         """
         coupling_sensor = {}
         for key, sensor in sensor_object.items():
-            coupling_sensor[key] = np.full((sensor.time.shape[0], self.source_grid_link.shape[1]), fill_value=np.nan)
+            coupling_sensor[key] = np.full((sensor.time.shape[0], self.source_grid_link.shape[1]), fill_value=0.0)
         coupling_grid = None
         (time_bins, time_index_sensor, time_index_met) = self.compute_time_bins(
             sensor_object=sensor_object, meteorology_object=met_windfield.static_wind_field
@@ -288,7 +288,7 @@ class FiniteVolume(DispersionModel):
         interpolated_coupling = {}
         source_location = self.source_map.location.to_array(dim=self.number_dimensions)
         for key, sensor in sensor_object.items():
-            interpolated_coupling[key] = np.full((sensor.time.shape[0], source_location.shape[0]), fill_value=np.nan)
+            interpolated_coupling[key] = np.full((sensor.time.shape[0], source_location.shape[0]), fill_value=0.0)
             lookup_table_values = self.coupling_lookup_table[key].T
             interpolated_coupling[key] = self._build_interpolator(
                 lookup_table_values, locations_to_interpolate=source_location
