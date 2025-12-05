@@ -142,6 +142,9 @@ class FiniteVolume(DispersionModel):
             if np.any(met_windfield.site_layout.id_obstacles != self.site_layout.id_obstacles):
                 raise ValueError("MeteorologyWindfield site layout does not match FiniteVolume site layout.")
 
+        if not isinstance(self.source_map.location, ENU):
+            raise ValueError("source_map.location must be an ENU object.")
+
         if (not self.use_lookup_table) or (self.coupling_lookup_table is None):
             coupling_sensor = self.compute_coupling_sections(sensor_object, met_windfield, gas_object)
             if self.use_lookup_table:
@@ -785,15 +788,15 @@ class FiniteVolume(DispersionModel):
         sensor_object_beam_knots_added = deepcopy(sensor_object)
         for _, sensor in sensor_object_beam_knots_added.items():
             sensor.location = sensor.location.to_enu(
-                ref_latitude=self.source_map.location.ref_latitude,
-                ref_longitude=self.source_map.location.ref_longitude,
-                ref_altitude=self.source_map.location.ref_altitude,
+                ref_latitude=self.grid_coordinates.location.ref_latitude,
+                ref_longitude=self.grid_coordinates.location.ref_longitude,
+                ref_altitude=self.grid_coordinates.location.ref_altitude,
             )
             if isinstance(sensor, Beam):
                 sensor_array = sensor.make_beam_knots(
-                    ref_latitude=self.source_map.location.ref_latitude,
-                    ref_longitude=self.source_map.location.ref_longitude,
-                    ref_altitude=self.source_map.location.ref_altitude,
+                    ref_latitude=self.grid_coordinates.location.ref_latitude,
+                    ref_longitude=self.grid_coordinates.location.ref_longitude,
+                    ref_altitude=self.grid_coordinates.location.ref_altitude,
                 )
                 sensor.location.from_array(sensor_array)
                 if self.number_dimensions == 2:
