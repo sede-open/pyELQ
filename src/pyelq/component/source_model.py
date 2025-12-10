@@ -764,21 +764,24 @@ class SourceModel(Component, SourceGrouping, SourceDistribution):
 
         return prop_state, logp_pr_g_cr, logp_cr_g_pr
 
-    def move_function(self, current_state: dict, update_column: int) -> dict:
+    def move_function(self, prop_state: dict, update_column: int) -> Tuple[dict, float, float]:
         """Re-compute the coupling after a source location move.
 
         Function first updates the coupling column, and then checks whether the location passes a coverage test. If the
-        location does not have good enough coverage, the state reverts to the coupling from the current state.
+        location does not have good enough coverage, we return a high log-probability of the move to reject.
 
         Args:
-            current_state (dict): dictionary containing parameters of the current state.
+            prop_state (dict): dictionary containing parameters of the proposed state.
             update_column (int): index of the coupling column to be updated.
 
         Returns:
-            dict: proposed state, with updated coupling matrix.
+            prop_state (dict): proposed state, with coupling matrix and source emission rate vector updated.
+            logp_pr_g_cr (float): log-transition density of the proposed state given the current state
+                (i.e. log[p(proposed | current)])
+            logp_cr_g_pr (float): log-transition density of the current state given the proposed state
+                (i.e. log[p(current | proposed)])
 
         """
-        prop_state = deepcopy(current_state)
         prop_state = self.update_coupling_column(prop_state, update_column)
         in_cov_area = self.dispersion_model.compute_coverage(
             prop_state[self.map["coupling_matrix"]][:, update_column],
@@ -786,8 +789,12 @@ class SourceModel(Component, SourceGrouping, SourceDistribution):
             threshold_function=self.threshold_function,
         )
         if not in_cov_area:
-            prop_state = deepcopy(current_state)
-        return prop_state
+            logp_pr_g_cr = 1e10
+        else:
+            logp_pr_g_cr = 0.0
+        logp_cr_g_pr = 0.0
+
+        return prop_state, logp_pr_g_cr, logp_cr_g_pr
 
     def make_model(self, model: list) -> list:
         """Take model list and append new elements from current model component.
