@@ -650,6 +650,9 @@ class SourceModel(Component, SourceGrouping, SourceDistribution):
         used to calculate estimated emission rates in kg/hr. Any emissions which are greater than the value of
         'self.coverage_threshold' are defined as not within the coverage.
 
+        If sensor_object.source_on is being used only the parts where th coupling is computed are used in the coverage
+        check. This avoids threshold_function being affected by large amounts of zero values.
+
         Args:
             couplings (np.ndarray): Array of coupling values. Dimensions: n_data points x n_sources.
             kwargs (dict, optional): Keyword arguments required for the threshold function.
