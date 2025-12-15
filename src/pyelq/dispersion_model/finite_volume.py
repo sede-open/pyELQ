@@ -788,15 +788,15 @@ class FiniteVolume(DispersionModel):
         sensor_object_beam_knots_added = deepcopy(sensor_object)
         for _, sensor in sensor_object_beam_knots_added.items():
             sensor.location = sensor.location.to_enu(
-                ref_latitude=self.grid_coordinates.location.ref_latitude,
-                ref_longitude=self.grid_coordinates.location.ref_longitude,
-                ref_altitude=self.grid_coordinates.location.ref_altitude,
+                ref_latitude=self.grid_coordinates.ref_latitude,
+                ref_longitude=self.grid_coordinates.ref_longitude,
+                ref_altitude=self.grid_coordinates.ref_altitude,
             )
             if isinstance(sensor, Beam):
                 sensor_array = sensor.make_beam_knots(
-                    ref_latitude=self.grid_coordinates.location.ref_latitude,
-                    ref_longitude=self.grid_coordinates.location.ref_longitude,
-                    ref_altitude=self.grid_coordinates.location.ref_altitude,
+                    ref_latitude=self.grid_coordinates.ref_latitude,
+                    ref_longitude=self.grid_coordinates.ref_longitude,
+                    ref_altitude=self.grid_coordinates.ref_altitude,
                 )
                 sensor.location.from_array(sensor_array)
                 if self.number_dimensions == 2:
