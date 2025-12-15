@@ -239,7 +239,9 @@ class FiniteVolume(DispersionModel):
         )
         sensor_object = self._prepare_sensor(sensor_object)
         n_burn_steps = self._calculate_number_burn_steps(met_windfield.static_wind_field)
-        gas_density = self.calculate_gas_density(met_windfield, sensor_object, gas_object, run_interpolation=False)
+        gas_density = self.calculate_gas_density(
+            met_windfield.static_wind_field, sensor_object, gas_object, run_interpolation=False
+        )
         met_windfield.calculate_spatial_wind_field(time_index=0, grid_coordinates=self.grid_coordinates)
 
         for i_time in tqdm(range(-n_burn_steps, time_bins.size), desc="Computing coupling matrix"):
@@ -251,16 +253,15 @@ class FiniteVolume(DispersionModel):
                 gas_density_i = gas_density[time_index_met[i_time]]
             else:
                 gas_density_i = gas_density
-                coupling_grid = self.propagate_solver_single_time_step(met_windfield, coupling_matrix=coupling_grid)
-                scaled_coupling = coupling_grid * (1e6 / (gas_density_i.item() * 3600))
-                coupling_sensor = self.interpolate_coupling_grid_to_sensor(
-                    sensor_object,
-
-                    scaled_coupling=scaled_coupling,
-                    time_index_sensor=time_index_sensor,
-                    i_time=i_time,
-                    coupling_sensor=coupling_sensor,
-                )
+            coupling_grid = self.propagate_solver_single_time_step(met_windfield, coupling_matrix=coupling_grid)
+            scaled_coupling = coupling_grid * (1e6 / (gas_density_i.item() * 3600))
+            coupling_sensor = self.interpolate_coupling_grid_to_sensor(
+                sensor_object,
+                scaled_coupling=scaled_coupling,
+                time_index_sensor=time_index_sensor,
+                i_time=i_time,
+                coupling_sensor=coupling_sensor,
+            )
             if i_time == 0:
                 coupling_grid_sourcemap_norm = sp.linalg.norm(coupling_grid)
                 if coupling_grid_sourcemap_norm > 1e3:
