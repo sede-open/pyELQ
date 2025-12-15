@@ -89,6 +89,8 @@ def test_make_state(source_model, sensor_group):
         prior_param_shape = (2, 1)
     elif isinstance(source_model, Normal):
         prior_param_shape = (1,)
+    else:
+        prior_param_shape = None
     assert state["lambda_s"].shape == prior_param_shape
     assert state["mu_s"].shape == prior_param_shape
 
@@ -244,3 +246,40 @@ def test_move_function(source_model):
         np.delete(current_state["A"], obj=move_index, axis=1), np.delete(prop_state["A"], obj=move_index, axis=1)
     )
     assert np.logical_not(np.allclose(current_state["A"][:, move_index], prop_state["A"][:, move_index]))
+
+
+def test_compute_coverage(source_model):
+    """Test to check whether the compute coverage function can correctly determine which sources are, or are not, within
+    the coverage.
+
+    We define some coupling where there are two sources, and one source is coupled half of the time. We then check that
+    all the inputs work as intended.
+
+    """
+    test_source_model = deepcopy(source_model)
+    test_source_model.coverage_detection = 1
+
+    couplings = np.array(
+        [
+            [1, 0],
+            [0, 0],
+            [0, 0],
+            [1, 0],
+        ]
+    )
+
+    test_source_model.threshold_function = lambda x: np.quantile(x, 0.95, axis=0)
+    coverage = test_source_model.compute_coverage(couplings)
+    assert np.all(np.equal(coverage, np.array([True, False])))
+
+    test_source_model.coverage_test_source=0.3
+    coverage = test_source_model.compute_coverage(couplings)
+    assert np.all(np.equal(coverage, np.array([False, False])))
+
+    test_source_model.threshold_function = lambda x: np.mean(x, axis=0)
+    coverage = test_source_model.compute_coverage(couplings)
+    assert np.all(np.equal(coverage, np.array([False, False])))
+
+    test_source_model.coverage_test_source=6
+    coverage = source_model.compute_coverage(couplings)
+    assert np.all(np.equal(coverage, np.array([True, False])))

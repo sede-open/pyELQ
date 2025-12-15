@@ -634,13 +634,40 @@ class SourceModel(Component, SourceGrouping, SourceDistribution):
 
     def screen_coverage(self):
         """Screen the initial source map for coverage."""
-        in_coverage_area = self.dispersion_model.compute_coverage(
-            self.coupling, coverage_threshold=self.coverage_threshold, threshold_function=self.threshold_function
-        )
+        in_coverage_area = self.compute_coverage(self.coupling)
         self.coupling = self.coupling[:, in_coverage_area]
         all_locations = self.dispersion_model.source_map.location.to_array()
         screened_locations = all_locations[in_coverage_area, :]
         self.dispersion_model.source_map.location.from_array(screened_locations)
+
+    def compute_coverage(self, couplings: np.ndarray, **kwargs) -> Union[np.ndarray, dict]:
+        """Returns a logical vector that indicates which sources in the couplings are, or are not, within the coverage.
+
+        The 'coverage' is the area inside which all sources are well covered by wind data. E.g. If wind exclusively
+        blows towards East, then all sources to the East of any sensor are 'invisible', and are not within the coverage.
+
+        Couplings are returned in hr/kg. Some threshold function defines the largest allowed coupling value. This is
+        used to calculate estimated emission rates in kg/hr. Any emissions which are greater than the value of
+        'self.coverage_threshold' are defined as not within the coverage.
+
+        Args:
+            couplings (np.ndarray): Array of coupling values. Dimensions: n_data points x n_sources.
+            kwargs (dict, optional): Keyword arguments required for the threshold function.
+
+        Returns:
+            coverage (Union[np.ndarray, dict]): A logical array specifying which sources are within the coverage.
+
+        """
+        if self.sensor_object.source_on is not None:
+            index_keep = self.sensor_object.source_on > 0
+            couplings = couplings[index_keep, :]
+
+        coupling_threshold = self.threshold_function(couplings, **kwargs)
+        no_warning_threshold = np.where(coupling_threshold <= 1e-100, 1, coupling_threshold)
+        no_warning_estimated_emission_rates = np.where(coupling_threshold <= 1e-100, np.inf, 1 / no_warning_threshold)
+        coverage = no_warning_estimated_emission_rates < self.coverage_threshold
+
+        return coverage
 
     def update_coupling_column(self, state: dict, update_column: int) -> dict:
         """Update the coupling, based on changes to the source locations as part of inversion.
@@ -718,11 +745,7 @@ class SourceModel(Component, SourceGrouping, SourceDistribution):
         prop_state[self.map["allocation"]] = np.concatenate(
             (prop_state[self.map["allocation"]], np.array([0], ndmin=2)), axis=0
         )
-        in_cov_area = self.dispersion_model.compute_coverage(
-            prop_state[self.map["coupling_matrix"]][:, -1],
-            coverage_threshold=self.coverage_threshold,
-            threshold_function=self.threshold_function,
-        )
+        in_cov_area = self.compute_coverage(prop_state[self.map["coupling_matrix"]][:, -1])
         if not in_cov_area:
             logp_pr_g_cr = 1e10
         else:
@@ -783,11 +806,8 @@ class SourceModel(Component, SourceGrouping, SourceDistribution):
 
         """
         prop_state = self.update_coupling_column(prop_state, update_column)
-        in_cov_area = self.dispersion_model.compute_coverage(
-            prop_state[self.map["coupling_matrix"]][:, update_column],
-            coverage_threshold=self.coverage_threshold,
-            threshold_function=self.threshold_function,
-        )
+        in_cov_area = self.compute_coverage(prop_state[self.map["coupling_matrix"]][:, update_column])
+
         if not in_cov_area:
             logp_pr_g_cr = 1e10
         else:
