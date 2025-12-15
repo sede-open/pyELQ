@@ -31,6 +31,8 @@ class SiteLayout:
     Attributes:
         cylinders_coordinate (ENU): The coordinates of the cylindrical obstacles in the site layout.
         cylinders_radius (np.ndarray): The radius of the cylindrical obstacles in the site layout.
+        id_obstacles (np.ndarray): Boolean array indicating which grid points are within obstacle regions.
+        id_obstacles_index (np.ndarray): The indices of the grid points that are within obstacle regions.
 
     Methods:
         find_index_obstacles(grid_coordinates: ENU) -> None:
@@ -55,22 +57,17 @@ class SiteLayout:
         """Find the indices of the grid_coordinates that are within the radius of the obstacles.
 
         This method uses a KDTree to efficiently find the indices of the grid points that are within the radius of the
-        obstacles. It also checks the height of the grid points against the height of the obstacles.
+        cylindrical obstacles. It also checks the height of the grid points against the height of the obstacles.
         If the height of the grid point is greater than the height of the obstacle, it is not considered an obstacle.
 
         Args:
             grid_coordinates (ENU): The coordinates of the grid points to check.
 
-        Returns:
-            np.ndarray: The index of the obstacles in the site layout.
-
         """
         if self.cylinders_coordinate is None or self.cylinders_coordinate.nof_observations == 0:
             self.id_obstacles = np.zeros((grid_coordinates.nof_observations, 1), dtype=bool)
             return
-
         grid_coordinates_array = grid_coordinates.to_array(dim=2)
-
         tree = spatial.KDTree(grid_coordinates_array)
         indices = tree.query_ball_point(x=self.cylinders_coordinate.to_array(dim=2), r=self.cylinders_radius.flatten())
 
@@ -79,9 +76,7 @@ class SiteLayout:
                 indices[i] = np.array(indices[i])
                 if len(indices[i]) > 0:
                     indices[i] = indices[i][grid_coordinates.up[indices[i]].flatten() <= height]
-
         indices_conc = np.unique(np.concatenate(indices, axis=0)).astype(int)
-
         self.id_obstacles_index = indices_conc
         self.id_obstacles = np.zeros((grid_coordinates.nof_observations, 1), dtype=bool)
         self.id_obstacles[indices_conc, 0] = True
@@ -91,10 +86,9 @@ class SiteLayout:
 class MeteorologyWindfield(Meteorology):
     """Represents a spatially resolved wind field based on meteorological measurements and the presence of obstacles.
 
-    This class extends the base `Meteorology` class by providing methods to compute
-    the local wind vector (u and v components) at every grid point, factoring in
-    obstacle perturbations using an analytical method. It accounts for spatial rotation
-    to align with the instantaneous wind direction at each time step.
+    This class extends the base `Meteorology` class by providing methods to compute the local wind vector (u and v
+    components) at every grid point, factoring in obstacle perturbations using an analytical method. It accounts for
+    spatial rotation to align with the instantaneous wind direction at each time step.
 
     Attributes:
         static_wind_field (Meteorology): The static wind field used for calculations.
@@ -119,16 +113,14 @@ class MeteorologyWindfield(Meteorology):
         - If w_component is present in the static wind field, it is broadcasted to match the grid points.
         - If no site layout is provided, the wind field remains undisturbed and is simply broadcasted across the grid.
 
+        The method updates the following properties in place:
+        - u_component np.ndarray: (n_grid x n_time) The x-component of the wind field at the grid points.
+        - v_component np.ndarray: (n_grid x n_time) The y-component of the wind field at the grid points.
+        - w_component np.ndarray: (n_grid x n_time) The y-component of the wind field at the grid points.
+
         Args:
             grid_coordinates (ENU): The coordinates of the grid points.
             time_index (int): The time index for the meteorological data.
-
-        Returns:
-            None: The method updates the object's `u_component` and `v_component` attributes in place.
-
-            u_component np.ndarray: (n_grid x n_time) The x-component of the wind field at the grid points.
-            v_component np.ndarray: (n_grid x n_time) The y-component of the wind field at the grid points.
-            w_component np.ndarray: (n_grid x n_time) The y-component of the wind field at the grid points.
 
         """
         if time_index is not None:
@@ -152,12 +144,10 @@ class MeteorologyWindfield(Meteorology):
             self.u_component = np.broadcast_to(u.T, (grid_coordinates.nof_observations, u.shape[0]))
             self.v_component = np.broadcast_to(v.T, (grid_coordinates.nof_observations, v.shape[0]))
             return
-
         mathematical_wind_direction = np.arctan2(v, u).flatten()
         (rotation_matrix, rotated_grid, rotated_cylinders) = self._rotate_coordinates(
             grid_coordinates, mathematical_wind_direction
         )
-
         u_rot, v_rot = self._calculate_wind_field_cardinal(
             u=u,
             v=v,
@@ -166,7 +156,6 @@ class MeteorologyWindfield(Meteorology):
             rotated_cylinders=rotated_cylinders,
         )
         u_stacked = np.stack((u_rot, v_rot), axis=2)
-
         inverse_rot = np.transpose(rotation_matrix, axes=(1, 0, 2))
         rotated_wind = np.einsum("ijt,ntj-> nti", inverse_rot, u_stacked)
         self.u_component = rotated_wind[:, :, 0]
@@ -190,11 +179,9 @@ class MeteorologyWindfield(Meteorology):
             ]
         )
         rotated_grid = np.einsum("ijt,nj->nit", rotation_matrix, grid_coordinates.to_array(dim=2))
-
         rotated_cylinders = np.einsum(
             "ijt,nj->nit", rotation_matrix, self.site_layout.cylinders_coordinate.to_array(dim=2)
         )
-
         return (rotation_matrix, rotated_grid, rotated_cylinders)
 
     def _calculate_wind_field_cardinal(
@@ -209,10 +196,13 @@ class MeteorologyWindfield(Meteorology):
 
         The method:
         - Determines whether each grid point is influenced by nearby cylinders based on distance and cylinder radius.
-        - If no obstacles are relevant at the evaluation height, the wind field remains undisturber.
+        - If no obstacles are relevant at the evaluation height, the wind field remains undisturbed.
         - If obstacles are present, modifies the wind field using an analytical perturbation formula based on
             potential flow theory.
         - Wind inside obstacles is set to zero.
+
+        If no height information is provided (e.g. in the 2-dimensional solver case), the function assumes that
+        all cylinders and input points are at the same height, and applies the mask accordingly.
 
         Args:
             u (np.ndarray n_time x 1): The x-component of the wind vector.
@@ -221,7 +211,6 @@ class MeteorologyWindfield(Meteorology):
             in the wind-aligned frame.
             rotated_cylinders (np.ndarray n_cylinders x 2 x n_time): The coordinates of the cylinders in the
             wind-aligned frame.
-
 
         Returns:
             u_rot (np.ndarray): The x-component of the wind field at the grid points.
@@ -232,13 +221,10 @@ class MeteorologyWindfield(Meteorology):
         radial_distance = np.linalg.norm(diff, axis=2)
         x_diff = diff[:, :, 0, :]
         y_diff = diff[:, :, 1, :]
-        radius_squared = self.site_layout.cylinders_radius.T**2  # shape (1, c, 1)
-
-        # Precompute radial powers
+        radius_squared = self.site_layout.cylinders_radius.T**2
         radial_distance_sq = radial_distance**2
-        radial_distance_quad = radial_distance_sq**2  # radial_distance^4
-        # Precompute radius / radial powers
-        radius_sq_over_r4 = radius_squared[:, :, np.newaxis] / radial_distance_quad  # shape (n, c, t)
+        radial_distance_quad = radial_distance_sq**2
+        radius_sq_over_r4 = radius_squared[:, :, np.newaxis] / radial_distance_quad
 
         if grid_coordinates.up is None:
             # If no height information is available, assume all points are at the same height
@@ -250,12 +236,9 @@ class MeteorologyWindfield(Meteorology):
             sum_term_x = np.einsum("nc, nct, nct->nt", height_mask, radius_sq_over_r4, (y_diff**2 - x_diff**2))
             sum_term_y = np.einsum("nc, nct, nct->nt", height_mask, radius_sq_over_r4, (y_diff * x_diff))
 
-        # Finally
         wind_speed = np.sqrt(u**2 + v**2).T
         u_rot = wind_speed * (1 + sum_term_x)
         v_rot = -2 * wind_speed * sum_term_y
-
         u_rot[self.site_layout.id_obstacles.flatten(), :] = 0
         v_rot[self.site_layout.id_obstacles.flatten(), :] = 0
-
         return u_rot, v_rot
