@@ -239,7 +239,7 @@ def test_move_function(source_model):
     prop_state = deepcopy(current_state)
     move_index = np.random.randint(low=0, high=current_state["n_src"])
     prop_state["z_src"][:, move_index] = np.zeros((3,))
-    prop_state = source_model.move_function(prop_state, update_column=move_index)
+    prop_state, _, _ = source_model.move_function(prop_state, update_column=move_index)
 
     assert prop_state["A"].shape == current_state["A"].shape
     assert np.allclose(
@@ -258,6 +258,11 @@ def test_compute_coverage(source_model):
     """
     test_source_model = deepcopy(source_model)
     test_source_model.coverage_detection = 1
+
+    test_source_model.sensor_object['device_0'].source_on = np.ones((4,), dtype=bool)
+    if test_source_model.sensor_object.nof_sensors > 1:
+        test_source_model.sensor_object.pop('device_1')
+        test_source_model.sensor_object.pop('device_2')
 
     couplings = np.array(
         [
@@ -281,5 +286,5 @@ def test_compute_coverage(source_model):
     assert np.all(np.equal(coverage, np.array([False, False])))
 
     test_source_model.coverage_test_source=6
-    coverage = source_model.compute_coverage(couplings)
+    coverage = test_source_model.compute_coverage(couplings)
     assert np.all(np.equal(coverage, np.array([True, False])))
