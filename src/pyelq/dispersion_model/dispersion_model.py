@@ -192,34 +192,3 @@ class DispersionModel(ABC):
             )
             variable_interpolated = variable_interpolated.reshape(sensor_object.nof_observations, 1)
         return variable_interpolated
-
-    @staticmethod
-    def compute_coverage(
-        couplings: np.ndarray, threshold_function: Callable, coverage_threshold: float = 6, **kwargs
-    ) -> Union[np.ndarray, dict]:
-        """Returns a logical vector that indicates which sources in the couplings are, or are not, within the coverage.
-
-        The 'coverage' is the area inside which all sources are well covered by wind data. E.g. If wind exclusively
-        blows towards East, then all sources to the East of any sensor are 'invisible', and are not within the coverage.
-
-        Couplings are returned in hr/kg. Some threshold function defines the largest allowed coupling value. This is
-        used to calculate estimated emission rates in kg/hr. Any emissions which are greater than the value of
-        'coverage_threshold' are defined as not within the coverage.
-
-        Args:
-            couplings (np.ndarray): Array of coupling values. Dimensions: n_data points x n_sources.
-            threshold_function (Callable): Callable function which returns some single value that defines the
-                maximum or 'threshold' coupling. For example: np.quantile(., q=0.95)
-            coverage_threshold (float, optional): The threshold value of the estimated emission rate which is
-                considered to be within the coverage. Defaults to 6 kg/hr.
-            kwargs (dict, optional): Keyword arguments required for the threshold function.
-
-        Returns:
-            coverage (Union[np.ndarray, dict]): A logical array specifying which sources are within the coverage.
-
-        """
-        coupling_threshold = threshold_function(couplings, **kwargs)
-        no_warning_threshold = np.where(coupling_threshold <= 1e-100, 1, coupling_threshold)
-        no_warning_estimated_emission_rates = np.where(coupling_threshold <= 1e-100, np.inf, 1 / no_warning_threshold)
-        coverage = no_warning_estimated_emission_rates < coverage_threshold
-        return coverage
