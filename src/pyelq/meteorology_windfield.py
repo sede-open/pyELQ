@@ -9,12 +9,10 @@ Version of the meteorology class that deals with spatial wind fields and can cal
 cylindrical obstacles.
 
 """
-
-import datetime as dt
+from typing import Tuple
 from dataclasses import dataclass, field
 
 import numpy as np
-import pandas as pd
 from scipy import spatial
 
 from pyelq.coordinate_system import ENU
@@ -53,7 +51,7 @@ class SiteLayout:
             return 0
         return self.cylinders_coordinate.nof_observations
 
-    def find_index_obstacles(self, grid_coordinates: ENU) -> None:
+    def find_index_obstacles(self, grid_coordinates: ENU):
         """Find the indices of the grid_coordinates that are within the radius of the obstacles.
 
         This method uses a KDTree to efficiently find the indices of the grid points that are within the radius of the
@@ -161,7 +159,11 @@ class MeteorologyWindfield(Meteorology):
         self.u_component = rotated_wind[:, :, 0]
         self.v_component = rotated_wind[:, :, 1]
 
-    def _rotate_coordinates(self, grid_coordinates: ENU, wind_direction: float) -> tuple:
+    def _rotate_coordinates(
+            self,
+            grid_coordinates: ENU,
+            wind_direction: float
+    ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
         """Rotates the x, y coordinates based on the wind direction.
 
         Args:
@@ -191,7 +193,7 @@ class MeteorologyWindfield(Meteorology):
         grid_coordinates: ENU,
         rotated_grid: np.ndarray,
         rotated_cylinders: np.ndarray,
-    ):
+    ) -> Tuple[np.ndarray, np.ndarray]:
         """Calculates the distorted wind field components (u_x, u_y) in the wind-aligned (cardinal) frame.
 
         The method:
@@ -207,6 +209,7 @@ class MeteorologyWindfield(Meteorology):
         Args:
             u (np.ndarray n_time x 1): The x-component of the wind vector.
             v (np.ndarray  n_time x 1): The y-component of the wind vector.
+            grid_coordinates (ENU): location object containing information about the finite volume solve grid points.
             rotated_grid (np.ndarray n_grid x 2 x n_time): The grid coordinates where the wind field is to be calculated
             in the wind-aligned frame.
             rotated_cylinders (np.ndarray n_cylinders x 2 x n_time): The coordinates of the cylinders in the
@@ -227,15 +230,13 @@ class MeteorologyWindfield(Meteorology):
         radius_sq_over_r4 = radius_squared[:, :, np.newaxis] / radial_distance_quad
 
         if grid_coordinates.up is None:
-            # If no height information is available, assume all points are at the same height
             sum_term_x = np.einsum("nct, nct->nt", radius_sq_over_r4, (y_diff**2 - x_diff**2))
             sum_term_y = np.einsum("nct, nct->nt", radius_sq_over_r4, (y_diff * x_diff))
         else:
-            height_mask = grid_coordinates.up <= self.site_layout.cylinders_coordinate.up.T  # (n,c)
+            height_mask = grid_coordinates.up <= self.site_layout.cylinders_coordinate.up.T
             height_mask = height_mask.reshape(grid_coordinates.nof_observations, self.site_layout.nof_cylinders)
             sum_term_x = np.einsum("nc, nct, nct->nt", height_mask, radius_sq_over_r4, (y_diff**2 - x_diff**2))
             sum_term_y = np.einsum("nc, nct, nct->nt", height_mask, radius_sq_over_r4, (y_diff * x_diff))
-
         wind_speed = np.sqrt(u**2 + v**2).T
         u_rot = wind_speed * (1 + sum_term_x)
         v_rot = -2 * wind_speed * sum_term_y
