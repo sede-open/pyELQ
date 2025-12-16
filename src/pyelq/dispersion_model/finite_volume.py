@@ -89,7 +89,7 @@ class FiniteVolume(DispersionModel):
     forward_matrix: dia_array = field(init=False, default=None)
     _forward_matrix_transpose: dia_array = field(init=False, default=None)
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         """Post-initialization checks and setup.
 
         Creates the grid and neighbourhood for the finite volume solver, and uses the site layout to mask any obstacles
@@ -200,7 +200,7 @@ class FiniteVolume(DispersionModel):
         sensor_object: SensorGroup,
         met_windfield: MeteorologyWindfield,
         gas_object: GasSpecies,
-    ) -> None:
+    ) -> dict:
         """Compute the finite volume coupling matrix, by time-stepping the solver.
 
         This function calculates the coupling between emission sources and sensor measurements based on a spatial wind
@@ -635,7 +635,6 @@ class FiniteVolume(DispersionModel):
             meteorology_object (Meteorology): Meteorology data object.
 
         Returns:
-            tuple:
             time_bins (pd.DatetimeIndex): The array of uniformly spaced time bins (based on `self.dt`).
             time_index_sensor (dict): A dictionary mapping each sensor ID to its array of time bin indices.
             time_index_met (np.ndarray): An array mapping each time bin to the closest meteorological time index.
@@ -709,11 +708,11 @@ class FiniteVolume(DispersionModel):
         with the results.
 
         Args:
-            sensor_object (SensorGroup): sensor object containing sensor observations.
-            scaled_coupling (sp.csr_array): The sparse matrix representing coupling values between sources and
-            grid cells for the current time step.
+            sensor_object (SensorGroup): object containing sensor data.
+            scaled_coupling (sp.csr_array): The sparse matrix representing coupling values between sources and grid
+                cells for the current time step.
             time_index_sensor (np.ndarray): An array mapping each sensor to its corresponding time step index.
-            i_time (int): The current time step being evaluated.
+            i_time (int): The index of the current time step.
             coupling_sensor (dict): The output dictionary to be updated with coupling values for each sensor.
 
         Returns:
@@ -739,8 +738,7 @@ class FiniteVolume(DispersionModel):
     ) -> np.ndarray:
         """Build an interpolator for given tabular values and interpolate at specified locations.
 
-        Interpolates values at specified locations using interpolation
-        with the method of choosing within the grid,
+        Interpolates values at specified locations using interpolation with the method of choosing within the grid,
         and nearest-neighbor extrapolation for out-of-bounds points.
 
         Args:
@@ -806,9 +804,9 @@ class FiniteVolume(DispersionModel):
     def _calculate_number_burn_steps(self, meteorology_object: Meteorology) -> int:
         """Compute the number of burn-in steps for plume stabilization.
 
-        Calculate the number of burn steps based on the maximum distance a plume can travel in the wind field. This
-        is used to determine how many initial time steps should be considered for the plume to stabilize before the
-        actual coupling calculations begin.
+        Computes the approximate amount of time required for a gas parcel to traverse the entire solver domain, based on
+        the initial wind conditions. Then, based on the model time step (self.dt), computes the approximate number of
+        time steps required for the plume to stabilize before the main analysis begins.
 
         If burn_in_steady_state is False, the function returns 0.
 
@@ -833,7 +831,6 @@ class FiniteVolume(DispersionModel):
                 / (meteorology_object.wind_speed[0] * self.dt)
             )
         )
-
         return n_burn_steps
 
 
@@ -870,7 +867,7 @@ class FiniteVolumeDimension:
     cell_width: np.ndarray = field(init=False)
     faces: list = field(init=False)
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         """Post-initialization processing.
 
         Validates the external boundary types and initializes the face objects for the dimension. Also calls
@@ -893,10 +890,11 @@ class FiniteVolumeDimension:
         ]
         self.get_dimensions()
 
-    def get_dimensions(self):
+    def get_dimensions(self) -> None:
         """Setup the face properties for the finite volume method.
 
-        This function calculates and stores the grid cell edges, cell centres and cell widths.
+        This function calculates and stores the grid cell edges, cell centres and cell widths, and assigns the cell
+        width values to the cell faces.
 
         """
         self.cell_edges = np.linspace(self.limits[0], self.limits[1], self.number_cells + 1)
@@ -916,6 +914,7 @@ class FiniteVolumeFace(ABC):
     Attributes:
         cell_face_area (float): The area of the face.
         cell_volume (float): The volume of the face.
+        cell_width (float): The width of the cell in the direction normal to the face.
         boundary_type (np.ndarray): shape=(total_number_cells, 1). The type of boundary condition for the face. Each
             entry is a string, either 'internal', 'dirichlet' or 'neumann'.
         neighbour_index (np.ndarray): shape=(total_number_cells, 1). The index of the neighboring cell across the face.
@@ -937,7 +936,7 @@ class FiniteVolumeFace(ABC):
     def normal(self):
         """Abstract property to be defined in subclasses."""
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         if self.external_boundary_type not in ["dirichlet", "neumann"]:
             raise ValueError(f"Invalid external boundary type: {self.external_boundary_type}. ")
         self.adv_diff_terms = {"advection": SolverDiagonals(), "diffusion": SolverDiagonals()}
@@ -948,8 +947,13 @@ class FiniteVolumeFace(ABC):
         External boundaries are set to 'dirichlet' or 'neumann' based on the specified external_boundary_type. Internal
         boundaries are set to 'internal'.
 
-        The function also handles the case where the face is affected by an obstacle. Obstacles boundaries are set to
+        The function also handles the case where the face is affected by an obstacle. Obstacle boundaries are set to
         'neumann'.
+
+        Args:
+            external_boundaries (np.ndarray): shape=(total_number_cells, 1). Boolean array indicating which faces are
+                external boundaries.
+            site_layout (SiteLayout): SiteLayout object containing obstacle information. Defaults to None.
 
         """
         self.boundary_type = np.full(self.neighbour_index.shape, "internal", dtype="<U10")
@@ -958,7 +962,7 @@ class FiniteVolumeFace(ABC):
             faces_affected_obstacle = np.isin(self.neighbour_index, np.where(site_layout.id_obstacles)[0])
             self.boundary_type[np.logical_or(faces_affected_obstacle, site_layout.id_obstacles)] = "neumann"
 
-    def assign_advection(self, wind_vector: np.ndarray) -> tuple:
+    def assign_advection(self, wind_vector: np.ndarray) -> None:
         """Assigns the advection terms for the defined set of interfaces to adv_diff_terms['advection'].
 
         Uses an upwind scheme for the discretization of the advection term:
@@ -970,7 +974,7 @@ class FiniteVolumeFace(ABC):
         dimensions have been dropped.
 
         Args:
-            wind_vector (np.ndarray): shape=(total_grid_cells x 1). Wind speed vector in dimension of this face
+            wind_vector (np.ndarray): shape=(total_number_cells, 1). Wind speed vector in dimension of this face
                 e.g. x, y, z.
 
         """
@@ -982,7 +986,7 @@ class FiniteVolumeFace(ABC):
         term.b_dirichlet = (self.boundary_type == "dirichlet") * neighbour_advection
         term.b_neumann = (self.boundary_type == "neumann") * neighbour_advection
 
-    def assign_diffusion(self, diffusion_constants: float):
+    def assign_diffusion(self, diffusion_constants: float) -> None:
         """Assigns the diffusion terms for the defined set of interfaces to adv_diff_terms['diffusion'].
 
         If diffusion is already set this function is skipped as the diffusion term is constant.
@@ -1045,22 +1049,22 @@ class SolverDiagonals:
     combined terms.
 
     Attributes:
-        B (np.ndarray): shape=(total_number_cells, 1 + number_faces). Array containing all solver diagonals, i.e.
-            containing all diagonals from self.B_central and self.B_neighbour. The first column is the central
-            diagonal and the remaining columns are the off-diagonal terms.
-        B_central (np.ndarray): shape=(total_number_cells, 1). Array containing the central diagonal of the solver
-            matrix.
-        B_neighbour (np.ndarray): shape=(total_number_cells, number_faces). Array containing the off-diagonals of the
+        B (Union[np.ndarray, None]): shape=(total_number_cells, 1 + number_faces). Array containing all solver
+            diagonals, i.e. containing all diagonals from self.B_central and self.B_neighbour. The first column is the
+            central diagonal and the remaining columns are the off-diagonal terms.
+        B_central (Union[np.ndarray, None]): shape=(total_number_cells, 1). Array containing the central diagonal of the
             solver matrix.
-        b_dirichlet (np.ndarray): shape=(total_number_cells, 1). Vector containing contributions from dirichlet boundary
-            conditions at edge cells.
-        b_neumann (np.ndarray): shape=(total_number_cells, 1). Vector containing contributions from Neumann boundary
-            conditions.
+        B_neighbour (Union[np.ndarray, None]): shape=(total_number_cells, number_faces). Array containing the
+            off-diagonals of the solver matrix.
+        b_dirichlet (Union[np.ndarray, None]): shape=(total_number_cells, 1). Vector containing contributions from
+            Dirichlet boundary conditions at edge cells.
+        b_neumann (Union[np.ndarray, None]): shape=(total_number_cells, 1). Vector containing contributions from Neumann
+            boundary conditions.
 
     """
 
-    B: np.ndarray = field(default=None, init=False)
-    B_central: np.ndarray = field(default=None, init=False)
-    B_neighbour: np.ndarray = field(default=None, init=False)
-    b_dirichlet: np.ndarray = field(default=None, init=False)
-    b_neumann: np.ndarray = field(default=None, init=False)
+    B: Union[np.ndarray, None] = field(default=None, init=False)
+    B_central: Union[np.ndarray, None] = field(default=None, init=False)
+    B_neighbour: Union[np.ndarray, None] = field(default=None, init=False)
+    b_dirichlet: Union[np.ndarray, None] = field(default=None, init=False)
+    b_neumann: Union[np.ndarray, None] = field(default=None, init=False)
