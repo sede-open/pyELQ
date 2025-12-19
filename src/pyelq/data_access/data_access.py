@@ -16,7 +16,7 @@ from typing import Any, Union
 
 import pandas as pd
 
-from pyelq.meteorology import Meteorology, MeteorologyGroup
+from pyelq.meteorology.meteorology import Meteorology, MeteorologyGroup
 from pyelq.sensor.sensor import Sensor, SensorGroup
 
 

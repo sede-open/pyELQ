@@ -21,7 +21,7 @@ from sklearn.neighbors import NearestNeighbors
 from pyelq.component.component import Component
 from pyelq.coordinate_system import Coordinate
 from pyelq.gas_species import GasSpecies
-from pyelq.meteorology import MeteorologyGroup
+from pyelq.meteorology.meteorology import MeteorologyGroup
 from pyelq.sensor.beam import Beam
 from pyelq.sensor.sensor import SensorGroup
 

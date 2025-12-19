@@ -34,7 +34,7 @@ from pyelq.component.component import Component
 from pyelq.coordinate_system import ENU
 from pyelq.dispersion_model.gaussian_plume import GaussianPlume
 from pyelq.gas_species import GasSpecies
-from pyelq.meteorology import Meteorology
+from pyelq.meteorology.meteorology import Meteorology
 from pyelq.sensor.sensor import SensorGroup
 from pyelq.source_map import SourceMap
 

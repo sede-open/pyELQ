@@ -18,7 +18,7 @@ import numpy as np
 
 import pyelq.support_functions.spatio_temporal_interpolation as sti
 from pyelq.gas_species import GasSpecies
-from pyelq.meteorology import Meteorology
+from pyelq.meteorology.meteorology import Meteorology
 from pyelq.sensor.satellite import Satellite
 from pyelq.sensor.sensor import Sensor
 from pyelq.source_map import SourceMap

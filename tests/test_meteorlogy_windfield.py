@@ -4,8 +4,8 @@ import numpy as np
 import pytest
 
 from pyelq.coordinate_system import ENU
-from pyelq.meteorology import Meteorology
-from pyelq.meteorology_windfield import MeteorologyWindfield, SiteLayout
+from pyelq.meteorology.meteorology import Meteorology
+from pyelq.meteorology.meteorology_windfield import MeteorologyWindfield, SiteLayout
 
 
 @pytest.fixture(

@@ -18,7 +18,7 @@ import pytest
 from pyelq.coordinate_system import ENU
 from pyelq.dispersion_model.gaussian_plume import GaussianPlume
 from pyelq.gas_species import CH4
-from pyelq.meteorology import Meteorology, MeteorologyGroup
+from pyelq.meteorology.meteorology import Meteorology, MeteorologyGroup
 from pyelq.sensor.beam import Beam
 from pyelq.sensor.satellite import Satellite
 from pyelq.sensor.sensor import Sensor, SensorGroup

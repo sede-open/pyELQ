@@ -13,7 +13,6 @@ __all__ = [
     "dlm",
     "gas_species",
     "meteorology",
-    "meteorology_windfield",
     "model",
     "preprocessing",
     "source_map",

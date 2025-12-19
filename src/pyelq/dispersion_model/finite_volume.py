@@ -25,9 +25,10 @@ from tqdm import tqdm
 
 from pyelq.coordinate_system import ENU
 from pyelq.dispersion_model.dispersion_model import DispersionModel
+from pyelq.dispersion_model.site_layout import SiteLayout
 from pyelq.gas_species import GasSpecies
-from pyelq.meteorology import Meteorology
-from pyelq.meteorology_windfield import MeteorologyWindfield, SiteLayout
+from pyelq.meteorology.meteorology import Meteorology
+from pyelq.meteorology.meteorology_windfield import MeteorologyWindfield
 from pyelq.sensor.beam import Beam
 from pyelq.sensor.sensor import SensorGroup
 

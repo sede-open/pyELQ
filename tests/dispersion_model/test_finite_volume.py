@@ -18,8 +18,8 @@ from pyelq.dispersion_model.finite_volume import (
     FiniteVolumeFaceRight,
 )
 from pyelq.gas_species import CH4
-from pyelq.meteorology import Meteorology
-from pyelq.meteorology_windfield import MeteorologyWindfield, SiteLayout
+from pyelq.meteorology.meteorology import Meteorology
+from pyelq.meteorology.meteorology_windfield import MeteorologyWindfield, SiteLayout
 from pyelq.sensor.beam import Beam
 from pyelq.sensor.sensor import Sensor, SensorGroup
 from pyelq.source_map import SourceMap

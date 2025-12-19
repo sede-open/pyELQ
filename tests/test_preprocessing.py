@@ -11,7 +11,7 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from pyelq.meteorology import Meteorology, MeteorologyGroup
+from pyelq.meteorology.meteorology import Meteorology, MeteorologyGroup
 from pyelq.preprocessing import Preprocessor
 
 

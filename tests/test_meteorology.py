@@ -16,7 +16,7 @@ import pandas as pd
 import pytest
 
 from pyelq.coordinate_system import LLA
-from pyelq.meteorology import Meteorology, MeteorologyGroup
+from pyelq.meteorology.meteorology import Meteorology, MeteorologyGroup
 
 
 @pytest.mark.parametrize(
