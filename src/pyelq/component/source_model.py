@@ -483,8 +483,8 @@ class SourceModel(Component, SourceGrouping, SourceDistribution):
 
         reversible_jump (bool): logical indicating whether the reversible jump algorithm for estimation of the number
             of sources and their locations should be run. Defaults to False.
-        distribution_number_sources (str): distribution for the number of sources "Poisson", "Uniform".
-            Defaults to Poisson.
+        distribution_number_sources (str): distribution for the number of sources in the solution. Can be either
+            "Poisson" or "Uniform". Defaults to "Poisson".
         random_walk_step_size (np.ndarray): (3 x 1) array specifying the standard deviations of the distributions
             from which the random walk sampler draws new source locations. Defaults to np.array([1.0, 1.0, 0.1]).
         site_limits (np.ndarray): (3 x 2) array specifying the lower (column 0) and upper (column 1) limits of the
@@ -492,7 +492,7 @@ class SourceModel(Component, SourceGrouping, SourceDistribution):
             the solution).
         rate_num_sources (int): specification for the parameter for the Poisson prior distribution for the total number
             of sources. Only relevant for cases where reversible_jump == True (where the number of sources in the
-            solution can change).
+            solution can change). Unused in the case of a Uniform prior (self.distribution_number_sources == "Uniform").
         n_sources_max (int): maximum number of sources that can feature in the solution. Only relevant for cases where
             reversible_jump == True (where the number of sources in the solution can change).
         emission_proposal_std (float): standard deviation of the truncated Gaussian distribution used to propose the
