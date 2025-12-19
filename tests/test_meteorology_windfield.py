@@ -5,7 +5,8 @@ import pytest
 
 from pyelq.coordinate_system import ENU
 from pyelq.meteorology.meteorology import Meteorology
-from pyelq.meteorology.meteorology_windfield import MeteorologyWindfield, SiteLayout
+from pyelq.meteorology.meteorology_windfield import MeteorologyWindfield
+from pyelq.dispersion_model.site_layout import SiteLayout
 
 
 @pytest.fixture(
@@ -38,11 +39,7 @@ def fixture_grid_coordinates():
 
 @pytest.fixture(params=[0, 10, 20], ids=["0-m", "10-m", "20-m"], name="height")
 def fixture_height(request):
-    """Fixture for height.
-
-    defines cylinder heights
-
-    """
+    """Fixture for the cyliner heights."""
     return request.param
 
 
@@ -87,11 +84,9 @@ def test_find_index_obstacles(site_layout, grid_coordinates, height):
     not.
 
     """
-    # Check the result
     assert site_layout.id_obstacles.shape == (grid_coordinates.nof_observations, 1)
     assert site_layout.id_obstacles.dtype == bool
     assert not np.any(site_layout.id_obstacles[grid_coordinates.up > height])
-
     site_layout.find_index_obstacles(site_layout.cylinders_coordinate)
     assert np.all(site_layout.id_obstacles)
 
@@ -99,12 +94,10 @@ def test_find_index_obstacles(site_layout, grid_coordinates, height):
 def test_meteorology_windfield(meteorology_windfield, meteorology, grid_coordinates):
     """Test the MeteorologyWindfield class.
 
-    Check that the wind field is correctly calculated for different wind components.
+    Check that the wind field components that get created by the class have the correct shapes.
 
     """
-    # Create a MeteorologyWindfield object
     meteorology_windfield.calculate_spatial_wind_field(grid_coordinates)
-
     assert meteorology_windfield.u_component.shape == (
         grid_coordinates.nof_observations,
         meteorology.u_component.shape[0],
@@ -119,7 +112,6 @@ def test_meteorology_windfield(meteorology_windfield, meteorology, grid_coordina
     )
 
     meteorology_windfield.calculate_spatial_wind_field(grid_coordinates, time_index=0)
-
     assert meteorology_windfield.u_component.shape == (grid_coordinates.nof_observations, 1)
     assert meteorology_windfield.v_component.shape == (grid_coordinates.nof_observations, 1)
     assert meteorology_windfield.w_component.shape == (grid_coordinates.nof_observations, 1)

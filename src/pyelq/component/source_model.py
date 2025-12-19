@@ -662,7 +662,6 @@ class SourceModel(Component, SourceGrouping, SourceDistribution):
             coverage (Union[np.ndarray, dict]): A logical array specifying which sources are within the coverage.
 
         """
-
         if self.sensor_object.source_on is not None:
             couplings = deepcopy(couplings)
             index_keep = self.sensor_object.source_on > 0

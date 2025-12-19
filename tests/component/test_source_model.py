@@ -24,20 +24,9 @@ from tests.conftest import initialise_sampler
 )
 def fix_distribution_number_sources(request):
     """Set up the distribution class and id for number of sources prior."""
-
     distribution_class = request.param
     distribution_id = distribution_class.__name__
     return distribution_class, distribution_id
-
-
-# @pytest.fixture(
-#     name="distribution_num_sources_prior",
-#     params=[Uniform, Poisson],
-#     ids=["Uniform", "Poisson"],
-# )
-# def fix_distribution_num_sources(request):
-#     """Set up the source model based on all previous fixtures."""
-#     return request.param
 
 
 @pytest.fixture(
@@ -98,7 +87,11 @@ def test_make_state(source_model, sensor_group):
 def test_make_model(source_model, distribution_number_sources_prior):
     """Test the make_model() function.
 
-    Tests the following aspects of the model
+    Tests that:
+        - The source distribution is of type openmcmc.distribution.location_scale.Normal.
+        - The mean and precision parameters are of the expected types.
+        - If source_model.update_precision is True, then checks that a Gamma distribution for lambda_s is created as
+            expected.
 
     """
     model = source_model.make_model(model=[])
@@ -259,10 +252,10 @@ def test_compute_coverage(source_model):
     test_source_model = deepcopy(source_model)
     test_source_model.coverage_detection = 1
 
-    test_source_model.sensor_object['device_0'].source_on = np.ones((4,), dtype=bool)
+    test_source_model.sensor_object["device_0"].source_on = np.ones((4,), dtype=bool)
     if test_source_model.sensor_object.nof_sensors > 1:
-        test_source_model.sensor_object.pop('device_1')
-        test_source_model.sensor_object.pop('device_2')
+        test_source_model.sensor_object.pop("device_1")
+        test_source_model.sensor_object.pop("device_2")
 
     couplings = np.array(
         [
@@ -277,7 +270,7 @@ def test_compute_coverage(source_model):
     coverage = test_source_model.compute_coverage(couplings)
     assert np.all(np.equal(coverage, np.array([True, False])))
 
-    test_source_model.coverage_test_source=0.3
+    test_source_model.coverage_test_source = 0.3
     coverage = test_source_model.compute_coverage(couplings)
     assert np.all(np.equal(coverage, np.array([False, False])))
 
@@ -285,6 +278,6 @@ def test_compute_coverage(source_model):
     coverage = test_source_model.compute_coverage(couplings)
     assert np.all(np.equal(coverage, np.array([False, False])))
 
-    test_source_model.coverage_test_source=6
+    test_source_model.coverage_test_source = 6
     coverage = test_source_model.compute_coverage(couplings)
     assert np.all(np.equal(coverage, np.array([True, False])))

@@ -100,9 +100,7 @@ class MeteorologyWindfield(Meteorology):
         self.v_component = rotated_wind[:, :, 1]
 
     def _rotate_coordinates(
-            self,
-            grid_coordinates: ENU,
-            wind_direction: float
+        self, grid_coordinates: ENU, wind_direction: float
     ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
         """Rotates the x, y coordinates based on the wind direction.
 

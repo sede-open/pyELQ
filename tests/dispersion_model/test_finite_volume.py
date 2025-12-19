@@ -84,7 +84,6 @@ def fixture_dimension(request, number_cells, external_boundary_type):
     """
     dimension_labels = request.param
     limits = [-10, 10]
-
     dimension = []
     for i, dim in enumerate(dimension_labels):
         dimension.append(
@@ -95,7 +94,6 @@ def fixture_dimension(request, number_cells, external_boundary_type):
                 external_boundary_type=external_boundary_type,
             )
         )
-
     return dimension
 
 
@@ -133,7 +131,6 @@ def fixture_finite_volume(solver_type, use_obstacle, dimension, source_map, use_
 
     """
     diffusion_constants = [1.0] * len(dimension)
-
     if use_obstacle:
         cylinders_coordinate = ENU(
             east=np.array(0.0, ndmin=2),
@@ -144,7 +141,6 @@ def fixture_finite_volume(solver_type, use_obstacle, dimension, source_map, use_
             ref_altitude=0,
         )
         site_layout = SiteLayout(cylinders_coordinate=cylinders_coordinate, cylinders_radius=np.array([[1.0]]))
-
     else:
         site_layout = None
 
@@ -279,7 +275,6 @@ def test_forward_matrix(finite_volume, meteorology):
     meteorology_windfield = MeteorologyWindfield(site_layout=fe.site_layout, static_wind_field=meteorology)
     meteorology_windfield.calculate_spatial_wind_field(time_index=0, grid_coordinates=fe.grid_coordinates)
     fe.compute_forward_matrix(meteorology_windfield)
-
     for dim in fe.dimensions:
         for term in ["diffusion"]:
             for face in dim.faces:
@@ -312,8 +307,7 @@ def test_forward_matrix(finite_volume, meteorology):
             + fe.adv_diff_terms["combined"].b_dirichlet
             + volume_term
         )
-    assert np.allclose(check_value, 0, atol=1e-10)
-
+        assert np.allclose(check_value, 0, atol=1e-10)
     check_value = (
         np.sum(fe.forward_matrix, axis=1).reshape(-1, 1) + fe.adv_diff_terms["combined"].b_dirichlet + volume_term
     )
@@ -323,7 +317,8 @@ def test_forward_matrix(finite_volume, meteorology):
 def test_finite_volume_time_step_solver(finite_volume, meteorology):
     """Test the compute_coupling method of the FiniteVolume class.
 
-    This test checks that the coupling matrix is correctly computed for different wind components.
+    This test runs two time steps of the finite volume solver, and checks that the resulting solver matrix after each
+    step is sparse, has the correct shape, and contains only non-negative values.
 
     """
     finite_volume.set_dt_cfl(meteorology)
@@ -346,7 +341,17 @@ def test_finite_volume_time_step_solver(finite_volume, meteorology):
 @pytest.mark.parametrize("output_stacked", [False, True], ids=["dict", "stacked"])
 @pytest.mark.parametrize("sections", [False, True], ids=["single", "2 sections"])
 def test_compute_coupling(finite_volume, meteorology, sensor_group, output_stacked, sections):
-    """Test the compute_coupling method of the FiniteVolume class."""
+    """Test the compute_coupling method of the FiniteVolume class.
+
+    For each input configuration, this test computes the coupling matrix, and then checks that the result:
+        - Has the correct shape.
+        - Is of type float64.
+        - Contains only non-negative values.
+        - Contains only finite values.
+    These checks are carried out for both the case where a single stacked matrix is returned, and the case where a dict
+    of couplings per sensor is returned.
+
+    """
     meteorology_windfield = MeteorologyWindfield(
         site_layout=finite_volume.site_layout,
         static_wind_field=meteorology,
@@ -381,14 +386,12 @@ def test_compute_time_bins(finite_volume, sensor_group, meteorology):
     """Test the compute_time_bins method of the FiniteVolume class.
 
     Time bins are defined from range(sensor) so all time_index_sensor should be well defined.
-
     Meteorology time bins may not be well defined if the time range is not the same as the sensor time range.
 
     """
     (time_bins, time_index_sensor, time_index_met) = finite_volume.compute_time_bins(sensor_group, meteorology)
     n_bins = len(time_bins)
     assert time_bins[1] - time_bins[0] == pd.Timedelta(finite_volume.dt, unit="s")
-
     for key, sensor in sensor_group.items():
         assert time_index_sensor[key].shape == (sensor.nof_observations,)
         assert time_index_sensor[key].shape == (sensor.nof_observations,)
