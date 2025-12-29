@@ -12,7 +12,7 @@ Methods and classes for the finite volume method for the dispersion model.
 from abc import ABC, abstractmethod
 from copy import deepcopy
 from dataclasses import dataclass, field
-from typing import Union
+from typing import Union, Tuple
 
 import numpy as np
 import pandas as pd
@@ -236,7 +236,7 @@ class FiniteVolume(DispersionModel):
         for key, sensor in sensor_object.items():
             coupling_sensor[key] = np.full((sensor.time.shape[0], self.source_grid_link.shape[1]), fill_value=0.0)
         coupling_grid = None
-        (time_bins, time_index_sensor, time_index_met) = self.compute_time_bins(
+        time_bins, time_index_sensor, time_index_met = self.compute_time_bins(
             sensor_object=sensor_object, meteorology_object=met_windfield.static_wind_field
         )
         sensor_object = self._prepare_sensor(sensor_object)
@@ -621,7 +621,8 @@ class FiniteVolume(DispersionModel):
                 face.neighbour_index[external_boundaries] = -9999
                 face.set_boundary_type(external_boundaries, self.site_layout)
 
-    def compute_time_bins(self, sensor_object: SensorGroup, meteorology_object: Meteorology) -> tuple:
+    def compute_time_bins(self, sensor_object: SensorGroup, 
+                          meteorology_object: Meteorology) -> Tuple[pd.DatetimeIndex, dict, np.ndarray]:
         """Compute discretized time bins for aligning sensor observations and meteorological data.
 
         This method constructs a uniform time grid (bins) based on the observation time range of the given sensors.
@@ -664,7 +665,7 @@ class FiniteVolume(DispersionModel):
             )
         tree = KDTree(meteorology_object.time.reshape(-1, 1).astype(np.int64))
         _, time_index_met = tree.query(np.array(time_bins.astype(np.int64)).reshape(-1, 1), k=1)
-        return (time_bins, time_index_sensor, time_index_met)
+        return time_bins, time_index_sensor, time_index_met
 
     def set_dt_cfl(self, meteorology_object: Meteorology) -> None:
         """Use CFL condition to set the time step.
