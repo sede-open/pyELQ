@@ -278,11 +278,11 @@ class FiniteVolume(DispersionModel):
     def interpolate_coupling_lookup_to_source_map(self, sensor_object: SensorGroup) -> dict:
         """Compute the coupling matrix by interpolation from a lookup table.
 
-        A coupling matrix coupling all solver grid centres to all observations is pre-computed and stored on the class.
+        A coupling matrix from all solver grid centres to all observations is pre-computed and stored on the class.
         Coupling columns for new source locations can then be computed by interpolation from these pre-computed values.
 
         The coupling matrix used for lookup is taken from self.coupling_lookup_table which is a sparse matrix computed
-        in self.compute_coupling_direct().
+        in self.finite_volume_time_step_solver().
 
         Args:
             sensor_object (SensorGroup): sensor data object.
