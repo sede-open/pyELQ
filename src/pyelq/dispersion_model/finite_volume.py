@@ -167,7 +167,9 @@ class FiniteVolume(DispersionModel):
 
         If there are multiple sections, then the coupling matrix is computed for each section separately and combined
         into a single coupling matrix. This avoids computational effort computing the forward model through time steps
-        that are not required and can speed up the computational time substantially in this case.
+        that are not required and can speed up the computational time substantially in this case. Sections are
+        defined by the source_on attribute of the sensor object which indicates which time steps the source is on where
+        0 indicates the source is off and integers starting from 1 indicate different source on sections.
 
         Args:
             sensor_object (SensorGroup): sensor data object.
