@@ -260,12 +260,12 @@ def test_forward_matrix(finite_volume, meteorology):
             all term arrays have the expected shapes.
         3. Combined Operator Check:
             It checks that the total contribution from the assembled transport operator, including all internal and
-            boundary effects (from `adv_diff_terms['combined']`), balances with the implicit time-stepping sink term
+            boundary effects (from `adv_diff_terms['combined']`), balances with the implicit time derivative term
             (`cell_volume / dt`).
         4. Matrix-Level Mass Balance:
             It validates that the assembled system matrix `A` and right-hand-side vector `b`, obtained from
-            `solver_matrix`, also satisfy the mass balance against the implicit time sink (`cell_volume / dt`), ensuring
-            the global solver preserves conservation.
+            `solver_matrix`, also satisfy the mass balance against the implicit time derivative term 
+            (`cell_volume / dt`), ensuring the global solver preserves conservation.
 
     """
     fe = finite_volume
@@ -277,40 +277,41 @@ def test_forward_matrix(finite_volume, meteorology):
     for dim in fe.dimensions:
         for term in ["diffusion"]:
             for face in dim.faces:
-                check_value = (
+                face_diffusion_flux_balance = (
                     face.adv_diff_terms[term].B_neighbour
                     + face.adv_diff_terms[term].B_central
                     + face.adv_diff_terms[term].b_dirichlet
                     + face.adv_diff_terms[term].b_neumann
                 )
-                assert np.allclose(check_value, 0, atol=1e-10)
+                assert np.allclose(face_diffusion_flux_balance, 0, atol=1e-10)
 
     if fe.implicit_solver:
         volume_term = fe.cell_volume / fe.dt
     else:
         volume_term = -fe.cell_volume / fe.dt
     for term in ["advection", "diffusion"]:
-        check_value = (
+        cell_term_flux_balance = (
             np.sum(fe.adv_diff_terms[term].B_neighbour, axis=1).reshape(-1, 1)
             + fe.adv_diff_terms[term].B_central
             + fe.adv_diff_terms[term].b_dirichlet
             + fe.adv_diff_terms[term].b_neumann
         )
-        assert np.allclose(check_value, 0, atol=1e-10)
+        assert np.allclose(cell_term_flux_balance, 0, atol=1e-10)
         assert fe.adv_diff_terms[term].B_central.shape == (fe.total_number_cells, 1)
         assert fe.adv_diff_terms[term].b_dirichlet.shape == (fe.total_number_cells, 1)
         assert fe.adv_diff_terms[term].b_neumann.shape == (fe.total_number_cells, 1)
         assert fe.adv_diff_terms[term].B_neighbour.shape == (fe.total_number_cells, len(fe.dimensions) * 2)
-        check_value = (
+        combined_operator_balance = (
             np.sum(fe.adv_diff_terms["combined"].B, axis=1).reshape(-1, 1)
             + fe.adv_diff_terms["combined"].b_dirichlet
             + volume_term
         )
-        assert np.allclose(check_value, 0, atol=1e-10)
-    check_value = (
+        assert np.allclose(combined_operator_balance, 0, atol=1e-10)
+
+    forward_matrix_balance = (
         np.sum(fe.forward_matrix, axis=1).reshape(-1, 1) + fe.adv_diff_terms["combined"].b_dirichlet + volume_term
     )
-    assert np.allclose(check_value, 0, atol=1e-10)
+    assert np.allclose(forward_matrix_balance, 0, atol=1e-10)
 
 
 def test_finite_volume_time_step_solver(finite_volume, meteorology):
