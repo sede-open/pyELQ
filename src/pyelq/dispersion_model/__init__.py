@@ -2,4 +2,4 @@
 #
 # SPDX-License-Identifier: Apache-2.0
 """Data Access Module."""
-__all__ = ["finite_volume", "gaussian_plume", "dispersion_model", "site_layout"]
+__all__ = ["dispersion_model", "finite_volume", "gaussian_plume", "site_layout"]
