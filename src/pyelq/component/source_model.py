@@ -659,7 +659,7 @@ class SourceModel(Component, SourceGrouping, SourceDistribution):
             kwargs (dict, optional): Keyword arguments required for the threshold function.
 
         Returns:
-            coverage (Union[np.ndarray, dict]): A logical array specifying which sources are within the coverage.
+            coverage (np.ndarray): A logical array specifying which sources are within the coverage.
 
         """
         if self.sensor_object.source_on is not None:
