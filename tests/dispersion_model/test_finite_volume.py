@@ -187,8 +187,7 @@ def fixture_beam_object():
     return beam_object
 
 
-@pytest.fixture(params=["point+beam"], name="sensor_group")
-# @pytest.fixture(params=["1 point", "1 beam", "point+beam"], name="sensor_group")
+@pytest.fixture(params=["1 point", "1 beam", "point+beam"], name="sensor_group")
 def fixture_sensor_group(request, sensor_object, beam_object):
     """Fixture to define a sensor group."""
     sensor_group = SensorGroup()
