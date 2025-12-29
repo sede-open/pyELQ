@@ -348,8 +348,21 @@ def test_compute_coupling(finite_volume, meteorology, sensor_group, output_stack
         - Is of type float64.
         - Contains only non-negative values.
         - Contains only finite values.
-    These checks are carried out for both the case where a single stacked matrix is returned, and the case where a dict
-    of couplings per sensor is returned.
+
+    These checks are carried out for both the case where sections are used (i.e., multiple sections means that a source
+    can be active only during a subset of the sensor observations), and the case where no sections are used (i.e., a
+    source is active for the entire duration of observations). In case sections are used, the source_on attribute of
+    each sensor is set to activate sources in distinct sections of the observation period.
+    Additionally, the checks are carried out for both the case where a single stacked matrix is returned, and the case
+    where a dict of couplings per sensor is returned. For the case with single stacked matrix (output_stacked=True), a
+    single 2D matrix is expected with the shape `(sensor_group.nof_observations, finite_volume.source_map.nof_sources)`.
+    For the case with dict output (output_stacked=False), a dictionary is expected where each key corresponds to
+    a sensor, and each value is a 2D matrix of shape `(sensor.nof_observations, finite_volume.source_map.nof_sources)`.
+
+
+    
+
+
 
     """
     meteorology_windfield = MeteorologyWindfield(
