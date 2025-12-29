@@ -41,8 +41,20 @@ def test_nof_observables(nof_observations: int):
     ids=["multiple_sections", "single_section"],
 )
 def test_subset_sensor(source_on):
-    """Test Sensor.subset_sensor method."""
+    """Test subset_sensor method for correct behavior when splitting sensor observations based on source_on.
+    The subset_sensor method is designed to return a new `Sensor` object containing only the observations corresponding
+    to a specified section index. Sections are defined by unique values in the `source_on` attribute. The case 
+    "multiple_sections" represents a situation where the source is turned on and off multiple times (0 values in 
+    `source_on` indicate off periods and positive integers indicate different on periods). The case "single_section"
+    represents a situation where the source is continuously on.
 
+    For each case, the test verifies that:
+    - The number of observations from the output subset_sensor matches the expected count for the specified section.
+    - The size of the source_on array in the subset_sensor matches the expected count for the specified section.
+    - If the subset_sensor contains observations, all source_on values in the subset_sensor match those in the original
+    sensor for the specified section.
+
+    """
     sensor = Sensor()
     sensor.label = "sensor_0"
     sensor.time = pd.array(pd.date_range("2024-01-01", periods=len(source_on)), dtype="datetime64[ns]")
