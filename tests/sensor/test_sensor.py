@@ -65,11 +65,9 @@ def test_subset_sensor(source_on):
         altitude=np.ones((len(source_on), 1)) * 0,
     )
     sensor.source_on = source_on
-
     number_of_sections = max(sensor.source_on) + 1
     for section in range(1, number_of_sections + 1):
         subset_sensor = sensor.subset_sensor(section_index=section)
-
         assert subset_sensor.nof_observations == np.sum(sensor.source_on == section)
         assert subset_sensor.source_on.size == np.sum(sensor.source_on == section)
         if subset_sensor.nof_observations > 0:
