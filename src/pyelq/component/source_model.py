@@ -641,7 +641,7 @@ class SourceModel(Component, SourceGrouping, SourceDistribution):
         screened_locations = all_locations[in_coverage_area, :]
         self.dispersion_model.source_map.location.from_array(screened_locations)
 
-    def compute_coverage(self, couplings: np.ndarray, **kwargs) -> Union[np.ndarray, dict]:
+    def compute_coverage(self, couplings: np.ndarray, **kwargs) -> np.ndarray:
         """Returns a logical vector that indicates which sources in the couplings are, or are not, within the coverage.
 
         The 'coverage' is the area inside which all sources are well covered by wind data. E.g. If wind exclusively
