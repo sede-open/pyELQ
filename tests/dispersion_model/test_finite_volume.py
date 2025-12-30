@@ -358,12 +358,7 @@ def test_compute_coupling(finite_volume, meteorology, sensor_group, output_stack
     single 2D matrix is expected with the shape `(sensor_group.nof_observations, finite_volume.source_map.nof_sources)`.
     For the case with dict output (output_stacked=False), a dictionary is expected where each key corresponds to
     a sensor, and each value is a 2D matrix of shape `(sensor.nof_observations, finite_volume.source_map.nof_sources)`.
-
-
     
-
-
-
     """
     meteorology_windfield = MeteorologyWindfield(
         site_layout=finite_volume.site_layout,
