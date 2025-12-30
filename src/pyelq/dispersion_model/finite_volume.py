@@ -858,7 +858,7 @@ class FiniteVolumeDimension:
     Attributes:
         cell_edges (np.ndarray): shape=(self.number_cells + 1,) edge locations for the cells in this dimension.
         cell_centers (np.ndarray): shape=(self.number_cells,) central locations of the cells in this dimension.
-        cell_width (np.ndarray): shape=() width of the cells in this dimension. Constant for regular grid.
+        cell_width (float): width of the cells in this dimension.
         faces (list(FiniteVolumeFaceLeft, FiniteVolumeFaceRight)): list of objects corresponding to the left and right
             (-ve and +ve) faces of this dimension.
 
@@ -870,7 +870,7 @@ class FiniteVolumeDimension:
     external_boundary_type: list = field(default_factory=list)
     cell_edges: np.ndarray = field(init=False)
     cell_centers: np.ndarray = field(init=False)
-    cell_width: np.ndarray = field(init=False)
+    cell_width: float = field(init=False)
     faces: list = field(init=False)
 
     def __post_init__(self) -> None:
