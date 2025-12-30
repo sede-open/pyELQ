@@ -213,7 +213,7 @@ class FiniteVolume(DispersionModel):
         time bins where sensor observations occur, the coupling between any source locations in the source map and the
         locations where sensor observations were obtained are extracted and stored in the rows of the coupling matrix.
 
-        If dt is not specified, it will be set automatically using a CFL-like condition via self.set_dt_cfl().
+        If dt is not specified, it will be set automatically using a CFL-like condition via self.set_delta_time_cfl().
         If burn_in_steady_state is True, the model runs a burn-in period to reach steady state before computing any
         coupling values. The wind field during the burn-in period is assumed to be constant and the same as the wind
         field at the first time-step.
@@ -627,7 +627,7 @@ class FiniteVolume(DispersionModel):
 
         This method constructs a uniform time grid (bins) based on the observation time range of the given sensors.
         The time resolution is determined by `self.dt`. If `self.dt` is not specified, it will be set automatically
-        using a CFL-like condition via `self.set_dt_cfl()` based on the meteorology object.
+        using a CFL-like condition via `self.set_delta_time_cfl()` based on the meteorology object.
 
         Once the time bins are established:
             - Each sensor's observation times are digitized to determine which time bin each observation belongs to.
@@ -645,7 +645,7 @@ class FiniteVolume(DispersionModel):
 
         """
         if self.dt is None:
-            self.set_dt_cfl(meteorology_object)
+            self.set_delta_time_cfl(meteorology_object)
         sensor_time = sensor_object.time.reshape(
             -1,
         )
@@ -667,7 +667,7 @@ class FiniteVolume(DispersionModel):
         _, time_index_met = tree.query(np.array(time_bins.astype(np.int64)).reshape(-1, 1), k=1)
         return time_bins, time_index_sensor, time_index_met
 
-    def set_dt_cfl(self, meteorology_object: Meteorology) -> None:
+    def set_delta_time_cfl(self, meteorology_object: Meteorology) -> None:
         """Use CFL condition to set the time step.
 
         The CFL condition is a stability criterion for numerical methods used in solving partial differential equations.
