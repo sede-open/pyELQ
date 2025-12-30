@@ -122,7 +122,7 @@ class Sensor:
         new_sensor.time = self.time[section_indices]
         new_sensor.concentration = self.concentration[section_indices]
         location_object = new_sensor.location.to_array()
-        if location_object.shape[0] > 1:
+        if location_object.shape[0] > 2:
             location_object = location_object[section_indices, :]
             new_sensor.location = new_sensor.location.from_array(location_object)
 
