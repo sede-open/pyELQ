@@ -47,7 +47,9 @@ class FiniteVolume(DispersionModel):
             (default is None). If None, no obstacles are considered in the model.
         dt (float): time step (s) (default is None). (If None, the time step is set using the CFL condition).
         implicit_solver (bool): if True, the solver uses implicit methods. (default is False).
-        cfl_max (float): maximum CFL number used in calculating dt when not specified (default is 0.5).
+        courant_number (float): Courant number which and represents the fraction of the grid cell that a fluid particle
+            can travel in one time step. It is used in calculating dt when not specified. Default is 0.5 which means
+            that a fluid particle can travel half the grid cell in one time step.
         burn_in_steady_state (bool): if True, the model runs a burn-in period to reach steady state before
             computing coupling. (default is True).
         use_lookup_table (bool): if True, uses a lookup table for coupling matrix interpolation (default is True).
@@ -74,7 +76,7 @@ class FiniteVolume(DispersionModel):
     site_layout: Union[SiteLayout, None] = field(default=None)
     dt: Union[float, None] = field(default=None)
     implicit_solver: bool = field(default=False)
-    cfl_max: float = field(default=0.5)
+    courant_number: float = field(default=0.5)
     burn_in_steady_state: bool = field(default=True)
     use_lookup_table: bool = field(default=True)
 
@@ -269,7 +271,7 @@ class FiniteVolume(DispersionModel):
                 if coupling_grid_sourcemap_norm > 1e3:
                     raise ValueError(
                         f"The coupling matrix is unstable, with matrix norm: {coupling_grid_sourcemap_norm:.3g}, "
-                        f"check the cfl_max={self.cfl_max:.3f} and calculated dt="
+                        f"check the courant_number={self.courant_number:.3f} and calculated dt="
                         f"{self.dt:.3f} s"
                     )
 
@@ -682,7 +684,7 @@ class FiniteVolume(DispersionModel):
             dt <= (dx^2) / (2 * K)
         for all dimensions, where K is self.diffusion_constants.
 
-        dt is set to the minimum of the advection and diffusion time steps multiplied by self.cfl_max.
+        dt is set to the minimum of the advection and diffusion time steps multiplied by self.courant_number.
 
         Args:
             meteorology_object (Meteorology): meteorology object containing timeseries of wind data.
@@ -693,8 +695,8 @@ class FiniteVolume(DispersionModel):
         u_max = np.max(meteorology_object.wind_speed)
         dx = np.min([dim.cell_width for dim in self.dimensions])
 
-        dt_adv = np.round(self.cfl_max * dx / u_max, decimals=1)
-        dt_diff = (self.cfl_max * dx**2) / (2 * np.max(self.diffusion_constants))
+        dt_adv = np.round(self.courant_number * dx / u_max, decimals=1)
+        dt_diff = (self.courant_number * dx**2) / (2 * np.max(self.diffusion_constants))
         self.dt = np.minimum(dt_adv, dt_diff)
 
     def interpolate_coupling_grid_to_sensor(
