@@ -189,7 +189,7 @@ def test_death_function(source_model):
 
     prop_state = deepcopy(current_state)
     prop_state["n_src"] = current_state["n_src"] - 1
-    deletion_index = np.random.randint(low=0, high=current_state["n_src"])
+    deletion_index = np.random.randint(low=0, high=current_state["n_src"].item())
     prop_state["z_src"] = np.delete(prop_state["z_src"], obj=deletion_index, axis=1)
 
     prop_state, logp_pr_g_cr, logp_cr_g_pr = source_model.death_function(current_state, prop_state, deletion_index)
@@ -230,7 +230,7 @@ def test_move_function(source_model):
     current_state["A"] = np.random.random_sample(size=current_state["A"].shape)
 
     prop_state = deepcopy(current_state)
-    move_index = np.random.randint(low=0, high=current_state["n_src"])
+    move_index = np.random.randint(low=0, high=current_state["n_src"].item())
     prop_state["z_src"][:, move_index] = np.zeros((3,))
     prop_state, _, _ = source_model.move_function(prop_state, update_column=move_index)
 
