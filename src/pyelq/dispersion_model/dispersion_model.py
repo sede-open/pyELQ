@@ -12,7 +12,7 @@ The Mathematics of Atmospheric Dispersion Modeling, John M. Stockie, DOI. 10.113
 """
 from abc import ABC
 from dataclasses import dataclass
-from typing import Callable, Union
+from typing import Union
 
 import numpy as np
 

@@ -11,7 +11,7 @@ from pyelq.meteorology.meteorology_windfield import MeteorologyWindfield
 
 @pytest.fixture(
     params=[[[1.0, 0.0, 0.0]], [[0.0, 1.0, 0.0], [0.0, 1.0, 0.0]], [[10.0, 6.0, 7.0]]],
-    ids=["wind_100", "wind_2time_010", "wind_1067"],
+    ids=["wind_1_0_0", "wind_2time_0_1_0", "wind_10_6_7"],
     name="meteorology",
 )
 def fixture_meteorology(request):

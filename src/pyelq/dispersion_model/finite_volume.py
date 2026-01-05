@@ -12,7 +12,7 @@ Methods and classes for the finite volume method for the dispersion model.
 from abc import ABC, abstractmethod
 from copy import deepcopy
 from dataclasses import dataclass, field
-from typing import Union
+from typing import Union, Tuple
 
 import numpy as np
 import pandas as pd
@@ -47,7 +47,9 @@ class FiniteVolume(DispersionModel):
             (default is None). If None, no obstacles are considered in the model.
         dt (float): time step (s) (default is None). (If None, the time step is set using the CFL condition).
         implicit_solver (bool): if True, the solver uses implicit methods. (default is False).
-        cfl_max (float): maximum CFL number used in calculating dt when not specified (default is 0.5).
+        courant_number (float): Courant number which and represents the fraction of the grid cell that a fluid particle
+            can travel in one time step. It is used in calculating dt when not specified. Default is 0.5 which means
+            that a fluid particle can travel half the grid cell in one time step.
         burn_in_steady_state (bool): if True, the model runs a burn-in period to reach steady state before
             computing coupling. (default is True).
         use_lookup_table (bool): if True, uses a lookup table for coupling matrix interpolation (default is True).
@@ -74,7 +76,7 @@ class FiniteVolume(DispersionModel):
     site_layout: Union[SiteLayout, None] = field(default=None)
     dt: Union[float, None] = field(default=None)
     implicit_solver: bool = field(default=False)
-    cfl_max: float = field(default=0.5)
+    courant_number: float = field(default=0.5)
     burn_in_steady_state: bool = field(default=True)
     use_lookup_table: bool = field(default=True)
 
@@ -167,7 +169,9 @@ class FiniteVolume(DispersionModel):
 
         If there are multiple sections, then the coupling matrix is computed for each section separately and combined
         into a single coupling matrix. This avoids computational effort computing the forward model through time steps
-        that are not required and can speed up the computational time substantially in this case.
+        that are not required and can speed up the computational time substantially in this case. Sections are
+        defined by the source_on attribute of the sensor object which indicates which time steps the source is on where
+        0 indicates the source is off and integers starting from 1 indicate different source on sections.
 
         Args:
             sensor_object (SensorGroup): sensor data object.
@@ -211,7 +215,7 @@ class FiniteVolume(DispersionModel):
         time bins where sensor observations occur, the coupling between any source locations in the source map and the
         locations where sensor observations were obtained are extracted and stored in the rows of the coupling matrix.
 
-        If dt is not specified, it will be set automatically using a CFL-like condition via self.set_dt_cfl().
+        If dt is not specified, it will be set automatically using a CFL-like condition via self.set_delta_time_cfl().
         If burn_in_steady_state is True, the model runs a burn-in period to reach steady state before computing any
         coupling values. The wind field during the burn-in period is assumed to be constant and the same as the wind
         field at the first time-step.
@@ -234,7 +238,7 @@ class FiniteVolume(DispersionModel):
         for key, sensor in sensor_object.items():
             coupling_sensor[key] = np.full((sensor.time.shape[0], self.source_grid_link.shape[1]), fill_value=0.0)
         coupling_grid = None
-        (time_bins, time_index_sensor, time_index_met) = self.compute_time_bins(
+        time_bins, time_index_sensor, time_index_met = self.compute_time_bins(
             sensor_object=sensor_object, meteorology_object=met_windfield.static_wind_field
         )
         sensor_object = self._prepare_sensor(sensor_object)
@@ -267,7 +271,7 @@ class FiniteVolume(DispersionModel):
                 if coupling_grid_sourcemap_norm > 1e3:
                     raise ValueError(
                         f"The coupling matrix is unstable, with matrix norm: {coupling_grid_sourcemap_norm:.3g}, "
-                        f"check the cfl_max={self.cfl_max:.3f} and calculated dt="
+                        f"check the courant_number={self.courant_number:.3f} and calculated dt="
                         f"{self.dt:.3f} s"
                     )
 
@@ -276,11 +280,11 @@ class FiniteVolume(DispersionModel):
     def interpolate_coupling_lookup_to_source_map(self, sensor_object: SensorGroup) -> dict:
         """Compute the coupling matrix by interpolation from a lookup table.
 
-        A coupling matrix coupling all solver grid centres to all observations is pre-computed and stored on the class.
+        A coupling matrix from all solver grid centres to all observations is pre-computed and stored on the class.
         Coupling columns for new source locations can then be computed by interpolation from these pre-computed values.
 
         The coupling matrix used for lookup is taken from self.coupling_lookup_table which is a sparse matrix computed
-        in self.compute_coupling_direct().
+        in self.finite_volume_time_step_solver().
 
         Args:
             sensor_object (SensorGroup): sensor data object.
@@ -619,12 +623,13 @@ class FiniteVolume(DispersionModel):
                 face.neighbour_index[external_boundaries] = -9999
                 face.set_boundary_type(external_boundaries, self.site_layout)
 
-    def compute_time_bins(self, sensor_object: SensorGroup, meteorology_object: Meteorology) -> tuple:
+    def compute_time_bins(self, sensor_object: SensorGroup, 
+                          meteorology_object: Meteorology) -> Tuple[pd.DatetimeIndex, dict, np.ndarray]:
         """Compute discretized time bins for aligning sensor observations and meteorological data.
 
         This method constructs a uniform time grid (bins) based on the observation time range of the given sensors.
         The time resolution is determined by `self.dt`. If `self.dt` is not specified, it will be set automatically
-        using a CFL-like condition via `self.set_dt_cfl()` based on the meteorology object.
+        using a CFL-like condition via `self.set_delta_time_cfl()` based on the meteorology object.
 
         Once the time bins are established:
             - Each sensor's observation times are digitized to determine which time bin each observation belongs to.
@@ -642,7 +647,7 @@ class FiniteVolume(DispersionModel):
 
         """
         if self.dt is None:
-            self.set_dt_cfl(meteorology_object)
+            self.set_delta_time_cfl(meteorology_object)
         sensor_time = sensor_object.time.reshape(
             -1,
         )
@@ -662,9 +667,9 @@ class FiniteVolume(DispersionModel):
             )
         tree = KDTree(meteorology_object.time.reshape(-1, 1).astype(np.int64))
         _, time_index_met = tree.query(np.array(time_bins.astype(np.int64)).reshape(-1, 1), k=1)
-        return (time_bins, time_index_sensor, time_index_met)
+        return time_bins, time_index_sensor, time_index_met
 
-    def set_dt_cfl(self, meteorology_object: Meteorology) -> None:
+    def set_delta_time_cfl(self, meteorology_object: Meteorology) -> None:
         """Use CFL condition to set the time step.
 
         The CFL condition is a stability criterion for numerical methods used in solving partial differential equations.
@@ -679,7 +684,7 @@ class FiniteVolume(DispersionModel):
             dt <= (dx^2) / (2 * K)
         for all dimensions, where K is self.diffusion_constants.
 
-        dt is set to the minimum of the advection and diffusion time steps multiplied by self.cfl_max.
+        dt is set to the minimum of the advection and diffusion time steps multiplied by self.courant_number.
 
         Args:
             meteorology_object (Meteorology): meteorology object containing timeseries of wind data.
@@ -690,8 +695,8 @@ class FiniteVolume(DispersionModel):
         u_max = np.max(meteorology_object.wind_speed)
         dx = np.min([dim.cell_width for dim in self.dimensions])
 
-        dt_adv = np.round(self.cfl_max * dx / u_max, decimals=1)
-        dt_diff = (self.cfl_max * dx**2) / (2 * np.max(self.diffusion_constants))
+        dt_adv = np.round(self.courant_number * dx / u_max, decimals=1)
+        dt_diff = (self.courant_number * dx**2) / (2 * np.max(self.diffusion_constants))
         self.dt = np.minimum(dt_adv, dt_diff)
 
     def interpolate_coupling_grid_to_sensor(
@@ -853,7 +858,7 @@ class FiniteVolumeDimension:
     Attributes:
         cell_edges (np.ndarray): shape=(self.number_cells + 1,) edge locations for the cells in this dimension.
         cell_centers (np.ndarray): shape=(self.number_cells,) central locations of the cells in this dimension.
-        cell_width (np.ndarray): shape=() width of the cells in this dimension. Constant for regular grid.
+        cell_width (float): width of the cells in this dimension.
         faces (list(FiniteVolumeFaceLeft, FiniteVolumeFaceRight)): list of objects corresponding to the left and right
             (-ve and +ve) faces of this dimension.
 
@@ -865,7 +870,7 @@ class FiniteVolumeDimension:
     external_boundary_type: list = field(default_factory=list)
     cell_edges: np.ndarray = field(init=False)
     cell_centers: np.ndarray = field(init=False)
-    cell_width: np.ndarray = field(init=False)
+    cell_width: float = field(init=False)
     faces: list = field(init=False)
 
     def __post_init__(self) -> None:

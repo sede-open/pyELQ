@@ -9,7 +9,6 @@ Subclass of Sensor. Used for beam sensors
 
 """
 
-from copy import deepcopy
 from dataclasses import dataclass
 
 import numpy as np
@@ -54,20 +53,3 @@ class Beam(Sensor):
         ).to_array()
         beam_knot_array = np.linspace(temp_location[0, :], temp_location[1, :], num=self.n_beam_knots, endpoint=True)
         return beam_knot_array
-
-    def subset_sensor(self, section_index: np.ndarray) -> "Beam":
-        """Subset the sensor based on the provided section index.
-
-        Args:
-            section_index (np.ndarray): Boolean or integer array indicating which observations to keep
-
-        Returns:
-            new_sensor (Beam): A new Sensor object containing only the specified observations
-
-        """
-        section_indices = (self.source_on == section_index).flatten()
-        new_sensor = deepcopy(self)
-        new_sensor.time = self.time[section_indices]
-        new_sensor.concentration = self.concentration[section_indices]
-        new_sensor.source_on = self.source_on[section_indices] if self.source_on is not None else None
-        return new_sensor
