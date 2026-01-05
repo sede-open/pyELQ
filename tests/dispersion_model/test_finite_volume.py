@@ -269,7 +269,7 @@ def test_forward_matrix(finite_volume, meteorology):
 
     """
     fe = finite_volume
-    fe.set_dt_cfl(meteorology)
+    fe.set_delta_time_cfl(meteorology)
     assert fe.dt > 0
     meteorology_windfield = MeteorologyWindfield(site_layout=fe.site_layout, static_wind_field=meteorology)
     meteorology_windfield.calculate_spatial_wind_field(time_index=0, grid_coordinates=fe.grid_coordinates)
@@ -321,7 +321,7 @@ def test_finite_volume_time_step_solver(finite_volume, meteorology):
     step is sparse, has the correct shape, and contains only non-negative values.
 
     """
-    finite_volume.set_dt_cfl(meteorology)
+    finite_volume.set_delta_time_cfl(meteorology)
     meteorology_windfield = MeteorologyWindfield(
         site_layout=finite_volume.site_layout,
         static_wind_field=meteorology,
