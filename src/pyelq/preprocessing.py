@@ -133,13 +133,10 @@ class Preprocessor:
         for sns_key, met_key in zip(self.sensor_object, self.met_object):
             sns_in = self.sensor_object[sns_key]
             met_in = self.met_object[met_key]
-            filter_index = np.ones(sns_in.nof_observations, dtype=bool)
-            for field in self.sensor_fields:
-                if (field != "time") and (getattr(sns_in, field) is not None):
-                    filter_index = np.logical_and(filter_index, np.logical_not(np.isnan(getattr(sns_in, field))))
-            for field in self.met_fields:
-                if (field != "time") and (getattr(met_in, field) is not None):
-                    filter_index = np.logical_and(filter_index, np.logical_not(np.isnan(getattr(met_in, field))))
+
+            filter_index_sensor = self.get_nan_filter_index(sns_in, self.sensor_fields)
+            filter_index_met = self.get_nan_filter_index(met_in, self.met_fields)
+            filter_index = np.logical_and(filter_index_sensor, filter_index_met)
 
             self.sensor_object[sns_key] = self.filter_object_fields(sns_in, self.sensor_fields, filter_index)
             self.met_object[met_key] = self.filter_object_fields(met_in, self.met_fields, filter_index)
@@ -156,17 +153,33 @@ class Preprocessor:
         """
         for sns_key in self.sensor_object:
             sns_in = self.sensor_object[sns_key]
-            filter_index = np.ones(sns_in.nof_observations, dtype=bool)
-            for field in self.sensor_fields:
-                if (field != "time") and (getattr(sns_in, field) is not None):
-                    filter_index = np.logical_and(filter_index, np.logical_not(np.isnan(getattr(sns_in, field))))
+            filter_index = self.get_nan_filter_index(sns_in, self.sensor_fields)
             self.sensor_object[sns_key] = self.filter_object_fields(sns_in, self.sensor_fields, filter_index)
 
-        filter_index = np.ones(self.met_object.nof_observations, dtype=bool)
-        for field in self.met_fields:
-            if (field not in ("time", "location")) and (getattr(self.met_object, field) is not None):
-                filter_index = np.logical_and(filter_index, np.logical_not(np.isnan(getattr(self.met_object, field))))
+        filter_index = self.get_nan_filter_index(self.met_object, self.met_fields)
         self.met_object = self.filter_object_fields(self.met_object, self.met_fields, filter_index)
+
+    @staticmethod
+    def get_nan_filter_index(obj: Union[Sensor, Meteorology], field_list: list) -> np.ndarray:
+        """Get a index for a given object to be able to filter out on NaN values in listed fields.
+
+        Args:
+            obj: Sensor or Meteorology object.
+            field_list (list): list of field names to be checked for NaN values.
+
+        Returns:
+            filter_index (np.ndarray): boolean array indicating which indices do not have NaN values in
+                any of the specified fields.
+        """
+
+        filter_index = np.ones(obj.nof_observations, dtype=bool)
+
+        for field in field_list:
+            if (field != "time") and (getattr(obj, field) is not None):
+                filter_index = np.logical_and(filter_index, np.logical_not(np.isnan(getattr(obj, field))))
+
+        return filter_index
+
 
     def filter_on_met(self, filter_variable: list, lower_limit: list = None, upper_limit: list = None) -> None:
         """Filter the supplied data on given properties of the meteorological data.
