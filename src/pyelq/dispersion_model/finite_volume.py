@@ -266,7 +266,7 @@ class FiniteVolume(DispersionModel):
                 i_time=i_time,
                 coupling_sensor=coupling_sensor,
             )
-            if i_time == 0:
+            if i_time == np.floor(0.1 * (time_bins.size + n_burn_steps)):
                 coupling_grid_sourcemap_norm = sp.linalg.norm(coupling_grid)
                 if coupling_grid_sourcemap_norm > 1e3:
                     raise ValueError(
@@ -623,7 +623,7 @@ class FiniteVolume(DispersionModel):
                 face.neighbour_index[external_boundaries] = -9999
                 face.set_boundary_type(external_boundaries, self.site_layout)
 
-    def compute_time_bins(self, sensor_object: SensorGroup, 
+    def compute_time_bins(self, sensor_object: SensorGroup,
                           meteorology_object: Meteorology) -> Tuple[pd.DatetimeIndex, dict, np.ndarray]:
         """Compute discretized time bins for aligning sensor observations and meteorological data.
 
