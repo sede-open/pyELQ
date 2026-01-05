@@ -387,6 +387,6 @@ class SpatioTemporalBackground(Background):
                 self.location.north[k] = np.mean(sensor.location.to_enu().north, axis=0)
                 self.location.up[k] = np.mean(sensor.location.to_enu().up, axis=0)
             else:
-                self.location.east[k] = sensor.location.to_enu().east.item()
-                self.location.north[k] = sensor.location.to_enu().north.item()
-                self.location.up[k] = sensor.location.to_enu().up.item()
+                self.location.east[k] = sensor.location.to_enu().east
+                self.location.north[k] = sensor.location.to_enu().north
+                self.location.up[k] = sensor.location.to_enu().up
