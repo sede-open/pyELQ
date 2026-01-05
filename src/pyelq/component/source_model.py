@@ -746,7 +746,7 @@ class SourceModel(Component, SourceGrouping, SourceDistribution):
                 (i.e. log[p(current | proposed)])
 
         """
-        prop_state = self.update_coupling_column(prop_state, int(prop_state[self.map["number_sources"]]) - 1)
+        prop_state = self.update_coupling_column(prop_state, int(prop_state[self.map["number_sources"]].item()) - 1)
         prop_state[self.map["allocation"]] = np.concatenate(
             (prop_state[self.map["allocation"]], np.array([0], ndmin=2)), axis=0
         )
