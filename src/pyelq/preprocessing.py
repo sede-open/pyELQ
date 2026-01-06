@@ -72,7 +72,7 @@ class Preprocessor:
         self.met_object.calculate_wind_direction_from_uv()
         self.met_object.calculate_wind_speed_from_uv()
         if self.time_bin_edges is None:
-            self.filter_nans_without_regularization()
+            self.filter_nans_single_meteorology()
         else:
             self.filter_nans()
 
@@ -134,14 +134,14 @@ class Preprocessor:
             sns_in = self.sensor_object[sns_key]
             met_in = self.met_object[met_key]
 
-            filter_index_sensor = self.get_non_nan_index(sns_in, self.sensor_fields)
-            filter_index_met = self.get_non_nan_index(met_in, self.met_fields)
+            filter_index_sensor = self.get_nan_filter_index(sns_in, self.sensor_fields)
+            filter_index_met = self.get_nan_filter_index(met_in, self.met_fields)
             filter_index = np.logical_and(filter_index_sensor, filter_index_met)
 
             self.sensor_object[sns_key] = self.filter_object_fields(sns_in, self.sensor_fields, filter_index)
             self.met_object[met_key] = self.filter_object_fields(met_in, self.met_fields, filter_index)
 
-    def filter_nans_without_regularization(self) -> None:
+    def filter_nans_single_meteorology(self) -> None:
         """Filter out data points where any of the specified sensor or meteorology fields has a NaN value.
 
         Function first works through all sensor and meteorology fields and finds indices of all times where there is a
@@ -153,14 +153,14 @@ class Preprocessor:
         """
         for sns_key in self.sensor_object:
             sns_in = self.sensor_object[sns_key]
-            filter_index = self.get_non_nan_index(sns_in, self.sensor_fields)
+            filter_index = self.get_nan_filter_index(sns_in, self.sensor_fields)
             self.sensor_object[sns_key] = self.filter_object_fields(sns_in, self.sensor_fields, filter_index)
 
-        filter_index = self.get_non_nan_index(self.met_object, self.met_fields)
+        filter_index = self.get_nan_filter_index(self.met_object, self.met_fields)
         self.met_object = self.filter_object_fields(self.met_object, self.met_fields, filter_index)
 
     @staticmethod
-    def get_non_nan_index(obj: Union[Sensor, Meteorology], field_list: list) -> np.ndarray:
+    def get_nan_filter_index(obj: Union[Sensor, Meteorology], field_list: list) -> np.ndarray:
         """Get a index for a given object to be able to filter out on NaN values in listed fields.
 
         Args:
@@ -211,31 +211,6 @@ class Preprocessor:
                 index_keep = np.logical_and(getattr(met_in, vrb) >= low, getattr(met_in, vrb) <= high)
                 self.sensor_object[sns_key] = self.filter_object_fields(sns_in, self.sensor_fields, index_keep)
                 self.met_object[met_key] = self.filter_object_fields(met_in, self.met_fields, index_keep)
-
-    def filter_on_met_without_regularization(
-        self, filter_variable: list, lower_limit: list = None, upper_limit: list = None
-    ) -> None:
-        """Filter the supplied data on given properties of the meteorological data.
-
-        The result of this function is that the met_object attributes are updated with the filtered
-        versions.
-
-        Args:
-            filter_variable (list of str): list of meteorology variables that we wish to use for filtering.
-            lower_limit (list of float): list of lower limits associated with the variables in filter_variables.
-                Defaults to None.
-            upper_limit (list of float): list of upper limits associated with the variables in filter_variables.
-                Defaults to None.
-
-        """
-        if lower_limit is None:
-            lower_limit = [-np.inf] * len(filter_variable)
-        if upper_limit is None:
-            upper_limit = [np.inf] * len(filter_variable)
-
-        for vrb, low, high in zip(filter_variable, lower_limit, upper_limit):
-            index_keep = np.logical_and(getattr(self.met_object, vrb) >= low, getattr(self.met_object, vrb) <= high)
-            self.met_object = self.filter_object_fields(self.met_object, self.met_fields, index_keep)
 
     def block_data(
         self, time_edges: pd.arrays.DatetimeArray, data_object: Union[SensorGroup, MeteorologyGroup]

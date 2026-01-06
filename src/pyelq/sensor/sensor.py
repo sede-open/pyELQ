@@ -120,10 +120,10 @@ class Sensor:
         together.
 
         Args:
-            section_index (int): Integer indicating which observations to keep
+            section_index (int): Integer indicating which observations to keep.
 
         Returns:
-            new_sensor (Sensor): A new Sensor object containing only the specified observations
+            new_sensor (Sensor): A new Sensor object containing only the specified observations.
 
         """
         section_indices = (self.source_on == section_index).flatten()
