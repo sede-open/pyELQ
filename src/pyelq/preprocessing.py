@@ -170,8 +170,8 @@ class Preprocessor:
         Returns:
             filter_index (np.ndarray): boolean array indicating which indices do not have NaN values in
                 any of the specified fields.
-        """
 
+        """
         filter_index = np.ones(obj.nof_observations, dtype=bool)
 
         for field in field_list:
