@@ -12,7 +12,7 @@ Methods and classes for the finite volume method for the dispersion model.
 from abc import ABC, abstractmethod
 from copy import deepcopy
 from dataclasses import dataclass, field
-from typing import Union
+from typing import Tuple, Union
 
 import numpy as np
 import pandas as pd
@@ -25,9 +25,10 @@ from tqdm import tqdm
 
 from pyelq.coordinate_system import ENU
 from pyelq.dispersion_model.dispersion_model import DispersionModel
+from pyelq.dispersion_model.site_layout import SiteLayout
 from pyelq.gas_species import GasSpecies
-from pyelq.meteorology import Meteorology
-from pyelq.meteorology_windfield import MeteorologyWindfield, SiteLayout
+from pyelq.meteorology.meteorology import Meteorology
+from pyelq.meteorology.meteorology_windfield import MeteorologyWindfield
 from pyelq.sensor.beam import Beam
 from pyelq.sensor.sensor import SensorGroup
 
@@ -36,22 +37,25 @@ from pyelq.sensor.sensor import SensorGroup
 class FiniteVolume(DispersionModel):
     """Dispersion model object which creates a coupling matrix using a finite volume solver.
 
-    Uses for the advection-diffusion solver to create coupling matrix.
+    Uses an advection-diffusion solver to create the coupling matrix between a set of source locations and a set of
+    sensor locations.
 
     Args:
         dimensions (list): list of FiniteVolumeDimension for each grid dimension (e.g., x, y, z).
         diffusion_constants (np.ndarray): array of diffusion constants ([x,y,z], m^2/s).
-        site_layout (SiteLayout): the layout of the site including cylinder coordinates and radii. (default is None).
-                If None, no obstacles are considered in the model.
+        site_layout (Union[SiteLayout, None]): the layout of the site including cylinder coordinates and radii.
+            (default is None). If None, no obstacles are considered in the model.
         dt (float): time step (s) (default is None). (If None, the time step is set using the CFL condition).
         implicit_solver (bool): if True, the solver uses implicit methods. (default is False).
-        cfl_max (float): maximum CFL number used in calculating dt when not specified (default is 0.5).
+        courant_number (float): Courant number which and represents the fraction of the grid cell that a fluid particle
+            can travel in one time step. It is used in calculating dt when not specified. Default is 0.5 which means
+            that a fluid particle can travel half the grid cell in one time step.
         burn_in_steady_state (bool): if True, the model runs a burn-in period to reach steady state before
-         computing coupling. (default is True).
+            computing coupling. (default is True).
         use_lookup_table (bool): if True, uses a lookup table for coupling matrix interpolation (default is True).
 
     Attributes:
-        grid_coordinates (np.ndarray): (total_number_cells, number_dimensions), coordinates of the grid points.
+        grid_coordinates (np.ndarray): shape=(total_number_cells, number_dimensions), coordinates of the grid points.
         source_grid_link (csr_array): is a sparse matrix linking the source map to the grid coordinates.
         cell_volume (float): volume of a single grid cell.
         total_number_cells (int): total number of cells in the grid.
@@ -59,21 +63,20 @@ class FiniteVolume(DispersionModel):
         grid_centers (list): centers of the grid cells in each dimension.
         number_dimensions (int): number of dimensions in the grid.
         adv_diff_terms (dict): contains advection and diffusion terms for the solver matrix.
-        forward_matrix (dia_array): the solver matrix for the finite volume method.
-        _forward_matrix_transpose (dia_array): the transpose of the solver matrix for the finite volume method.
-        coupling_lookup_table (np.array): coupling matrix calculated for each grid cell in grid_coordinates computed
+        coupling_lookup_table (np.ndarray): coupling matrix calculated for each grid cell in grid_coordinates computed
             when use_lookup_table=True. It is used for interpolation of coupling values for new source locations without
             the need to re-run the FV solver.
+        forward_matrix (dia_array): the solver matrix for the finite volume method.
+        _forward_matrix_transpose (dia_array): the transpose of the solver matrix for the finite volume method.
 
     """
 
     dimensions: list = field(default_factory=list)
     diffusion_constants: np.ndarray = field(default_factory=lambda: np.zeros((3, 1)))
-
     site_layout: Union[SiteLayout, None] = field(default=None)
     dt: Union[float, None] = field(default=None)
     implicit_solver: bool = field(default=False)
-    cfl_max: float = field(default=0.5)
+    courant_number: float = field(default=0.5)
     burn_in_steady_state: bool = field(default=True)
     use_lookup_table: bool = field(default=True)
 
@@ -85,11 +88,11 @@ class FiniteVolume(DispersionModel):
     grid_centers: list = field(init=False)
     number_dimensions: int = field(init=False)
     adv_diff_terms: dict = field(init=False)
+    coupling_lookup_table: np.ndarray = field(init=False, default=None)
     forward_matrix: dia_array = field(init=False, default=None)
     _forward_matrix_transpose: dia_array = field(init=False, default=None)
-    coupling_lookup_table: np.ndarray = field(init=False, default=None)
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         """Post-initialization checks and setup.
 
         Creates the grid and neighbourhood for the finite volume solver, and uses the site layout to mask any obstacles
@@ -108,7 +111,7 @@ class FiniteVolume(DispersionModel):
         self,
         sensor_object: SensorGroup,
         met_windfield: MeteorologyWindfield,
-        gas_object: GasSpecies = None,
+        gas_object: Union[GasSpecies, None] = None,
         output_stacked: bool = False,
         **kwargs,
     ) -> Union[np.ndarray, dict]:
@@ -121,37 +124,39 @@ class FiniteVolume(DispersionModel):
         Args:
             sensor_object (SensorGroup): sensor object containing sensor observations.
             met_windfield (MeteorologyWindfield): meteorology object containing site layout and timeseries of wind data.
-            gas_object (GasSpecies, optional): optional input, a gas species object to correctly calculate the
-                gas density which is used in the conversion of the units of the Gaussian plume coupling
-            output_stacked (bool, optional):  if true outputs as stacked np.array across sensors if not
-                    outputs as dict
-            **kwargs: additional keyword arguments. This matches some missing arguments used in
-                        GaussianPlume.compute_coupling but not required in FiniteVolume.
+            gas_object (Union[GasSpecies, None]): optional input, a gas species object to correctly calculate the
+                gas density which is used in the conversion of the units of the Gaussian plume coupling. Defaults to
+                None.
+            output_stacked (bool): if True, the coupling is stacked across sensors into a single np.ndarray. Otherwise,
+                the coupling is returned as a dictionary with an entry per sensor. Defaults to False.
+            **kwargs: additional keyword arguments. To accommodate some arguments used in
+                GaussianPlume.compute_coupling but not required in FiniteVolume.
 
         Returns:
-            plume_coupling (Union[np.ndarray, dict]): List of arrays, single array or dictionary containing the
-                plume coupling in hr/kg.
-                If a dictionary of sensor objects is passed in as input and output_stacked=False  this function returns
+            output (Union[np.ndarray, dict]): List of arrays, single array or dictionary containing the plume coupling
+                in hr/kg. If a dictionary of sensor objects is passed in and output_stacked=False, this function returns
                 a dictionary consistent with the input dictionary keys, containing the corresponding plume coupling
-                outputs for each sensor.
-                If a dictionary of sensor objects is passed in as input and output_stacked=True  this function returns
-                a np.array containing the stacked coupling matrices.
+                outputs for each sensor. If a dictionary of sensor objects is passed in and output_stacked=True, this
+                function returns an np.ndarray containing the stacked coupling matrices.
 
         """
-        if met_windfield.site_layout != self.site_layout:
-            raise ValueError("MeteorologyWindfield site layout does not match FiniteVolume site layout.")
+        if (met_windfield.site_layout is not None) | (self.site_layout is not None):
+            if np.any(met_windfield.site_layout.id_obstacles != self.site_layout.id_obstacles):
+                raise ValueError("MeteorologyWindfield site layout does not match FiniteVolume site layout.")
+        if not isinstance(self.source_map.location, ENU):
+            raise ValueError("source_map.location must be an ENU object.")
 
         if (not self.use_lookup_table) or (self.coupling_lookup_table is None):
             coupling_sensor = self.compute_coupling_sections(sensor_object, met_windfield, gas_object)
             if self.use_lookup_table:
                 self.coupling_lookup_table = coupling_sensor
+
         if self.use_lookup_table:
             output = self.interpolate_coupling_lookup_to_source_map(sensor_object)
         else:
             output = coupling_sensor
         if output_stacked:
             output = np.concatenate(tuple(output.values()), axis=0)
-
         return output
 
     def compute_coupling_sections(
@@ -164,7 +169,9 @@ class FiniteVolume(DispersionModel):
 
         If there are multiple sections, then the coupling matrix is computed for each section separately and combined
         into a single coupling matrix. This avoids computational effort computing the forward model through time steps
-        that are not required and can speed up the computational time substantially in this case.
+        that are not required and can speed up the computational time substantially in this case. Sections are
+        defined by the source_on attribute of the sensor object which indicates which time steps the source is on where
+        0 indicates the source is off and integers starting from 1 indicate different source on sections.
 
         Args:
             sensor_object (SensorGroup): sensor data object.
@@ -178,10 +185,11 @@ class FiniteVolume(DispersionModel):
         """
         if sensor_object.source_on is None or np.all(sensor_object.source_on == 1):
             return self.finite_volume_time_step_solver(sensor_object, met_windfield, gas_object)
+
         number_of_sections = max(sensor_object.source_on)
         coupling_sensor = {}
         for key, sensor in sensor_object.items():
-            coupling_sensor[key] = np.full((sensor.time.shape[0], self.source_grid_link.shape[1]), fill_value=np.nan)
+            coupling_sensor[key] = np.full((sensor.time.shape[0], self.source_grid_link.shape[1]), fill_value=0.0)
         for section in range(1, number_of_sections + 1):
             subset_sensor_object = sensor_object.subset_sensor(section_index=section)
             coupling_sensor_section = self.finite_volume_time_step_solver(
@@ -197,20 +205,20 @@ class FiniteVolume(DispersionModel):
         sensor_object: SensorGroup,
         met_windfield: MeteorologyWindfield,
         gas_object: GasSpecies,
-    ) -> None:
+    ) -> dict:
         """Compute the finite volume coupling matrix, by time-stepping the solver.
 
         This function calculates the coupling between emission sources and sensor measurements based on a spatial wind
         field derived from meteorological data. The resulting coupling matrices model the transport of gas through a
         discretized domain. The coupling between emissions in all solver grid cells and concentrations in the same set
-        of grid cells is calculated by time-stepping a finite volume solver for the advection-diffusion solver. In time
-        bins where sensor observations occur, the coupling between any source locations in the source map and the
+        of grid cells is calculated by time-stepping a finite volume solver for the advection-diffusion equation. In
+        time bins where sensor observations occur, the coupling between any source locations in the source map and the
         locations where sensor observations were obtained are extracted and stored in the rows of the coupling matrix.
 
-        If dt is not specified, it will be set automatically using a CFL-like condition via self.set_dt_cfl().
+        If dt is not specified, it will be set automatically using a CFL-like condition via self.set_delta_time_cfl().
         If burn_in_steady_state is True, the model runs a burn-in period to reach steady state before computing any
-        coupling values. The wind field during the burn-in period is assumed to be the same as the wind field at the
-        first time-step.
+        coupling values. The wind field during the burn-in period is assumed to be constant and the same as the wind
+        field at the first time-step.
 
         If the coupling matrix is unstable (norm > 1e3), an error is raised suggesting to check the CFL number and dt.
         This condition is only checked at time t = 0.
@@ -228,14 +236,16 @@ class FiniteVolume(DispersionModel):
         """
         coupling_sensor = {}
         for key, sensor in sensor_object.items():
-            coupling_sensor[key] = np.full((sensor.time.shape[0], self.source_grid_link.shape[1]), fill_value=np.nan)
+            coupling_sensor[key] = np.full((sensor.time.shape[0], self.source_grid_link.shape[1]), fill_value=0.0)
         coupling_grid = None
-        (time_bins, time_index_sensor, time_index_met) = self.compute_time_bins(
+        time_bins, time_index_sensor, time_index_met = self.compute_time_bins(
             sensor_object=sensor_object, meteorology_object=met_windfield.static_wind_field
         )
         sensor_object = self._prepare_sensor(sensor_object)
         n_burn_steps = self._calculate_number_burn_steps(met_windfield.static_wind_field)
-        gas_density = self.calculate_gas_density(met_windfield, sensor_object, gas_object, run_interpolation=False)
+        gas_density = self.calculate_gas_density(
+            met_windfield.static_wind_field, sensor_object, gas_object, run_interpolation=False
+        )
         met_windfield.calculate_spatial_wind_field(time_index=0, grid_coordinates=self.grid_coordinates)
 
         for i_time in tqdm(range(-n_burn_steps, time_bins.size), desc="Computing coupling matrix"):
@@ -247,34 +257,34 @@ class FiniteVolume(DispersionModel):
                 gas_density_i = gas_density[time_index_met[i_time]]
             else:
                 gas_density_i = gas_density
-                coupling_grid = self.propagate_solver_single_time_step(met_windfield, coupling_matrix=coupling_grid)
-                scaled_coupling = coupling_grid * (1e6 / (gas_density_i.item() * 3600))
-                coupling_sensor = self.interpolate_coupling_grid_to_sensor(
-                    sensor_object,
-                    scaled_coupling=scaled_coupling,
-                    time_index_sensor=time_index_sensor,
-                    i_time=i_time,
-                    coupling_sensor=coupling_sensor,
-                )
-            if i_time == 0:
+            coupling_grid = self.propagate_solver_single_time_step(met_windfield, coupling_matrix=coupling_grid)
+            scaled_coupling = coupling_grid * (1e6 / (gas_density_i.item() * 3600))
+            coupling_sensor = self.interpolate_coupling_grid_to_sensor(
+                sensor_object,
+                scaled_coupling=scaled_coupling,
+                time_index_sensor=time_index_sensor,
+                i_time=i_time,
+                coupling_sensor=coupling_sensor,
+            )
+            if i_time == np.floor(0.1 * (time_bins.size + n_burn_steps)):
                 coupling_grid_sourcemap_norm = sp.linalg.norm(coupling_grid)
                 if coupling_grid_sourcemap_norm > 1e3:
                     raise ValueError(
                         f"The coupling matrix is unstable, with matrix norm: {coupling_grid_sourcemap_norm:.3g}, "
-                        f"check the cfl_max={self.cfl_max:.3f} and calculated dt="
+                        f"check the courant_number={self.courant_number:.3f} and calculated dt="
                         f"{self.dt:.3f} s"
                     )
 
         return coupling_sensor
 
     def interpolate_coupling_lookup_to_source_map(self, sensor_object: SensorGroup) -> dict:
-        """Compute the coupling matrix interpolation from a lookup table.
+        """Compute the coupling matrix by interpolation from a lookup table.
 
-        A coupling matrix coupling all solver grid centres to all observations is pre-computed and stored on the class.
+        A coupling matrix from all solver grid centres to all observations is pre-computed and stored on the class.
         Coupling columns for new source locations can then be computed by interpolation from these pre-computed values.
 
         The coupling matrix used for lookup is taken from self.coupling_lookup_table which is a sparse matrix computed
-        in self.compute_coupling_direct().
+        in self.finite_volume_time_step_solver().
 
         Args:
             sensor_object (SensorGroup): sensor data object.
@@ -286,7 +296,7 @@ class FiniteVolume(DispersionModel):
         interpolated_coupling = {}
         source_location = self.source_map.location.to_array(dim=self.number_dimensions)
         for key, sensor in sensor_object.items():
-            interpolated_coupling[key] = np.full((sensor.time.shape[0], source_location.shape[0]), fill_value=np.nan)
+            interpolated_coupling[key] = np.full((sensor.time.shape[0], source_location.shape[0]), fill_value=0.0)
             lookup_table_values = self.coupling_lookup_table[key].T
             interpolated_coupling[key] = self._build_interpolator(
                 lookup_table_values, locations_to_interpolate=source_location
@@ -337,7 +347,7 @@ class FiniteVolume(DispersionModel):
                 coupling_matrix.data[abs(coupling_matrix.data) <= self.minimum_contribution] = 0
                 coupling_matrix.eliminate_zeros()
         if self.site_layout is not None:
-            coupling_matrix[self.site_layout.id_obstacles.flatten(), :] = 0
+            coupling_matrix[self.site_layout.id_obstacles_index, :] = 0
         return coupling_matrix
 
     def compute_forward_matrix(self, met_windfield: MeteorologyWindfield) -> None:
@@ -506,15 +516,15 @@ class FiniteVolume(DispersionModel):
         This method builds a multi-dimensional grid by discretizing the spatial domain into equally spaced cells
         along each axis (e.g., x, y, z).
 
-        Grid construction uses np.meshgrid with indexing="ij" to be consistent with the
-        way the diagonals are constructed in self._construct_diagonal_matrix() and the way the neighbourhood is
-        constructed in self._setup_neighbourhood(). "ij" is the matrix indexing convention, which means that the first
-        dimension corresponds to rows and the second dimension corresponds to columns.
+        Grid construction uses np.meshgrid with indexing="ij" to be consistent with the way the diagonals are
+        constructed in self._construct_diagonal_matrix() and the way the neighbourhood is constructed in
+        self._setup_neighbourhood(). "ij" is the matrix indexing convention, which means that the first dimension
+        corresponds to rows and the second dimension corresponds to columns.
 
         Volume and Area Calculations:
             - self.cell_volume stores the volume of a single grid cell (product of widths).
             - For each dimension, self.cell_face_area is computed as the ratio of cell volume to that dimension's width,
-            representing the area of a face perpendicular to the given axis.
+                representing the area of a face perpendicular to the given axis.
 
         """
         self.cell_volume = np.prod([dim.cell_width for dim in self.dimensions])
@@ -613,12 +623,14 @@ class FiniteVolume(DispersionModel):
                 face.neighbour_index[external_boundaries] = -9999
                 face.set_boundary_type(external_boundaries, self.site_layout)
 
-    def compute_time_bins(self, sensor_object: SensorGroup, meteorology_object: Meteorology) -> tuple:
+    def compute_time_bins(
+        self, sensor_object: SensorGroup, meteorology_object: Meteorology
+    ) -> Tuple[pd.DatetimeIndex, dict, np.ndarray]:
         """Compute discretized time bins for aligning sensor observations and meteorological data.
 
         This method constructs a uniform time grid (bins) based on the observation time range of the given sensors.
         The time resolution is determined by `self.dt`. If `self.dt` is not specified, it will be set automatically
-        using a CFL-like condition via `self.set_dt_cfl()` based on the meteorology object.
+        using a CFL-like condition via `self.set_delta_time_cfl()` based on the meteorology object.
 
         Once the time bins are established:
             - Each sensor's observation times are digitized to determine which time bin each observation belongs to.
@@ -630,14 +642,13 @@ class FiniteVolume(DispersionModel):
             meteorology_object (Meteorology): Meteorology data object.
 
         Returns:
-            tuple:
             time_bins (pd.DatetimeIndex): The array of uniformly spaced time bins (based on `self.dt`).
             time_index_sensor (dict): A dictionary mapping each sensor ID to its array of time bin indices.
             time_index_met (np.ndarray): An array mapping each time bin to the closest meteorological time index.
 
         """
         if self.dt is None:
-            self.set_dt_cfl(meteorology_object)
+            self.set_delta_time_cfl(meteorology_object)
         sensor_time = sensor_object.time.reshape(
             -1,
         )
@@ -657,9 +668,9 @@ class FiniteVolume(DispersionModel):
             )
         tree = KDTree(meteorology_object.time.reshape(-1, 1).astype(np.int64))
         _, time_index_met = tree.query(np.array(time_bins.astype(np.int64)).reshape(-1, 1), k=1)
-        return (time_bins, time_index_sensor, time_index_met)
+        return time_bins, time_index_sensor, time_index_met
 
-    def set_dt_cfl(self, meteorology_object: Meteorology) -> None:
+    def set_delta_time_cfl(self, meteorology_object: Meteorology) -> None:
         """Use CFL condition to set the time step.
 
         The CFL condition is a stability criterion for numerical methods used in solving partial differential equations.
@@ -674,7 +685,7 @@ class FiniteVolume(DispersionModel):
             dt <= (dx^2) / (2 * K)
         for all dimensions, where K is self.diffusion_constants.
 
-        dt is set to the minimum of the advection and diffusion time steps multiplied by self.cfl_max.
+        dt is set to the minimum of the advection and diffusion time steps multiplied by self.courant_number.
 
         Args:
             meteorology_object (Meteorology): meteorology object containing timeseries of wind data.
@@ -685,8 +696,8 @@ class FiniteVolume(DispersionModel):
         u_max = np.max(meteorology_object.wind_speed)
         dx = np.min([dim.cell_width for dim in self.dimensions])
 
-        dt_adv = np.round(self.cfl_max * dx / u_max, decimals=1)
-        dt_diff = (self.cfl_max * dx**2) / (2 * np.max(self.diffusion_constants))
+        dt_adv = np.round(self.courant_number * dx / u_max, decimals=1)
+        dt_diff = (self.courant_number * dx**2) / (2 * np.max(self.diffusion_constants))
         self.dt = np.minimum(dt_adv, dt_diff)
 
     def interpolate_coupling_grid_to_sensor(
@@ -704,11 +715,11 @@ class FiniteVolume(DispersionModel):
         with the results.
 
         Args:
-            sensor_object (SensorGroup): sensor object containing sensor observations.
-            scaled_coupling (sp.csr_array): The sparse matrix representing coupling values between sources and
-            grid cells for the current time step.
+            sensor_object (SensorGroup): object containing sensor data.
+            scaled_coupling (sp.csr_array): The sparse matrix representing coupling values between sources and grid
+                cells for the current time step.
             time_index_sensor (np.ndarray): An array mapping each sensor to its corresponding time step index.
-            i_time (int): The current time step being evaluated.
+            i_time (int): The index of the current time step.
             coupling_sensor (dict): The output dictionary to be updated with coupling values for each sensor.
 
         Returns:
@@ -721,7 +732,7 @@ class FiniteVolume(DispersionModel):
             if np.any(observation_index):
                 sensor_location = sensor.location.to_array(dim=self.number_dimensions)
                 coupling_interp = self._build_interpolator(
-                    scaled_coupling.toarray(), locations_to_interpolate=sensor_location, method="linear"
+                    scaled_coupling.toarray(), locations_to_interpolate=sensor_location, method="nearest"
                 )
                 if isinstance(sensor, Beam):
                     coupling_sensor[key][observation_index, :] = np.mean(coupling_interp, axis=0)
@@ -734,8 +745,7 @@ class FiniteVolume(DispersionModel):
     ) -> np.ndarray:
         """Build an interpolator for given tabular values and interpolate at specified locations.
 
-        Interpolates values at specified locations using interpolation
-        with the method of choosing within the grid,
+        Interpolates values at specified locations using interpolation with the method of choosing within the grid,
         and nearest-neighbor extrapolation for out-of-bounds points.
 
         Args:
@@ -783,15 +793,15 @@ class FiniteVolume(DispersionModel):
         sensor_object_beam_knots_added = deepcopy(sensor_object)
         for _, sensor in sensor_object_beam_knots_added.items():
             sensor.location = sensor.location.to_enu(
-                ref_latitude=self.source_map.location.ref_latitude,
-                ref_longitude=self.source_map.location.ref_longitude,
-                ref_altitude=self.source_map.location.ref_altitude,
+                ref_latitude=self.grid_coordinates.ref_latitude,
+                ref_longitude=self.grid_coordinates.ref_longitude,
+                ref_altitude=self.grid_coordinates.ref_altitude,
             )
             if isinstance(sensor, Beam):
                 sensor_array = sensor.make_beam_knots(
-                    ref_latitude=self.source_map.location.ref_latitude,
-                    ref_longitude=self.source_map.location.ref_longitude,
-                    ref_altitude=self.source_map.location.ref_altitude,
+                    ref_latitude=self.grid_coordinates.ref_latitude,
+                    ref_longitude=self.grid_coordinates.ref_longitude,
+                    ref_altitude=self.grid_coordinates.ref_altitude,
                 )
                 sensor.location.from_array(sensor_array)
                 if self.number_dimensions == 2:
@@ -801,9 +811,9 @@ class FiniteVolume(DispersionModel):
     def _calculate_number_burn_steps(self, meteorology_object: Meteorology) -> int:
         """Compute the number of burn-in steps for plume stabilization.
 
-        Calculate the number of burn steps based on the maximum distance a plume can travel in the wind field. This
-        is used to determine how many initial time steps should be considered for the plume to stabilize before the
-        actual coupling calculations begin.
+        Computes the approximate amount of time required for a gas parcel to traverse the entire solver domain, based on
+        the initial wind conditions. Then, based on the model time step (self.dt), computes the approximate number of
+        time steps required for the plume to stabilize before the main analysis begins.
 
         If burn_in_steady_state is False, the function returns 0.
 
@@ -828,7 +838,6 @@ class FiniteVolume(DispersionModel):
                 / (meteorology_object.wind_speed[0] * self.dt)
             )
         )
-
         return n_burn_steps
 
 
@@ -850,7 +859,7 @@ class FiniteVolumeDimension:
     Attributes:
         cell_edges (np.ndarray): shape=(self.number_cells + 1,) edge locations for the cells in this dimension.
         cell_centers (np.ndarray): shape=(self.number_cells,) central locations of the cells in this dimension.
-        cell_width (np.ndarray): shape=() width of the cells in this dimension. Constant for regular grid.
+        cell_width (float): width of the cells in this dimension.
         faces (list(FiniteVolumeFaceLeft, FiniteVolumeFaceRight)): list of objects corresponding to the left and right
             (-ve and +ve) faces of this dimension.
 
@@ -862,10 +871,10 @@ class FiniteVolumeDimension:
     external_boundary_type: list = field(default_factory=list)
     cell_edges: np.ndarray = field(init=False)
     cell_centers: np.ndarray = field(init=False)
-    cell_width: np.ndarray = field(init=False)
+    cell_width: float = field(init=False)
     faces: list = field(init=False)
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         """Post-initialization processing.
 
         Validates the external boundary types and initializes the face objects for the dimension. Also calls
@@ -888,10 +897,11 @@ class FiniteVolumeDimension:
         ]
         self.get_dimensions()
 
-    def get_dimensions(self):
+    def get_dimensions(self) -> None:
         """Setup the face properties for the finite volume method.
 
-        This function calculates and stores the grid cell edges, cell centres and cell widths.
+        This function calculates and stores the grid cell edges, cell centres and cell widths, and assigns the cell
+        width values to the cell faces.
 
         """
         self.cell_edges = np.linspace(self.limits[0], self.limits[1], self.number_cells + 1)
@@ -911,6 +921,7 @@ class FiniteVolumeFace(ABC):
     Attributes:
         cell_face_area (float): The area of the face.
         cell_volume (float): The volume of the face.
+        cell_width (float): The width of the cell in the direction normal to the face.
         boundary_type (np.ndarray): shape=(total_number_cells, 1). The type of boundary condition for the face. Each
             entry is a string, either 'internal', 'dirichlet' or 'neumann'.
         neighbour_index (np.ndarray): shape=(total_number_cells, 1). The index of the neighboring cell across the face.
@@ -932,7 +943,7 @@ class FiniteVolumeFace(ABC):
     def normal(self):
         """Abstract property to be defined in subclasses."""
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         if self.external_boundary_type not in ["dirichlet", "neumann"]:
             raise ValueError(f"Invalid external boundary type: {self.external_boundary_type}. ")
         self.adv_diff_terms = {"advection": SolverDiagonals(), "diffusion": SolverDiagonals()}
@@ -943,8 +954,13 @@ class FiniteVolumeFace(ABC):
         External boundaries are set to 'dirichlet' or 'neumann' based on the specified external_boundary_type. Internal
         boundaries are set to 'internal'.
 
-        The function also handles the case where the face is affected by an obstacle. Obstacles boundaries are set to
+        The function also handles the case where the face is affected by an obstacle. Obstacle boundaries are set to
         'neumann'.
+
+        Args:
+            external_boundaries (np.ndarray): shape=(total_number_cells, 1). Boolean array indicating which faces are
+                external boundaries.
+            site_layout (SiteLayout): SiteLayout object containing obstacle information. Defaults to None.
 
         """
         self.boundary_type = np.full(self.neighbour_index.shape, "internal", dtype="<U10")
@@ -953,7 +969,7 @@ class FiniteVolumeFace(ABC):
             faces_affected_obstacle = np.isin(self.neighbour_index, np.where(site_layout.id_obstacles)[0])
             self.boundary_type[np.logical_or(faces_affected_obstacle, site_layout.id_obstacles)] = "neumann"
 
-    def assign_advection(self, wind_vector: np.ndarray) -> tuple:
+    def assign_advection(self, wind_vector: np.ndarray) -> None:
         """Assigns the advection terms for the defined set of interfaces to adv_diff_terms['advection'].
 
         Uses an upwind scheme for the discretization of the advection term:
@@ -965,7 +981,7 @@ class FiniteVolumeFace(ABC):
         dimensions have been dropped.
 
         Args:
-            wind_vector (np.ndarray): shape=(total_grid_cells x 1). Wind speed vector in dimension of this face
+            wind_vector (np.ndarray): shape=(total_number_cells, 1). Wind speed vector in dimension of this face
                 e.g. x, y, z.
 
         """
@@ -977,7 +993,7 @@ class FiniteVolumeFace(ABC):
         term.b_dirichlet = (self.boundary_type == "dirichlet") * neighbour_advection
         term.b_neumann = (self.boundary_type == "neumann") * neighbour_advection
 
-    def assign_diffusion(self, diffusion_constants: float):
+    def assign_diffusion(self, diffusion_constants: float) -> None:
         """Assigns the diffusion terms for the defined set of interfaces to adv_diff_terms['diffusion'].
 
         If diffusion is already set this function is skipped as the diffusion term is constant.
@@ -1040,22 +1056,22 @@ class SolverDiagonals:
     combined terms.
 
     Attributes:
-        B (np.ndarray): shape=(total_number_cells, 1 + number_faces). Array containing all solver diagonals, i.e.
-            containing all diagonals from self.B_central and self.B_neighbour. The first column is the central
-            diagonal and the remaining columns are the off-diagonal terms.
-        B_central (np.ndarray): shape=(total_number_cells, 1). Array containing the central diagonal of the solver
-            matrix.
-        B_neighbour (np.ndarray): shape=(total_number_cells, number_faces). Array containing the off-diagonals of the
+        B (Union[np.ndarray, None]): shape=(total_number_cells, 1 + number_faces). Array containing all solver
+            diagonals, i.e. containing all diagonals from self.B_central and self.B_neighbour. The first column is the
+            central diagonal and the remaining columns are the off-diagonal terms.
+        B_central (Union[np.ndarray, None]): shape=(total_number_cells, 1). Array containing the central diagonal of the
             solver matrix.
-        b_dirichlet (np.ndarray): shape=(total_number_cells, 1). Vector containing contributions from dirichlet boundary
-            conditions at edge cells.
-        b_neumann (np.ndarray): shape=(total_number_cells, 1). Vector containing contributions from Neumann boundary
-            conditions.
+        B_neighbour (Union[np.ndarray, None]): shape=(total_number_cells, number_faces). Array containing the
+            off-diagonals of the solver matrix.
+        b_dirichlet (Union[np.ndarray, None]): shape=(total_number_cells, 1). Vector containing contributions from
+            Dirichlet boundary conditions at edge cells.
+        b_neumann (Union[np.ndarray, None]): shape=(total_number_cells, 1). Vector containing contributions from Neumann
+            boundary conditions.
 
     """
 
-    B: np.ndarray = field(default=None, init=False)
-    B_central: np.ndarray = field(default=None, init=False)
-    B_neighbour: np.ndarray = field(default=None, init=False)
-    b_dirichlet: np.ndarray = field(default=None, init=False)
-    b_neumann: np.ndarray = field(default=None, init=False)
+    B: Union[np.ndarray, None] = field(default=None, init=False)
+    B_central: Union[np.ndarray, None] = field(default=None, init=False)
+    B_neighbour: Union[np.ndarray, None] = field(default=None, init=False)
+    b_dirichlet: Union[np.ndarray, None] = field(default=None, init=False)
+    b_neumann: Union[np.ndarray, None] = field(default=None, init=False)

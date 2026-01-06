@@ -17,7 +17,7 @@ from scipy import sparse
 
 from pyelq.component.component import Component
 from pyelq.gas_species import GasSpecies
-from pyelq.meteorology import Meteorology
+from pyelq.meteorology.meteorology import Meteorology
 from pyelq.sensor.sensor import Sensor, SensorGroup
 
 if TYPE_CHECKING:

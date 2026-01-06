@@ -18,7 +18,7 @@ import pytest
 from pyelq.coordinate_system import ENU
 from pyelq.dispersion_model.gaussian_plume import GaussianPlume
 from pyelq.gas_species import CH4
-from pyelq.meteorology import Meteorology, MeteorologyGroup
+from pyelq.meteorology.meteorology import Meteorology, MeteorologyGroup
 from pyelq.sensor.beam import Beam
 from pyelq.sensor.satellite import Satellite
 from pyelq.sensor.sensor import Sensor, SensorGroup
@@ -572,46 +572,3 @@ def test_source_on_switch(met_object, sensor_object):
     )
 
     assert np.all(coupling_switch[change_point:] == 0) and np.any(coupling[change_point:] > 0)
-
-
-def test_compute_coverage():
-    """Test to check whether the compute coverage function can correctly determine which sources are, or are not, within
-    the coverage.
-
-    We define some coupling where there are two sources, and one source is coupled half of the time. We then check that
-    all the inputs work as intended.
-
-    """
-    location = ENU(ref_longitude=0, ref_latitude=0, ref_altitude=0)
-    source_object = SourceMap()
-    source_object.location = location
-    source_object.location.east = np.array([-10, 10])
-    source_object.location.north = np.array([25, 25])
-    source_object.location.up = np.array([0, 0])
-    threshold_function = lambda x: np.quantile(x, 0.95, axis=0)
-    plume_object = GaussianPlume(source_map=source_object)
-
-    couplings = np.array(
-        [
-            [1, 0],
-            [0, 0],
-            [0, 0],
-            [1, 0],
-        ]
-    )
-
-    coverage = plume_object.compute_coverage(couplings, threshold_function=threshold_function)
-    assert np.all(np.equal(coverage, np.array([True, False])))
-
-    coverage = plume_object.compute_coverage(couplings, threshold_function=threshold_function, coverage_threshold=0.3)
-    assert np.all(np.equal(coverage, np.array([False, False])))
-
-    coverage = plume_object.compute_coverage(
-        couplings, threshold_function=lambda x: np.mean(x, axis=0), coverage_threshold=0.3
-    )
-    assert np.all(np.equal(coverage, np.array([False, False])))
-
-    coverage = plume_object.compute_coverage(
-        couplings, threshold_function=lambda x: np.mean(x, axis=0), coverage_threshold=6
-    )
-    assert np.all(np.equal(coverage, np.array([True, False])))

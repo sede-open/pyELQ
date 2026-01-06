@@ -19,7 +19,7 @@ import numpy as np
 from pyelq.coordinate_system import ENU, LLA
 from pyelq.dispersion_model.dispersion_model import DispersionModel
 from pyelq.gas_species import GasSpecies
-from pyelq.meteorology import Meteorology, MeteorologyGroup
+from pyelq.meteorology.meteorology import Meteorology, MeteorologyGroup
 from pyelq.sensor.beam import Beam
 from pyelq.sensor.satellite import Satellite
 from pyelq.sensor.sensor import Sensor, SensorGroup
@@ -63,7 +63,7 @@ class GaussianPlume(DispersionModel):
             gas_object (GasSpecies, optional): Optional input, a gas species object to correctly calculate the
                 gas density which is used in the conversion of the units of the Gaussian plume coupling
             output_stacked (bool, optional): if true outputs as stacked np.array across sensors if not
-                    outputs as dict
+                outputs as dict
             run_interpolation (bool, optional): logical indicating whether interpolation of the meteorological data to
                 the sensor/source is required. Defaults to True.
 

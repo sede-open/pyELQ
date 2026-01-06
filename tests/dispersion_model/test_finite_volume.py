@@ -18,8 +18,8 @@ from pyelq.dispersion_model.finite_volume import (
     FiniteVolumeFaceRight,
 )
 from pyelq.gas_species import CH4
-from pyelq.meteorology import Meteorology
-from pyelq.meteorology_windfield import MeteorologyWindfield, SiteLayout
+from pyelq.meteorology.meteorology import Meteorology
+from pyelq.meteorology.meteorology_windfield import MeteorologyWindfield, SiteLayout
 from pyelq.sensor.beam import Beam
 from pyelq.sensor.sensor import Sensor, SensorGroup
 from pyelq.source_map import SourceMap
@@ -31,7 +31,7 @@ from pyelq.source_map import SourceMap
     name="meteorology",
 )
 def fixture_meteorology(request):
-    """Create a wind component for the test."""
+    """Create a wind time series for the tests."""
     wind_vector = np.array(request.param)
     meteorology = Meteorology()
     time = pd.array(
@@ -46,7 +46,7 @@ def fixture_meteorology(request):
 
 @pytest.fixture(params=[0, 3], ids=["GrdSrc", "3Src"], name="source_map")
 def fixture_source_map(request):
-    """Fixture for source map."""
+    """Create a source map for the tests."""
     source_map = SourceMap()
     source_map.location = ENU(ref_latitude=0, ref_longitude=0, ref_altitude=0)
 
@@ -84,7 +84,6 @@ def fixture_dimension(request, number_cells, external_boundary_type):
     """
     dimension_labels = request.param
     limits = [-10, 10]
-
     dimension = []
     for i, dim in enumerate(dimension_labels):
         dimension.append(
@@ -95,13 +94,12 @@ def fixture_dimension(request, number_cells, external_boundary_type):
                 external_boundary_type=external_boundary_type,
             )
         )
-
     return dimension
 
 
-@pytest.fixture(params=[False, True], ids=["explicit", "implicit"], name="implicit_solver")
-def fixture_implicit_solver(request):
-    """Fixture for implicit solver."""
+@pytest.fixture(params=[False, True], ids=["explicit", "implicit"], name="solver_type")
+def fixture_solver_type(request):
+    """Fixture for the type of solver (implicit or explicit)."""
     return request.param
 
 
@@ -118,14 +116,14 @@ def fixture_use_lookup_table(request):
 
 
 @pytest.fixture(name="finite_volume")
-def fixture_finite_volume(implicit_solver, use_obstacle, dimension, source_map, use_lookup_table):
+def fixture_finite_volume(solver_type, use_obstacle, dimension, source_map, use_lookup_table):
     """Create a finite volume object with the given dimension.
 
     Diffusion constants are set to 1.0 for all dimensions. The time step is set to 0.1. An obstacle is created in the
     middle of the grid if use_obstacle is True.
 
     Arguments:
-        implicit_solver (bool): Whether to use an implicit solver.
+        solver_type (bool): Whether to use an implicit solver.
         use_obstacle (bool): Whether to include an obstacle in the grid.
         dimension (list): List of FiniteVolumeDimension objects defining the grid.
         source_map (SourceMap): Source map object defining the sources.
@@ -133,7 +131,6 @@ def fixture_finite_volume(implicit_solver, use_obstacle, dimension, source_map, 
 
     """
     diffusion_constants = [1.0] * len(dimension)
-
     if use_obstacle:
         cylinders_coordinate = ENU(
             east=np.array(0.0, ndmin=2),
@@ -144,7 +141,6 @@ def fixture_finite_volume(implicit_solver, use_obstacle, dimension, source_map, 
             ref_altitude=0,
         )
         site_layout = SiteLayout(cylinders_coordinate=cylinders_coordinate, cylinders_radius=np.array([[1.0]]))
-
     else:
         site_layout = None
 
@@ -154,7 +150,7 @@ def fixture_finite_volume(implicit_solver, use_obstacle, dimension, source_map, 
         site_layout=site_layout,
         source_map=source_map,
         use_lookup_table=use_lookup_table,
-        implicit_solver=implicit_solver,
+        implicit_solver=solver_type,
         minimum_contribution=1e-6,
     )
 
@@ -191,8 +187,7 @@ def fixture_beam_object():
     return beam_object
 
 
-@pytest.fixture(params=["point+beam"], name="sensor_group")
-# @pytest.fixture(params=["1 point", "1 beam", "point+beam"], name="sensor_group")
+@pytest.fixture(params=["1 point", "1 beam", "point+beam"], name="sensor_group")
 def fixture_sensor_group(request, sensor_object, beam_object):
     """Fixture to define a sensor group."""
     sensor_group = SensorGroup()
@@ -231,7 +226,6 @@ def test_finite_volume(finite_volume):
     assert len(finite_volume.dimensions) == finite_volume.number_dimensions
     assert finite_volume.total_number_cells == np.prod([dim.number_cells for dim in finite_volume.dimensions])
     assert isinstance(finite_volume.grid_coordinates, ENU)
-
     if finite_volume.site_layout is not None:
         assert finite_volume.site_layout.id_obstacles.shape == (finite_volume.total_number_cells, 1)
         assert finite_volume.site_layout.id_obstacles.dtype == bool
@@ -250,108 +244,95 @@ def test_forward_matrix(finite_volume, meteorology):
     """Unit test to verify that mass balance is correctly preserved in the numerical scheme implemented by the finite
     volume solver.
 
-    This test evaluates conservation properties for a discretized advection-diffusion
-    transport model. The physical principle being tested is mass conservation, i.e.,
-    the net change in mass within a control volume (grid cell) must equal the net fluxes
-    across its boundaries plus any sources/sinks. The test ensures that the numerical
+    This test evaluates conservation properties for a discretized advection-diffusion transport model. The physical
+    principle being tested is mass conservation, i.e. the net change in mass within a control volume (grid cell) must
+    equal the net fluxes across its boundaries plus any sources/sinks. The test ensures that the numerical
     implementation of the flux terms (diffusion and advection) respects this balance.
-    Parameters:
 
     The test performs mass balance checks at multiple levels of the finite volume assembly:
-    1. Face-Level Diffusion Check:
-        For each face of each spatial dimension, it verifies that the sum of all diffusion
-        flux contributions (neighbor term, central term, Dirichlet, and Neumann)
-        equals zero. This ensures local consistency of the diffusion operator.
-    2. Global Advection and Diffusion Check:
-        For each term (advection and diffusion), the test checks that the combined contribution
-        from neighbor interactions, central terms, and boundary conditions sum to zero for each cell.
-        Additionally, it checks that all term arrays have the expected shapes.
-    3. Combined Operator Check:
-        It checks that the total contribution from the assembled transport operator,
-        including all internal and boundary effects (from `adv_diff_terms['combined']`),
-        balances with the implicit time-stepping sink term (`cell_volume / dt`).
-    4. Matrix-Level Mass Balance:
-        It validates that the assembled system matrix `A` and right-hand-side vector `b`,
-        obtained from `solver_matrix`, also satisfy the mass balance against the
-        implicit time sink (`cell_volume / dt`), ensuring the global solver preserves conservation.
+        1. Face-Level Diffusion Check:
+            For each face of each spatial dimension, it verifies that the sum of all diffusion flux contributions
+            (neighbor terms, central term, Dirichlet, and Neumann) equals zero. This ensures local consistency of the
+            diffusion operator.
+        2. Global Advection and Diffusion Check:
+            For each term (advection and diffusion), the test checks that the combined contribution from neighbor
+            interactions, central terms, and boundary conditions sum to zero for each cell. Additionally, it checks that
+            all term arrays have the expected shapes.
+        3. Combined Operator Check:
+            It checks that the total contribution from the assembled transport operator, including all internal and
+            boundary effects (from `adv_diff_terms['combined']`), balances with the implicit time derivative term
+            (`cell_volume / dt`).
+        4. Matrix-Level Mass Balance:
+            It validates that the assembled system matrix `A` and right-hand-side vector `b`, obtained from
+            `solver_matrix`, also satisfy the mass balance against the implicit time derivative term
+            (`cell_volume / dt`), ensuring the global solver preserves conservation.
 
     """
-
     fe = finite_volume
-    fe.set_dt_cfl(meteorology)
-
+    fe.set_delta_time_cfl(meteorology)
     assert fe.dt > 0
-
     meteorology_windfield = MeteorologyWindfield(site_layout=fe.site_layout, static_wind_field=meteorology)
     meteorology_windfield.calculate_spatial_wind_field(time_index=0, grid_coordinates=fe.grid_coordinates)
-
     fe.compute_forward_matrix(meteorology_windfield)
-
     for dim in fe.dimensions:
         for term in ["diffusion"]:
             for face in dim.faces:
-                check_value = (
+                face_diffusion_flux_balance = (
                     face.adv_diff_terms[term].B_neighbour
                     + face.adv_diff_terms[term].B_central
                     + face.adv_diff_terms[term].b_dirichlet
                     + face.adv_diff_terms[term].b_neumann
                 )
-
-                assert np.allclose(check_value, 0, atol=1e-10)
+                assert np.allclose(face_diffusion_flux_balance, 0, atol=1e-10)
 
     if fe.implicit_solver:
         volume_term = fe.cell_volume / fe.dt
     else:
         volume_term = -fe.cell_volume / fe.dt
-
     for term in ["advection", "diffusion"]:
-        check_value = (
+        cell_term_flux_balance = (
             np.sum(fe.adv_diff_terms[term].B_neighbour, axis=1).reshape(-1, 1)
             + fe.adv_diff_terms[term].B_central
             + fe.adv_diff_terms[term].b_dirichlet
             + fe.adv_diff_terms[term].b_neumann
         )
-        assert np.allclose(check_value, 0, atol=1e-10)
+        assert np.allclose(cell_term_flux_balance, 0, atol=1e-10)
         assert fe.adv_diff_terms[term].B_central.shape == (fe.total_number_cells, 1)
         assert fe.adv_diff_terms[term].b_dirichlet.shape == (fe.total_number_cells, 1)
         assert fe.adv_diff_terms[term].b_neumann.shape == (fe.total_number_cells, 1)
         assert fe.adv_diff_terms[term].B_neighbour.shape == (fe.total_number_cells, len(fe.dimensions) * 2)
-
-        check_value = (
+        combined_operator_balance = (
             np.sum(fe.adv_diff_terms["combined"].B, axis=1).reshape(-1, 1)
             + fe.adv_diff_terms["combined"].b_dirichlet
             + volume_term
         )
-    assert np.allclose(check_value, 0, atol=1e-10)
+        assert np.allclose(combined_operator_balance, 0, atol=1e-10)
 
-    check_value = (
+    forward_matrix_balance = (
         np.sum(fe.forward_matrix, axis=1).reshape(-1, 1) + fe.adv_diff_terms["combined"].b_dirichlet + volume_term
     )
-
-    assert np.allclose(check_value, 0, atol=1e-10)
+    assert np.allclose(forward_matrix_balance, 0, atol=1e-10)
 
 
 def test_finite_volume_time_step_solver(finite_volume, meteorology):
     """Test the compute_coupling method of the FiniteVolume class.
 
-    This test checks that the coupling matrix is correctly computed for different wind components.
+    This test runs two time steps of the finite volume solver, and checks that the resulting solver matrix after each
+    step is sparse, has the correct shape, and contains only non-negative values.
 
     """
-    finite_volume.set_dt_cfl(meteorology)
-
+    finite_volume.set_delta_time_cfl(meteorology)
     meteorology_windfield = MeteorologyWindfield(
         site_layout=finite_volume.site_layout,
         static_wind_field=meteorology,
     )
     meteorology_windfield.calculate_spatial_wind_field(time_index=0, grid_coordinates=finite_volume.grid_coordinates)
-
     coupling_matrix = None
     for _ in range(2):
         coupling_matrix = finite_volume.propagate_solver_single_time_step(
             meteorology_windfield,
             coupling_matrix=coupling_matrix,
         )
-
         assert coupling_matrix.shape == (finite_volume.total_number_cells, finite_volume.source_grid_link.shape[1])
         assert sparse.issparse(coupling_matrix)
         assert np.min(coupling_matrix) >= 0
@@ -360,20 +341,40 @@ def test_finite_volume_time_step_solver(finite_volume, meteorology):
 @pytest.mark.parametrize("output_stacked", [False, True], ids=["dict", "stacked"])
 @pytest.mark.parametrize("sections", [False, True], ids=["single", "2 sections"])
 def test_compute_coupling(finite_volume, meteorology, sensor_group, output_stacked, sections):
-    """Test the compute_coupling method of the FiniteVolume class."""
+    """Test the compute_coupling method of the FiniteVolume class.
 
+    For each input configuration, this test computes the coupling matrix, and then checks that the result:
+        - Has the correct shape.
+        - Is of type float64.
+        - Contains only non-negative values.
+        - Contains only finite values.
+
+    These checks are carried out for both the case where sections are used (i.e., multiple sections means that a source
+    can be active only during a subset of the sensor observations), and the case where no sections are used (i.e., a
+    source is active for the entire duration of observations). In case sections are used, the source_on attribute of
+    each sensor is set to activate sources in distinct sections of the observation period.
+    Additionally, the checks are carried out for both the case where a single stacked matrix is returned, and the case
+    where a dict of couplings per sensor is returned. For the case with single stacked matrix (output_stacked=True), a
+    single 2D matrix is expected with the shape `(sensor_group.nof_observations, finite_volume.source_map.nof_sources)`.
+    For the case with dict output (output_stacked=False), a dictionary is expected where each key corresponds to
+    a sensor, and each value is a 2D matrix of shape `(sensor.nof_observations, finite_volume.source_map.nof_sources)`.
+
+    """
     meteorology_windfield = MeteorologyWindfield(
         site_layout=finite_volume.site_layout,
         static_wind_field=meteorology,
     )
     if sections is True:
         for sensor in sensor_group.values():
-            sensor.source_on = np.round(np.linspace(1, 2, sensor.nof_observations)).reshape(-1, 1)
+            index = np.linspace(0, sensor.nof_observations - 1, sensor.nof_observations).astype(int)
+            index = np.floor(index / sensor.nof_observations * 2 * 2)
+            index = index * np.mod(index, 2)
+            index = np.ceil(index * 0.5).astype(int)
+            sensor.source_on = index
 
     output = finite_volume.compute_coupling(
         sensor_object=sensor_group, met_windfield=meteorology_windfield, gas_object=CH4(), output_stacked=output_stacked
     )
-
     if output_stacked:
         assert output.shape == (sensor_group.nof_observations, finite_volume.source_map.nof_sources)
         assert output.dtype == "float64"
@@ -392,26 +393,19 @@ def test_compute_coupling(finite_volume, meteorology, sensor_group, output_stack
 def test_compute_time_bins(finite_volume, sensor_group, meteorology):
     """Test the compute_time_bins method of the FiniteVolume class.
 
-    Time bins are defined from range(sensor) so all time_index_sensor should be well defined
-
+    Time bins are defined from range(sensor) so all time_index_sensor should be well defined.
     Meteorology time bins may not be well defined if the time range is not the same as the sensor time range.
 
     """
-
-    # Compute the time bins
     (time_bins, time_index_sensor, time_index_met) = finite_volume.compute_time_bins(sensor_group, meteorology)
-
     n_bins = len(time_bins)
-    # Check the result
     assert time_bins[1] - time_bins[0] == pd.Timedelta(finite_volume.dt, unit="s")
-
     for key, sensor in sensor_group.items():
         assert time_index_sensor[key].shape == (sensor.nof_observations,)
         assert time_index_sensor[key].shape == (sensor.nof_observations,)
         assert time_index_sensor[key].dtype == "int64"
         assert np.all(time_index_sensor[key] >= 0)
         assert np.all(time_index_sensor[key] <= n_bins)
-
     assert time_index_met.shape == (n_bins,)
     assert time_index_met.dtype == "int64"
     assert np.all(time_index_met >= 0)

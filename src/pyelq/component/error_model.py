@@ -15,7 +15,7 @@ from openmcmc.sampler.sampler import NormalGamma
 
 from pyelq.component.component import Component
 from pyelq.gas_species import GasSpecies
-from pyelq.meteorology import MeteorologyGroup
+from pyelq.meteorology.meteorology import MeteorologyGroup
 from pyelq.sensor.sensor import Sensor, SensorGroup
 
 if TYPE_CHECKING:

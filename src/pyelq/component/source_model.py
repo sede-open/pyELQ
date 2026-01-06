@@ -34,7 +34,7 @@ from pyelq.component.component import Component
 from pyelq.coordinate_system import ENU
 from pyelq.dispersion_model.gaussian_plume import GaussianPlume
 from pyelq.gas_species import GasSpecies
-from pyelq.meteorology import Meteorology
+from pyelq.meteorology.meteorology import Meteorology
 from pyelq.sensor.sensor import SensorGroup
 from pyelq.source_map import SourceMap
 
@@ -483,8 +483,8 @@ class SourceModel(Component, SourceGrouping, SourceDistribution):
 
         reversible_jump (bool): logical indicating whether the reversible jump algorithm for estimation of the number
             of sources and their locations should be run. Defaults to False.
-        distribution_number_sources (str): distribution for the number of sources "Poisson", "Uniform".
-            Defaults to Poisson.
+        distribution_number_sources (str): distribution for the number of sources in the solution. Can be either
+            "Poisson" or "Uniform". Defaults to "Poisson".
         random_walk_step_size (np.ndarray): (3 x 1) array specifying the standard deviations of the distributions
             from which the random walk sampler draws new source locations. Defaults to np.array([1.0, 1.0, 0.1]).
         site_limits (np.ndarray): (3 x 2) array specifying the lower (column 0) and upper (column 1) limits of the
@@ -492,7 +492,7 @@ class SourceModel(Component, SourceGrouping, SourceDistribution):
             the solution).
         rate_num_sources (int): specification for the parameter for the Poisson prior distribution for the total number
             of sources. Only relevant for cases where reversible_jump == True (where the number of sources in the
-            solution can change).
+            solution can change). Unused in the case of a Uniform prior (self.distribution_number_sources == "Uniform").
         n_sources_max (int): maximum number of sources that can feature in the solution. Only relevant for cases where
             reversible_jump == True (where the number of sources in the solution can change).
         emission_proposal_std (float): standard deviation of the truncated Gaussian distribution used to propose the
@@ -593,9 +593,10 @@ class SourceModel(Component, SourceGrouping, SourceDistribution):
         self.coupling = self.dispersion_model.compute_coupling(
             sensor_object, meteorology, gas_species, output_stacked=True
         )
+
+        self.sensor_object = sensor_object
         self.screen_coverage()
         if self.reversible_jump:
-            self.sensor_object = sensor_object
             self.meteorology = meteorology
             self.gas_species = gas_species
 
@@ -634,13 +635,44 @@ class SourceModel(Component, SourceGrouping, SourceDistribution):
 
     def screen_coverage(self):
         """Screen the initial source map for coverage."""
-        in_coverage_area = self.dispersion_model.compute_coverage(
-            self.coupling, coverage_threshold=self.coverage_threshold, threshold_function=self.threshold_function
-        )
+        in_coverage_area = self.compute_coverage(self.coupling)
         self.coupling = self.coupling[:, in_coverage_area]
         all_locations = self.dispersion_model.source_map.location.to_array()
         screened_locations = all_locations[in_coverage_area, :]
         self.dispersion_model.source_map.location.from_array(screened_locations)
+
+    def compute_coverage(self, couplings: np.ndarray, **kwargs) -> np.ndarray:
+        """Returns a logical vector that indicates which sources in the couplings are, or are not, within the coverage.
+
+        The 'coverage' is the area inside which all sources are well covered by wind data. E.g. If wind exclusively
+        blows towards East, then all sources to the East of any sensor are 'invisible', and are not within the coverage.
+
+        Couplings are returned in hr/kg. Some threshold function defines the largest allowed coupling value. This is
+        used to calculate estimated emission rates in kg/hr. Any emissions which are greater than the value of
+        'self.coverage_threshold' are defined as not within the coverage.
+
+        If sensor_object.source_on is being used only the parts where th coupling is computed are used in the coverage
+        check. This avoids threshold_function being affected by large amounts of zero values.
+
+        Args:
+            couplings (np.ndarray): Array of coupling values. Dimensions: n_data points x n_sources.
+            kwargs (dict, optional): Keyword arguments required for the threshold function.
+
+        Returns:
+            coverage (np.ndarray): A logical array specifying which sources are within the coverage.
+
+        """
+        if self.sensor_object.source_on is not None:
+            couplings = deepcopy(couplings)
+            index_keep = self.sensor_object.source_on > 0
+            couplings = couplings[index_keep]
+
+        coupling_threshold = self.threshold_function(couplings, **kwargs)
+        no_warning_threshold = np.where(coupling_threshold <= 1e-100, 1, coupling_threshold)
+        no_warning_estimated_emission_rates = np.where(coupling_threshold <= 1e-100, np.inf, 1 / no_warning_threshold)
+        coverage = no_warning_estimated_emission_rates < self.coverage_threshold
+
+        return coverage
 
     def update_coupling_column(self, state: dict, update_column: int) -> dict:
         """Update the coupling, based on changes to the source locations as part of inversion.
@@ -714,15 +746,11 @@ class SourceModel(Component, SourceGrouping, SourceDistribution):
                 (i.e. log[p(current | proposed)])
 
         """
-        prop_state = self.update_coupling_column(prop_state, int(prop_state[self.map["number_sources"]]) - 1)
+        prop_state = self.update_coupling_column(prop_state, int(prop_state[self.map["number_sources"]].item()) - 1)
         prop_state[self.map["allocation"]] = np.concatenate(
             (prop_state[self.map["allocation"]], np.array([0], ndmin=2)), axis=0
         )
-        in_cov_area = self.dispersion_model.compute_coverage(
-            prop_state[self.map["coupling_matrix"]][:, -1],
-            coverage_threshold=self.coverage_threshold,
-            threshold_function=self.threshold_function,
-        )
+        in_cov_area = self.compute_coverage(prop_state[self.map["coupling_matrix"]][:, -1])
         if not in_cov_area:
             logp_pr_g_cr = 1e10
         else:
@@ -764,30 +792,34 @@ class SourceModel(Component, SourceGrouping, SourceDistribution):
 
         return prop_state, logp_pr_g_cr, logp_cr_g_pr
 
-    def move_function(self, current_state: dict, update_column: int) -> dict:
+    def move_function(self, prop_state: dict, update_column: int) -> Tuple[dict, float, float]:
         """Re-compute the coupling after a source location move.
 
         Function first updates the coupling column, and then checks whether the location passes a coverage test. If the
-        location does not have good enough coverage, the state reverts to the coupling from the current state.
+        location does not have good enough coverage, we return a high log-probability of the move to reject.
 
         Args:
-            current_state (dict): dictionary containing parameters of the current state.
+            prop_state (dict): dictionary containing parameters of the proposed state.
             update_column (int): index of the coupling column to be updated.
 
         Returns:
-            dict: proposed state, with updated coupling matrix.
+            prop_state (dict): proposed state, with coupling matrix and source emission rate vector updated.
+            logp_pr_g_cr (float): log-transition density of the proposed state given the current state
+                (i.e. log[p(proposed | current)])
+            logp_cr_g_pr (float): log-transition density of the current state given the proposed state
+                (i.e. log[p(current | proposed)])
 
         """
-        prop_state = deepcopy(current_state)
         prop_state = self.update_coupling_column(prop_state, update_column)
-        in_cov_area = self.dispersion_model.compute_coverage(
-            prop_state[self.map["coupling_matrix"]][:, update_column],
-            coverage_threshold=self.coverage_threshold,
-            threshold_function=self.threshold_function,
-        )
+        in_cov_area = self.compute_coverage(prop_state[self.map["coupling_matrix"]][:, update_column])
+
         if not in_cov_area:
-            prop_state = deepcopy(current_state)
-        return prop_state
+            logp_pr_g_cr = 1e10
+        else:
+            logp_pr_g_cr = 0.0
+        logp_cr_g_pr = 0.0
+
+        return prop_state, logp_pr_g_cr, logp_cr_g_pr
 
     def make_model(self, model: list) -> list:
         """Take model list and append new elements from current model component.
@@ -869,7 +901,9 @@ class SourceModel(Component, SourceGrouping, SourceDistribution):
             state[self.map["precision_prior_rate"]] = np.ones_like(self.initial_precision) * self.prior_precision_rate
         if self.reversible_jump:
             state[self.map["source_location"]] = self.dispersion_model.source_map.location.to_array().T
-            state[self.map["number_sources"]] = state[self.map["source_location"]].shape[1]
+            state[self.map["number_sources"]] = np.array(
+                state[self.map["source_location"]].shape[1], ndmin=2, dtype=int
+            )
             state[self.map["number_source_rate"]] = self.rate_num_sources
         return state
 

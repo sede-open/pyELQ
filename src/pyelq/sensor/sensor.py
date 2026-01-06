@@ -107,14 +107,23 @@ class Sensor:
 
         return fig
 
-    def subset_sensor(self, section_index: np.ndarray) -> "Sensor":
+    def subset_sensor(self, section_index: int) -> "Sensor":
         """Subset the sensor based on the provided section index.
 
+        The method is designed to return a new `Sensor` object containing only the observations corresponding to a
+        specified section index. Sections are defined by unique values in the `source_on` attribute. For a case where
+        the source is turned on and off multiple times, (0 values in `source_on` indicate off periods and positive
+        integers indicate different on periods). For example, if section_index=1, a new Sensor will be returned
+        containing only observations where self.source_on == 1.
+        This functionality is useful for situations where data is collected in multiple sections, e.g. repeated on/off
+        releases where we want to work with one section at a time or later stitch multiple per-section segments
+        together.
+
         Args:
-            section_index (np.ndarray): Boolean or integer array indicating which observations to keep
+            section_index (int): Integer indicating which observations to keep.
 
         Returns:
-            new_sensor (Sensor): A new Sensor object containing only the specified observations
+            new_sensor (Sensor): A new Sensor object containing only the specified observations.
 
         """
         section_indices = (self.source_on == section_index).flatten()
@@ -122,7 +131,7 @@ class Sensor:
         new_sensor.time = self.time[section_indices]
         new_sensor.concentration = self.concentration[section_indices]
         location_object = new_sensor.location.to_array()
-        if location_object.shape[0] > 1:
+        if location_object.shape[0] == self.time.shape[0]:
             location_object = location_object[section_indices, :]
             new_sensor.location = new_sensor.location.from_array(location_object)
 
@@ -262,11 +271,20 @@ class SensorGroup(dict):
 
         return fig
 
-    def subset_sensor(self, section_index: np.ndarray) -> "SensorGroup":
+    def subset_sensor(self, section_index: int) -> "SensorGroup":
         """Subset the sensor based on the provided section index.
 
+        The method is designed to return a new `SensorGroup` object containing only the observations corresponding to a
+        specified section index. Sections are defined by unique values in the `sensor.source_on` attribute. For a case
+        where the source is turned on and off multiple times, (0 values in `sensor.source_on` indicate off periods and
+        positive integers indicate different on periods). For example, if section_index=1, a new SensorGroup will be
+        returned containing only observations where sensor.source_on == 1.
+        This functionality is useful for situations where data is collected in multiple sections, e.g. repeated on/off
+        releases where we want to work with one section at a time or later stitch multiple per-section segments
+        together.
+
         Args:
-            section_index (np.ndarray): Boolean or integer array indicating which observations to keep
+            section_index (int): An integer indicating which observations to keep.
 
         Returns:
             SensorGroup: A new SensorGroup object containing only the specified observations

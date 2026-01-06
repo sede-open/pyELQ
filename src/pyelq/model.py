@@ -26,7 +26,7 @@ from pyelq.component.offset import PerSensor
 from pyelq.component.source_model import Normal, SourceModel
 from pyelq.coordinate_system import ENU
 from pyelq.gas_species import GasSpecies
-from pyelq.meteorology import Meteorology, MeteorologyGroup
+from pyelq.meteorology.meteorology import Meteorology, MeteorologyGroup
 from pyelq.plotting.plot import Plot
 from pyelq.sensor.sensor import SensorGroup
 

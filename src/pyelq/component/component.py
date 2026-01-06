@@ -9,7 +9,7 @@ from dataclasses import dataclass
 from openmcmc.model import Model
 
 from pyelq.gas_species import GasSpecies
-from pyelq.meteorology import MeteorologyGroup
+from pyelq.meteorology.meteorology import MeteorologyGroup
 from pyelq.sensor.sensor import SensorGroup
 
 
