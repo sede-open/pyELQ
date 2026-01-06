@@ -133,11 +133,9 @@ class Preprocessor:
         for sns_key, met_key in zip(self.sensor_object, self.met_object):
             sns_in = self.sensor_object[sns_key]
             met_in = self.met_object[met_key]
-
             filter_index_sensor = self.get_nan_filter_index(sns_in, self.sensor_fields)
             filter_index_met = self.get_nan_filter_index(met_in, self.met_fields)
             filter_index = np.logical_and(filter_index_sensor, filter_index_met)
-
             self.sensor_object[sns_key] = self.filter_object_fields(sns_in, self.sensor_fields, filter_index)
             self.met_object[met_key] = self.filter_object_fields(met_in, self.met_fields, filter_index)
 
@@ -161,7 +159,7 @@ class Preprocessor:
 
     @staticmethod
     def get_nan_filter_index(obj: Union[Sensor, Meteorology], field_list: list) -> np.ndarray:
-        """Get a index for a given object to be able to filter out on NaN values in listed fields.
+        """For a given object, get an index which identifies time points with a NaN in any of the specified fields.
 
         Args:
             obj: Sensor or Meteorology object.
@@ -171,13 +169,10 @@ class Preprocessor:
             filter_index (np.ndarray): boolean array indicating which indices do not have NaN values in
                 any of the specified fields.
         """
-
         filter_index = np.ones(obj.nof_observations, dtype=bool)
-
         for field in field_list:
             if (field != "time") and (getattr(obj, field) is not None):
                 filter_index = np.logical_and(filter_index, np.logical_not(np.isnan(getattr(obj, field))))
-
         return filter_index
 
 
