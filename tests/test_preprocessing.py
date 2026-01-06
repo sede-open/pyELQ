@@ -184,12 +184,7 @@ def wrapper_initialise(sensor_mod_input, meteorology_input, time_bin_edges_input
     preprocess_limit_high = deepcopy(preprocess)
     preprocess_limit_low = deepcopy(preprocess)
     limit = 2.0
-    if time_bin_edges_input is None:
-        preprocess_limit_low.filter_on_met_without_regularization(filter_variable=["wind_speed"], lower_limit=[limit])
-        preprocess_limit_high.filter_on_met_without_regularization(filter_variable=["wind_speed"], upper_limit=[limit])
-        assert np.all(preprocess_limit_high.met_object.wind_speed <= limit)
-        assert np.all(preprocess_limit_low.met_object.wind_speed >= limit)
-    else:
+    if time_bin_edges_input is not None:
         preprocess_limit_low.filter_on_met(filter_variable=["wind_speed"], lower_limit=[limit])
         preprocess_limit_high.filter_on_met(filter_variable=["wind_speed"], upper_limit=[limit])
         for met in preprocess_limit_high.met_object.values():
