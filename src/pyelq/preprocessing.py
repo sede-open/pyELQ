@@ -180,7 +180,6 @@ class Preprocessor:
 
         return filter_index
 
-
     def filter_on_met(self, filter_variable: list, lower_limit: list = None, upper_limit: list = None) -> None:
         """Filter the supplied data on given properties of the meteorological data.
 

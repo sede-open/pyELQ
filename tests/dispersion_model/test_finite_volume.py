@@ -264,7 +264,7 @@ def test_forward_matrix(finite_volume, meteorology):
             (`cell_volume / dt`).
         4. Matrix-Level Mass Balance:
             It validates that the assembled system matrix `A` and right-hand-side vector `b`, obtained from
-            `solver_matrix`, also satisfy the mass balance against the implicit time derivative term 
+            `solver_matrix`, also satisfy the mass balance against the implicit time derivative term
             (`cell_volume / dt`), ensuring the global solver preserves conservation.
 
     """
@@ -358,7 +358,7 @@ def test_compute_coupling(finite_volume, meteorology, sensor_group, output_stack
     single 2D matrix is expected with the shape `(sensor_group.nof_observations, finite_volume.source_map.nof_sources)`.
     For the case with dict output (output_stacked=False), a dictionary is expected where each key corresponds to
     a sensor, and each value is a 2D matrix of shape `(sensor.nof_observations, finite_volume.source_map.nof_sources)`.
-    
+
     """
     meteorology_windfield = MeteorologyWindfield(
         site_layout=finite_volume.site_layout,

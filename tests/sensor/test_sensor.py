@@ -43,8 +43,8 @@ def test_nof_observables(nof_observations: int):
 def test_subset_sensor(source_on):
     """Test subset_sensor method for correct behavior when splitting sensor observations based on source_on.
     The subset_sensor method is designed to return a new `Sensor` object containing only the observations corresponding
-    to a specified section index. Sections are defined by unique values in the `source_on` attribute. The case 
-    "multiple_sections" represents a situation where the source is turned on and off multiple times (0 values in 
+    to a specified section index. Sections are defined by unique values in the `source_on` attribute. The case
+    "multiple_sections" represents a situation where the source is turned on and off multiple times (0 values in
     `source_on` indicate off periods and positive integers indicate different on periods). The case "single_section"
     represents a situation where the source is continuously on.
 

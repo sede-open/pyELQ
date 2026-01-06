@@ -901,7 +901,9 @@ class SourceModel(Component, SourceGrouping, SourceDistribution):
             state[self.map["precision_prior_rate"]] = np.ones_like(self.initial_precision) * self.prior_precision_rate
         if self.reversible_jump:
             state[self.map["source_location"]] = self.dispersion_model.source_map.location.to_array().T
-            state[self.map["number_sources"]] = np.array(state[self.map["source_location"]].shape[1], ndmin=2, dtype=int)
+            state[self.map["number_sources"]] = np.array(
+                state[self.map["source_location"]].shape[1], ndmin=2, dtype=int
+            )
             state[self.map["number_source_rate"]] = self.rate_num_sources
         return state
 

@@ -12,7 +12,7 @@ Methods and classes for the finite volume method for the dispersion model.
 from abc import ABC, abstractmethod
 from copy import deepcopy
 from dataclasses import dataclass, field
-from typing import Union, Tuple
+from typing import Tuple, Union
 
 import numpy as np
 import pandas as pd
@@ -623,8 +623,9 @@ class FiniteVolume(DispersionModel):
                 face.neighbour_index[external_boundaries] = -9999
                 face.set_boundary_type(external_boundaries, self.site_layout)
 
-    def compute_time_bins(self, sensor_object: SensorGroup,
-                          meteorology_object: Meteorology) -> Tuple[pd.DatetimeIndex, dict, np.ndarray]:
+    def compute_time_bins(
+        self, sensor_object: SensorGroup, meteorology_object: Meteorology
+    ) -> Tuple[pd.DatetimeIndex, dict, np.ndarray]:
         """Compute discretized time bins for aligning sensor observations and meteorological data.
 
         This method constructs a uniform time grid (bins) based on the observation time range of the given sensors.
