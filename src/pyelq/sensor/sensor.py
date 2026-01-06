@@ -118,7 +118,7 @@ class Sensor:
         This functionality is useful for situations where data is collected in multiple sections, e.g. repeated on/off
         releases where we want to work with one section at a time or later stitch multiple per-section segments
         together.
-        
+
         Args:
             section_index (int): Integer indicating which observations to keep
 
@@ -131,7 +131,7 @@ class Sensor:
         new_sensor.time = self.time[section_indices]
         new_sensor.concentration = self.concentration[section_indices]
         location_object = new_sensor.location.to_array()
-        if location_object.shape[0] > 2:
+        if location_object.shape[0] == self.time.shape[0]:
             location_object = location_object[section_indices, :]
             new_sensor.location = new_sensor.location.from_array(location_object)
 

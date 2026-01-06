@@ -134,8 +134,8 @@ class Preprocessor:
             sns_in = self.sensor_object[sns_key]
             met_in = self.met_object[met_key]
 
-            filter_index_sensor = self.get_nan_filter_index(sns_in, self.sensor_fields)
-            filter_index_met = self.get_nan_filter_index(met_in, self.met_fields)
+            filter_index_sensor = self.get_non_nan_index(sns_in, self.sensor_fields)
+            filter_index_met = self.get_non_nan_index(met_in, self.met_fields)
             filter_index = np.logical_and(filter_index_sensor, filter_index_met)
 
             self.sensor_object[sns_key] = self.filter_object_fields(sns_in, self.sensor_fields, filter_index)
@@ -153,14 +153,14 @@ class Preprocessor:
         """
         for sns_key in self.sensor_object:
             sns_in = self.sensor_object[sns_key]
-            filter_index = self.get_nan_filter_index(sns_in, self.sensor_fields)
+            filter_index = self.get_non_nan_index(sns_in, self.sensor_fields)
             self.sensor_object[sns_key] = self.filter_object_fields(sns_in, self.sensor_fields, filter_index)
 
-        filter_index = self.get_nan_filter_index(self.met_object, self.met_fields)
+        filter_index = self.get_non_nan_index(self.met_object, self.met_fields)
         self.met_object = self.filter_object_fields(self.met_object, self.met_fields, filter_index)
 
     @staticmethod
-    def get_nan_filter_index(obj: Union[Sensor, Meteorology], field_list: list) -> np.ndarray:
+    def get_non_nan_index(obj: Union[Sensor, Meteorology], field_list: list) -> np.ndarray:
         """Get a index for a given object to be able to filter out on NaN values in listed fields.
 
         Args:
