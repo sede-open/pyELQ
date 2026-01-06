@@ -118,12 +118,12 @@ class Sensor:
         This functionality is useful for situations where data is collected in multiple sections, e.g. repeated on/off
         releases where we want to work with one section at a time or later stitch multiple per-section segments
         together.
-        
+
         Args:
-            section_index (int): Integer indicating which observations to keep
+            section_index (int): Integer indicating which observations to keep.
 
         Returns:
-            new_sensor (Sensor): A new Sensor object containing only the specified observations
+            new_sensor (Sensor): A new Sensor object containing only the specified observations.
 
         """
         section_indices = (self.source_on == section_index).flatten()
