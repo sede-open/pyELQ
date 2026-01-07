@@ -125,7 +125,8 @@ def test_make_sampler(source_model):
 
 def test_coverage_function(source_model):
     """Test that the coverage function has defaulted correctly."""
-    random_vars = np.random.normal(0, 1, size=(10000, 1))
+    rng = np.random.default_rng(42)
+    random_vars = rng.normal(0, 1, size=(10000, 1))
     threshold_value = source_model.threshold_function(random_vars)
     assert threshold_value.shape == (1,)
     assert np.allclose(threshold_value, np.quantile(random_vars, 0.95))
@@ -150,10 +151,11 @@ def test_birth_function(source_model):
             state remain unchanged.
 
     """
+    rng = np.random.default_rng(42)
     if not source_model.reversible_jump:
         return
     current_state = source_model.make_state(state={})
-    current_state["A"] = np.random.random_sample(size=current_state["A"].shape)
+    current_state["A"] = rng.random(size=current_state["A"].shape)
 
     prop_state = deepcopy(current_state)
     prop_state["n_src"] = current_state["n_src"] + 1
@@ -180,16 +182,17 @@ def test_death_function(source_model):
     Performs the equivalent checks as in the birth case, adapted for the death move.
 
     """
+    rng = np.random.default_rng(42)
     if not source_model.reversible_jump:
         return
     current_state = source_model.make_state(state={})
     if current_state["n_src"] == 0:
         return
-    current_state["A"] = np.random.random_sample(size=current_state["A"].shape)
+    current_state["A"] = rng.random(size=current_state["A"].shape)
 
     prop_state = deepcopy(current_state)
     prop_state["n_src"] = current_state["n_src"] - 1
-    deletion_index = np.random.randint(low=0, high=current_state["n_src"].item())
+    deletion_index = rng.integers(low=0, high=current_state["n_src"].item())
     prop_state["z_src"] = np.delete(prop_state["z_src"], obj=deletion_index, axis=1)
 
     prop_state, logp_pr_g_cr, logp_cr_g_pr = source_model.death_function(current_state, prop_state, deletion_index)
@@ -222,15 +225,16 @@ def test_move_function(source_model):
             relocated source has changed
 
     """
+    rng = np.random.default_rng(42)
     if not source_model.reversible_jump:
         return
     current_state = source_model.make_state(state={})
     if current_state["n_src"] == 0:
         return
-    current_state["A"] = np.random.random_sample(size=current_state["A"].shape)
+    current_state["A"] = rng.random(size=current_state["A"].shape)
 
     prop_state = deepcopy(current_state)
-    move_index = np.random.randint(low=0, high=current_state["n_src"].item())
+    move_index = rng.integers(low=0, high=current_state["n_src"].item())
     prop_state["z_src"][:, move_index] = np.zeros((3,))
     prop_state, _, _ = source_model.move_function(prop_state, update_column=move_index)
 

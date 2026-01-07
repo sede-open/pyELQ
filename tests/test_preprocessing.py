@@ -37,7 +37,7 @@ def fix_time_bin_edges(request, sensor_group):
     else:
         min_time, max_time = get_time_lims(sensor_group=sensor_group)
         min_time, max_time = min_time - timedelta(seconds=60), max_time + timedelta(seconds=60)
-        time_bin_edges = pd.array(pd.date_range(min_time, max_time, freq="120s"), dtype="datetime64[ns]")
+        time_bin_edges = pd.date_range(min_time, max_time, freq="120s").array
     return time_bin_edges
 
 
@@ -46,14 +46,15 @@ def fix_block_times(sensor_group):
     """Fix the time bin edges for re-blocking the processed data."""
     min_time, max_time = get_time_lims(sensor_group=sensor_group)
     min_time, max_time = min_time - timedelta(hours=1), max_time + timedelta(hours=1)
-    block_times = pd.array(pd.date_range(min_time, max_time, freq="1200s"), dtype="datetime64[ns]")
+    block_times = pd.date_range(min_time, max_time, freq="1200s").array
     return block_times
 
 
 def add_random_nans(data_object, fields, percent_nan):
     """Take in a data object (Sensor or Meteorology) and add NaNs in random locations."""
+    rng = np.random.default_rng(42)
     for field in fields:
-        idx_nans = np.random.choice(
+        idx_nans = rng.choice(
             np.arange(data_object.time.shape[0]),
             int(np.floor(data_object.time.shape[0] * percent_nan / 100)),
             replace=False,
@@ -82,12 +83,13 @@ def fix_meteorology(request, sensor_group):
     preprocessing can recover values in this range.
 
     """
+    rng = np.random.default_rng(42)
     with_nans = request.param
     min_time, max_time = get_time_lims(sensor_group=sensor_group)
     meteorology = Meteorology()
-    meteorology.time = pd.array(pd.date_range(min_time, max_time, freq="1s"), dtype="datetime64[ns]")
-    meteorology.wind_speed = 1.9 + 0.2 * np.random.random_sample(size=meteorology.time.shape)
-    meteorology.wind_direction = np.mod(358.0 + 4.0 * np.random.random_sample(size=meteorology.time.shape), 360)
+    meteorology.time = pd.date_range(min_time, max_time, freq="1s").array
+    meteorology.wind_speed = 1.9 + 0.2 * rng.random(size=meteorology.time.shape)
+    meteorology.wind_direction = np.mod(358.0 + 4.0 * rng.random(size=meteorology.time.shape), 360)
     meteorology.wind_turbulence_horizontal = 10.0 * np.ones(shape=meteorology.time.shape)
     meteorology.wind_turbulence_vertical = 10.0 * np.ones(shape=meteorology.time.shape)
     meteorology.temperature = 293.0 * np.ones(shape=meteorology.time.shape)
