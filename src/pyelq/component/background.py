@@ -306,7 +306,7 @@ class SpatioTemporalBackground(Background):
         else:
             self.time = pd.date_range(
                 start=np.min(sensor_object.time), end=np.max(sensor_object.time), periods=self.n_time
-            ).to_array
+            ).array
 
     def make_spatial_knots(self, sensor_object: SensorGroup):
         """Create the spatial grid for the model.
