@@ -342,10 +342,9 @@ class FiniteVolume(DispersionModel):
                 coupling_matrix = sp.csr_array(coupling_matrix)
         else:
             coupling_matrix = scale_factor * (self.forward_matrix @ coupling_matrix + self.source_grid_link)
-        if self.minimum_contribution > 0:
-            if sp.issparse(coupling_matrix):
-                coupling_matrix.data[abs(coupling_matrix.data) <= self.minimum_contribution] = 0
-                coupling_matrix.eliminate_zeros()
+        if self.minimum_contribution > 0 and sp.issparse(coupling_matrix):
+            coupling_matrix.data[abs(coupling_matrix.data) <= self.minimum_contribution] = 0
+            coupling_matrix.eliminate_zeros()
         if self.site_layout is not None:
             coupling_matrix[self.site_layout.id_obstacles_index, :] = 0
         return coupling_matrix
@@ -966,7 +965,7 @@ class FiniteVolumeFace(ABC):
         self.boundary_type = np.full(self.neighbour_index.shape, "internal", dtype="<U10")
         self.boundary_type[external_boundaries] = self.external_boundary_type
         if site_layout is not None:
-            faces_affected_obstacle = np.isin(self.neighbour_index, np.where(site_layout.id_obstacles)[0])
+            faces_affected_obstacle = np.isin(self.neighbour_index, np.nonzero(site_layout.id_obstacles)[0])
             self.boundary_type[np.logical_or(faces_affected_obstacle, site_layout.id_obstacles)] = "neumann"
 
     def assign_advection(self, wind_vector: np.ndarray) -> None:

@@ -9,11 +9,10 @@ Version of the meteorology class that deals with spatial wind fields and can cal
 cylindrical obstacles.
 
 """
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import Tuple
 
 import numpy as np
-from scipy import spatial
 
 from pyelq.coordinate_system import ENU
 from pyelq.dispersion_model.site_layout import SiteLayout
