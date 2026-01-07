@@ -50,6 +50,7 @@ def fix_sensor_group(request, ref_longitude, ref_latitude):
     The location of the sensors is set to be on a straight line in the east direction, with the last sensor being a Beam sensor.
 
     """
+    rng = np.random.default_rng(42)
     [n_time, n_sensor] = request.param
     sensor_x = np.linspace(10, 100, n_sensor).reshape(n_sensor, 1)
     sensor_y = np.zeros(shape=(n_sensor, 1))
@@ -63,7 +64,7 @@ def fix_sensor_group(request, ref_longitude, ref_latitude):
             pd.date_range(start=start_time, end=start_time + timedelta(hours=1.0), periods=n_time),
             dtype="datetime64[ns]",
         )
-        sensor[device_name].concentration = np.random.random_sample(size=(n_time,))
+        sensor[device_name].concentration = rng.random(size=(n_time,))
         sensor[device_name].location = ENU(
             east=locations[k, 0],
             north=locations[k, 1],
@@ -72,7 +73,7 @@ def fix_sensor_group(request, ref_longitude, ref_latitude):
             ref_latitude=ref_latitude,
             ref_altitude=0.0,
         ).to_lla()
-        sensor[device_name].source_on = np.random.choice(a=[False, True], size=(n_time,), p=[0.5, 0.5])
+        sensor[device_name].source_on = rng.choice(a=[False, True], size=(n_time,), p=[0.5, 0.5])
         sensor[device_name].source_on[0] = True
 
     k = n_sensor - 1
@@ -82,7 +83,7 @@ def fix_sensor_group(request, ref_longitude, ref_latitude):
         pd.date_range(start=start_time, end=start_time + timedelta(hours=1.0), periods=n_time),
         dtype="datetime64[ns]",
     )
-    sensor[device_name].concentration = np.random.random_sample(size=(n_time,))
+    sensor[device_name].concentration = rng.random(size=(n_time,))
     sensor[device_name].location = ENU(
         east=np.array([0, locations[k, 0]]),
         north=np.array([0, locations[k, 1]]),
@@ -91,7 +92,7 @@ def fix_sensor_group(request, ref_longitude, ref_latitude):
         ref_latitude=ref_latitude,
         ref_altitude=0.0,
     ).to_lla()
-    sensor[device_name].source_on = np.random.choice(a=[False, True], size=(n_time,), p=[0.5, 0.5])
+    sensor[device_name].source_on = rng.choice(a=[False, True], size=(n_time,), p=[0.5, 0.5])
     sensor[device_name].source_on[0] = True
     return sensor
 

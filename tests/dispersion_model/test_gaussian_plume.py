@@ -28,6 +28,8 @@ from pyelq.source_map import SourceMap
 @pytest.fixture(name="met_object")
 def fixture_met_object():
     """Fixture to define a meteorology object."""
+
+    rng = np.random.default_rng(42)
     location = ENU(ref_longitude=0, ref_latitude=0, ref_altitude=0)
     loc_in = np.array([[-1, -1, -1], [0, 0, 0], [1, 1, 1]])
     location.from_array(loc_in)
@@ -38,20 +40,21 @@ def fixture_met_object():
     met_object = Meteorology()
     met_object.location = location
     met_object.time = time
-    met_object.u_component = np.random.randint(low=1, high=5, size=time.shape)
-    met_object.v_component = np.random.randint(low=1, high=5, size=time.shape)
+    met_object.u_component = rng.integers(low=1, high=5, size=time.shape)
+    met_object.v_component = rng.integers(low=1, high=5, size=time.shape)
     met_object.calculate_wind_direction_from_uv()
     met_object.calculate_wind_speed_from_uv()
-    met_object.temperature = np.random.randint(low=270, high=275, size=time.shape)
-    met_object.pressure = np.random.randint(low=99, high=103, size=time.shape)
-    met_object.wind_turbulence_horizontal = 5 + 10 * np.random.random(size=time.shape)
-    met_object.wind_turbulence_vertical = 5 + 10 * np.random.random(size=time.shape)
+    met_object.temperature = rng.integers(low=270, high=275, size=time.shape)
+    met_object.pressure = rng.integers(low=99, high=103, size=time.shape)
+    met_object.wind_turbulence_horizontal = 5 + 10 * rng.random(size=time.shape)
+    met_object.wind_turbulence_vertical = 5 + 10 * rng.random(size=time.shape)
     return met_object
 
 
 @pytest.fixture(name="met_object_single")
 def fixture_met_object_single():
     """Fixture to define a meteorology object with a single observation."""
+    rng = np.random.default_rng(42)
     location = ENU(ref_longitude=0, ref_latitude=0, ref_altitude=0)
     loc_in = np.array([[0, 0, 0]])
     location.from_array(loc_in)
@@ -62,12 +65,12 @@ def fixture_met_object_single():
     met_object = Meteorology()
     met_object.location = location
     met_object.time = time
-    met_object.u_component = np.random.randint(low=1, high=5, size=time.shape)
-    met_object.v_component = np.random.randint(low=1, high=5, size=time.shape)
+    met_object.u_component = rng.integers(low=1, high=5, size=time.shape)
+    met_object.v_component = rng.integers(low=1, high=5, size=time.shape)
     met_object.calculate_wind_direction_from_uv()
     met_object.calculate_wind_speed_from_uv()
-    met_object.temperature = np.random.randint(low=270, high=275, size=time.shape)
-    met_object.pressure = np.random.randint(low=99, high=103, size=time.shape)
+    met_object.temperature = rng.integers(low=270, high=275, size=time.shape)
+    met_object.pressure = rng.integers(low=99, high=103, size=time.shape)
     met_object.wind_turbulence_horizontal = 5 * np.ones(time.shape)
     met_object.wind_turbulence_vertical = 5 * np.ones(time.shape)
     return met_object
@@ -173,14 +176,15 @@ def test_compute_coupling_array(sourcemap_type):
     )
     assert np.all(coupling_array == 0)
 
-    random_shape = np.random.randint(1, 5, 3)
+    rng = np.random.default_rng(42)
+    random_shape = rng.integers(1, 5, 3)
     coupling_array = plume_object.compute_coupling_array(
-        sensor_x=np.random.random(random_shape) * 6 - 3,
-        sensor_y=np.random.random(random_shape) * 6 - 3,
-        sensor_z=np.random.random(random_shape) * 6 - 3,
+        sensor_x=rng.random(random_shape) * 6 - 3,
+        sensor_y=rng.random(random_shape) * 6 - 3,
+        sensor_z=rng.random(random_shape) * 6 - 3,
         source_z=np.array(0),
-        wind_speed=np.random.randint(1, 5),
-        theta=np.random.random(1) * 2 * np.pi,
+        wind_speed=rng.integers(1, 5),
+        theta=rng.random(1) * 2 * np.pi,
         wind_turbulence_horizontal=np.array([5]),
         wind_turbulence_vertical=np.array([5]),
         gas_density=1,
