@@ -191,7 +191,7 @@ def test_meteorology_group():
     group_object.add_object(object_2)
     assert group_object.nof_objects == 2
     group_object.calculate_uv_from_wind_speed_direction()
-    for _, temp_object in group_object.items():
+    for temp_object in group_object.values():
         assert np.allclose(temp_object.u_component, np.array([0, -1, 0, 1]))
         assert np.allclose(temp_object.v_component, np.array([-1, 0, 1, 0]))
 

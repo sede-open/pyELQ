@@ -210,7 +210,7 @@ class SensorGroup(dict):
 
         """
         overall_idx = np.array([])
-        for curr_key in list(self.keys()):
+        for curr_key in self.keys():
             if self[curr_key].source_on is None:
                 temp_idx = np.ones(self[curr_key].nof_observations).astype(int)
             else:

@@ -25,17 +25,13 @@ from pyelq.sensor.sensor import Sensor, SensorGroup
 from pyelq.source_map import SourceMap
 
 
-@pytest.fixture(name="met_object")
-def fixture_met_object():
-    """Fixture to define a meteorology object."""
+def make_met_object(location):
+    """Function to create a meteorology object for testing purposes."""
 
     rng = np.random.default_rng(42)
-    location = ENU(ref_longitude=0, ref_latitude=0, ref_altitude=0)
-    loc_in = np.array([[-1, -1, -1], [0, 0, 0], [1, 1, 1]])
-    location.from_array(loc_in)
-    time = pd.date_range(pd.Timestamp.fromisoformat("2022-01-01 00:00:00"), periods=loc_in.shape[0], freq="s").array[
-        :, None
-    ]
+    time = pd.date_range(
+        pd.Timestamp.fromisoformat("2022-01-01 00:00:00"), periods=location.nof_observations, freq="s"
+    ).array[:, None]
     met_object = Meteorology()
     met_object.location = location
     met_object.time = time
@@ -47,30 +43,27 @@ def fixture_met_object():
     met_object.pressure = rng.integers(low=99, high=103, size=time.shape)
     met_object.wind_turbulence_horizontal = 5 + 10 * rng.random(size=time.shape)
     met_object.wind_turbulence_vertical = 5 + 10 * rng.random(size=time.shape)
+
+    return met_object
+
+
+@pytest.fixture(name="met_object")
+def fixture_met_object():
+    """Fixture to define a meteorology object."""
+    location = ENU(ref_longitude=0, ref_latitude=0, ref_altitude=0)
+    location.from_array(np.array([[-1, -1, -1], [0, 0, 0], [1, 1, 1]]))
+
+    met_object = make_met_object(location)
+
     return met_object
 
 
 @pytest.fixture(name="met_object_single")
 def fixture_met_object_single():
     """Fixture to define a meteorology object with a single observation."""
-    rng = np.random.default_rng(42)
     location = ENU(ref_longitude=0, ref_latitude=0, ref_altitude=0)
-    loc_in = np.array([[0, 0, 0]])
-    location.from_array(loc_in)
-    time = pd.date_range(pd.Timestamp.fromisoformat("2022-01-01 00:00:00"), periods=loc_in.shape[0], freq="s").array[
-        :, None
-    ]
-    met_object = Meteorology()
-    met_object.location = location
-    met_object.time = time
-    met_object.u_component = rng.integers(low=1, high=5, size=time.shape)
-    met_object.v_component = rng.integers(low=1, high=5, size=time.shape)
-    met_object.calculate_wind_direction_from_uv()
-    met_object.calculate_wind_speed_from_uv()
-    met_object.temperature = rng.integers(low=270, high=275, size=time.shape)
-    met_object.pressure = rng.integers(low=99, high=103, size=time.shape)
-    met_object.wind_turbulence_horizontal = 5 * np.ones(time.shape)
-    met_object.wind_turbulence_vertical = 5 * np.ones(time.shape)
+    location.from_array(np.array([[0, 0, 0]]))
+    met_object = make_met_object(location)
     return met_object
 
 

@@ -190,11 +190,8 @@ def test_temporal_resampling():
     correct_values_out_max = np.array([np.max(i) for i in np.split(values_in, n_time_out)])
     correct_values_out_min = np.array([np.min(i) for i in np.split(values_in, n_time_out)])
 
-    time_bin_edges_non_monotonic = pd.array(
-        pd.Series(list(time_bin_edges)[:-1] + [datetime(1999, 1, 1)]), dtype="datetime64[ns]"
-    )
-
-    time_in = pd.array(pd.to_datetime(time_in + [datetime(2001, 1, 1)]), dtype="datetime64[ns]")
+    time_bin_edges_non_monotonic = pd.Series(list(time_bin_edges)[:-1] + [datetime(1999, 1, 1)]).array
+    time_in = pd.to_datetime(time_in + [datetime(2001, 1, 1)]).array
     values_in = np.append(values_in, 1000000)
 
     p = rng.permutation(len(time_in))

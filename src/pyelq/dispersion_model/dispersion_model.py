@@ -98,7 +98,11 @@ class DispersionModel(ABC):
         return gas_density
 
     def interpolate_all_meteorology(
-        self, sensor_object: Sensor, meteorology: Meteorology, gas_object: Union[GasSpecies, None], run_interpolation: bool
+        self,
+        sensor_object: Sensor,
+        meteorology: Meteorology,
+        gas_object: Union[GasSpecies, None],
+        run_interpolation: bool,
     ):
         """Function which carries out interpolation of all meteorological information.
 
