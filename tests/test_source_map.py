@@ -19,8 +19,9 @@ from pyelq.source_map import SourceMap
 
 def test_n_sources():
     """Test if the nof_sources property works as expected."""
-    n_samples = np.random.randint(1, 100)
-    array = np.random.random((n_samples, 2))
+    rng = np.random.default_rng(42)
+    n_samples = rng.integers(1, 100)
+    array = rng.random((n_samples, 2))
 
     lla_object = LLA()
     lla_object.from_array(array)
@@ -49,10 +50,10 @@ def test_generate_sources(sourcemap_type, dim):
     enu_object = ENU(ref_latitude=0, ref_longitude=0, ref_altitude=0)
     sourcemap_limits = np.array([[-100, 100], [-100, 100], [-100, 100]])
     sourcemap_limits = sourcemap_limits[:dim, :]
-
+    rng = np.random.default_rng(42)
     if sourcemap_type in ["central", "hypercube", "grid", "grid_sphere"]:
         if sourcemap_type in ["central", "hypercube"]:
-            random_integer = np.random.randint(1, 100)
+            random_integer = rng.integers(1, 100)
             source_object.generate_sources(
                 coordinate_object=enu_object,
                 sourcemap_limits=sourcemap_limits,
@@ -64,7 +65,7 @@ def test_generate_sources(sourcemap_type, dim):
             else:
                 assert source_object.nof_sources == random_integer
         elif sourcemap_type in ["grid", "grid_sphere"]:
-            random_shape = np.random.randint(1, 100, size=dim)
+            random_shape = rng.integers(1, 100, size=dim)
             source_object.generate_sources(
                 coordinate_object=enu_object,
                 sourcemap_limits=sourcemap_limits,
@@ -115,15 +116,16 @@ def test_calculate_inclusion_idx(source_coordinate_system, sensor_coordinate_sys
     else:
         coordinate_object = getattr(coordinate_system, sensor_coordinate_system)()
 
-    points_inside = np.random.randint(1, 100)
+    rng = np.random.default_rng(42)
+    points_inside = rng.integers(1, 100)
     inside_idx = list(range(points_inside))
 
-    points_outside = np.random.randint(1, 100)
+    points_outside = rng.integers(1, 100)
     outside_idx = list(range(points_outside))
     outside_idx = [value + points_inside for value in outside_idx]
 
-    inside_locations = np.random.normal(0, 0.001, (points_inside, 3))
-    outside_locations = np.random.normal(80, 0.001, (points_outside, 3))
+    inside_locations = rng.normal(0, 0.001, (points_inside, 3))
+    outside_locations = rng.normal(80, 0.001, (points_outside, 3))
     array = np.concatenate((inside_locations, outside_locations), axis=0)
 
     enu_coordinate = ENU(ref_latitude=0, ref_longitude=0, ref_altitude=0)
