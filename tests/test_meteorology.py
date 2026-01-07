@@ -15,7 +15,6 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from pyelq.coordinate_system import LLA
 from pyelq.meteorology.meteorology import Meteorology, MeteorologyGroup
 
 
@@ -83,8 +82,10 @@ def test_wind_direction(u_component, v_component, truth):
 
 def test_nof_observations():
     """Test if nof_observation property works as expected."""
-    n_samples = np.random.randint(1, 100)
-    time = np.random.random((n_samples, 1))
+    rng = np.random.default_rng(42)
+
+    n_samples = rng.integers(1, 100)
+    time = rng.random((n_samples, 1))
 
     met_object = Meteorology()
     assert met_object.nof_observations == 0
@@ -203,6 +204,8 @@ def test_calculate_wind_turbulence_horizontal():
 
     """
 
+    rng = np.random.default_rng(42)
+
     met = Meteorology()
     met.time = pd.array(
         np.array([dt.datetime(2023, 1, 1), dt.datetime(2023, 1, 1), dt.datetime(2023, 1, 1)]).astype("datetime64[ns]"),
@@ -215,7 +218,7 @@ def test_calculate_wind_turbulence_horizontal():
     met.time = pd.array(
         pd.date_range(dt.datetime(2023, 1, 1), dt.datetime(2023, 1, 2), freq="5s"), dtype="datetime64[ns]"
     )
-    met.wind_direction = np.random.normal(180, sigma, met.time.shape[0])
+    met.wind_direction = rng.normal(180, sigma, met.time.shape[0])
     met.calculate_wind_turbulence_horizontal(window="300s")
 
     tolerance = 3 * np.std(met.wind_turbulence_horizontal)

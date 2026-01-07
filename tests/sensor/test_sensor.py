@@ -25,9 +25,10 @@ def test_nof_observables(nof_observations: int):
         nof_observations (int): Number observations
 
     """
+    rng = np.random.default_rng(42)
     sensor = Sensor()
     if nof_observations > 0:
-        sensor.concentration = np.random.rand(nof_observations, 1)
+        sensor.concentration = rng.random((nof_observations, 1))
 
     assert sensor.nof_observations == nof_observations
 
@@ -55,10 +56,11 @@ def test_subset_sensor(source_on):
     sensor for the specified section.
 
     """
+    rng = np.random.default_rng(42)
     sensor = Sensor()
     sensor.label = "sensor_0"
     sensor.time = pd.array(pd.date_range("2024-01-01", periods=len(source_on)), dtype="datetime64[ns]")
-    sensor.concentration = np.random.rand(len(source_on), 1)
+    sensor.concentration = rng.random((len(source_on), 1))
     sensor.location = LLA(
         latitude=np.ones((len(source_on), 1)) * 10,
         longitude=np.ones((len(source_on), 1)) * 40,
