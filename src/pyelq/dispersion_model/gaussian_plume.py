@@ -114,7 +114,7 @@ class GaussianPlume(DispersionModel):
         self,
         sensor_object: Sensor,
         meteorology: Meteorology,
-        gas_object: GasSpecies = None,
+        gas_object: Union[GasSpecies, None] = None,
         run_interpolation: bool = True,
     ) -> Union[list, np.ndarray]:
         """Wrapper function to compute the gaussian plume coupling for a single sensor.

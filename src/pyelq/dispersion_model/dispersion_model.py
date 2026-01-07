@@ -98,7 +98,7 @@ class DispersionModel(ABC):
         return gas_density
 
     def interpolate_all_meteorology(
-        self, sensor_object: Sensor, meteorology: Meteorology, gas_object: GasSpecies, run_interpolation: bool
+        self, sensor_object: Sensor, meteorology: Meteorology, gas_object: Union[GasSpecies, None], run_interpolation: bool
     ):
         """Function which carries out interpolation of all meteorological information.
 
@@ -111,7 +111,7 @@ class DispersionModel(ABC):
             sensor_object (Sensor): object containing locations/times onto which met information should
                 be interpolated.
             meteorology (Meteorology): object containing meteorology information for interpolation.
-            gas_object (GasSpecies): object containing gas information.
+            gas_object (Union[GasSpecies, None]): object containing gas information.
             run_interpolation (bool): logical indicating whether the meteorology information needs to be interpolated.
 
         Returns:
@@ -141,8 +141,11 @@ class DispersionModel(ABC):
                 meteorology=meteorology, variable_name="wind_turbulence_vertical", sensor_object=sensor_object
             )
         else:
-            gas_density = gas_object.gas_density(temperature=meteorology.temperature, pressure=meteorology.pressure)
-            gas_density = gas_density.reshape((gas_density.size, 1))
+            if gas_object is None:
+                gas_density = np.ones((meteorology.nof_observations, 1))
+            else:
+                gas_density = gas_object.gas_density(temperature=meteorology.temperature, pressure=meteorology.pressure)
+                gas_density = gas_density.reshape((gas_density.size, 1))
             u_interpolated = meteorology.u_component.reshape((meteorology.u_component.size, 1))
             v_interpolated = meteorology.v_component.reshape((meteorology.v_component.size, 1))
             wind_turbulence_horizontal = meteorology.wind_turbulence_horizontal.reshape(
