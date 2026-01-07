@@ -37,8 +37,8 @@ class SiteLayout:
 
     """
 
-    cylinders_coordinate: ENU = None
-    cylinders_radius: np.ndarray = None
+    cylinders_coordinate: ENU
+    cylinders_radius: np.ndarray
 
     id_obstacles: np.ndarray = field(init=False)
     id_obstacles_index: np.ndarray = field(init=False)

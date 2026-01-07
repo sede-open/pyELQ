@@ -10,7 +10,7 @@ cylindrical obstacles.
 
 """
 from dataclasses import dataclass
-from typing import Tuple
+from typing import Tuple, Optional, Union
 
 import numpy as np
 
@@ -34,7 +34,7 @@ class MeteorologyWindfield(Meteorology):
     """
 
     static_wind_field: Meteorology
-    site_layout: SiteLayout = None
+    site_layout: Optional[Union[SiteLayout, None]] = None
 
     def calculate_spatial_wind_field(self, grid_coordinates, time_index: int = None):
         """Calculates the spatial wind field over a grid considering obstacles.
