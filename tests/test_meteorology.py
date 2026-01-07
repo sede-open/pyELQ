@@ -215,9 +215,7 @@ def test_calculate_wind_turbulence_horizontal():
 
     sigma = 3
 
-    met.time = pd.array(
-        pd.date_range(dt.datetime(2023, 1, 1), dt.datetime(2023, 1, 2), freq="5s"), dtype="datetime64[ns]"
-    )
+    met.time = pd.date_range(dt.datetime(2023, 1, 1), dt.datetime(2023, 1, 2), freq="5s").array
     met.wind_direction = rng.normal(180, sigma, met.time.shape[0])
     met.calculate_wind_turbulence_horizontal(window="300s")
 

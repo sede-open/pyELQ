@@ -30,9 +30,7 @@ def test_default_returns():
     same."""
 
     loc_in = np.array([[0, 0, 0], [1, 1, 1]])
-    time_in = pd.array(pd.date_range(pd.Timestamp.now(), periods=loc_in.shape[0], freq="h"), dtype="datetime64[ns]")[
-        :, None
-    ]
+    time_in = pd.date_range(pd.Timestamp.now(), periods=loc_in.shape[0], freq="h").array[:, None]
 
     rng = np.random.default_rng(42)
     vals = rng.random((loc_in.shape[0], 1))
@@ -51,7 +49,7 @@ def test_single_value():
     """Tests if all interpolated values are set to the same value when 1 input value is provided."""
     loc_in = np.array([[0, 0, 0], [1, 1, 1]])
     n_obs = loc_in.shape[0]
-    time_in = pd.array(pd.date_range(pd.Timestamp.now(), periods=n_obs, freq="h"), dtype="datetime64[ns]")[:, None]
+    time_in = pd.date_range(pd.Timestamp.now(), periods=n_obs, freq="h").array[:, None]
     rng = np.random.default_rng(42)
     vals = rng.random((loc_in.shape[0], 1))
 
@@ -78,7 +76,7 @@ def test_temporal_interpolation():
     interpolation in 1d) Also checks if we get the same values when an array of integers (representing seconds) is
     supplied instead of an array of datetimes."""
     periods = 10
-    time_in = pd.array(pd.date_range(pd.Timestamp.now(), periods=periods, freq="s"), dtype="datetime64[ns]")[:, None]
+    time_in = pd.date_range(pd.Timestamp.now(), periods=periods, freq="s").array[:, None]
     time_in_array = np.array(range(periods))[:, None]
 
     rng = np.random.default_rng(42)
@@ -143,18 +141,14 @@ def test_fill_value():
 def test_consistent_shapes():
     """Test if output shapes are consistent with provided input."""
     loc_in = np.array([[0, 0, 0], [1, 1, 1]])
-    time_in = pd.array(
-        pd.date_range(pd.Timestamp.now(), periods=loc_in.shape[0] - 1, freq="h"), dtype="datetime64[ns]"
-    )[:, None]
+    time_in = pd.date_range(pd.Timestamp.now(), periods=loc_in.shape[0] - 1, freq="h").array[:, None]
     rng = np.random.default_rng(42)
     vals = rng.random((loc_in.shape[0], 1))
     with pytest.raises(ValueError):
         sti.interpolate(location_in=loc_in, time_in=time_in, values_in=vals, location_out=loc_in, time_out=time_in)
 
     loc_in = np.array([[0, 0, 0], [0, 1, 0], [1, 0.5, 0], [0.5, 0.5, 1]])
-    time_in = pd.array(pd.date_range(pd.Timestamp.now(), periods=loc_in.shape[0], freq="h"), dtype="datetime64[ns]")[
-        :, None
-    ]
+    time_in = pd.date_range(pd.Timestamp.now(), periods=loc_in.shape[0], freq="h").array[:, None]
     vals = rng.random((loc_in.shape[0], 1))
     return_vals = sti.interpolate(
         location_in=loc_in, time_in=time_in, values_in=vals, location_out=loc_in, time_out=time_in
@@ -188,10 +182,9 @@ def test_temporal_resampling():
     rng = np.random.default_rng(42)
     values_in = np.array(rng.random(n_values_in))
     time_in = [datetime(2000, 1, 1, 0, 0, 1) + timedelta(minutes=i) for i in range(n_values_in)]
-    time_bin_edges = pd.array(
-        pd.to_datetime([datetime(2000, 1, 1) + timedelta(minutes=i * 10) for i in range(n_time_out + 1)]),
-        dtype="datetime64[ns]",
-    )
+    time_bin_edges = pd.to_datetime(
+        [datetime(2000, 1, 1) + timedelta(minutes=i * 10) for i in range(n_time_out + 1)]
+    ).array
 
     correct_values_out_mean = np.array([np.mean(i) for i in np.split(values_in, n_time_out)])
     correct_values_out_max = np.array([np.max(i) for i in np.split(values_in, n_time_out)])

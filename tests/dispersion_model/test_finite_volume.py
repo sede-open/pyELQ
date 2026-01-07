@@ -34,9 +34,7 @@ def fixture_meteorology(request):
     """Create a wind time series for the tests."""
     wind_vector = np.array(request.param)
     meteorology = Meteorology()
-    time = pd.array(
-        pd.date_range(pd.Timestamp.fromisoformat("2022-01-01 00:00:00"), periods=35, freq="s"), dtype="datetime64[ns]"
-    )[:, None]
+    time = pd.date_range(pd.Timestamp.fromisoformat("2022-01-01 00:00:00"), periods=35, freq="s").array[:, None]
     meteorology.u_component = wind_vector[:, 0] * np.ones(time.size)
     meteorology.v_component = wind_vector[:, 1] * np.ones(time.size)
     meteorology.w_component = wind_vector[:, 2] * np.ones(time.size)
@@ -162,9 +160,7 @@ def fixture_sensor_object():
     location = ENU(ref_longitude=0, ref_latitude=0, ref_altitude=0)
     location.from_array(np.array([[5, 0, 0]]))
     sensor_object.location = location
-    time = pd.array(
-        pd.date_range(pd.Timestamp.fromisoformat("2022-01-01 00:00:05"), periods=5, freq="5s"), dtype="datetime64[ns]"
-    )[:, None]
+    time = pd.date_range(pd.Timestamp.fromisoformat("2022-01-01 00:00:05"), periods=5, freq="5s").array[:, None]
     sensor_object.time = time
     sensor_object.concentration = np.zeros(time.size)
     sensor_object.label = "Generic"
@@ -178,9 +174,7 @@ def fixture_beam_object():
     beam_location.from_array(np.array([[-5, 0, 0], [5, 0, 0]]))
     beam_object = Beam()
     beam_object.location = beam_location
-    time = pd.array(
-        pd.date_range(pd.Timestamp.fromisoformat("2022-01-01 00:00:05"), periods=4, freq="6s"), dtype="datetime64[ns]"
-    )[:, None]
+    time = pd.date_range(pd.Timestamp.fromisoformat("2022-01-01 00:00:05"), periods=4, freq="6s").array[:, None]
     beam_object.time = time
     beam_object.concentration = np.zeros(time.size)
     beam_object.label = "Beam"

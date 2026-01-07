@@ -33,10 +33,9 @@ def fixture_met_object():
     location = ENU(ref_longitude=0, ref_latitude=0, ref_altitude=0)
     loc_in = np.array([[-1, -1, -1], [0, 0, 0], [1, 1, 1]])
     location.from_array(loc_in)
-    time = pd.array(
-        pd.date_range(pd.Timestamp.fromisoformat("2022-01-01 00:00:00"), periods=loc_in.shape[0], freq="s"),
-        dtype="datetime64[ns]",
-    )[:, None]
+    time = pd.date_range(pd.Timestamp.fromisoformat("2022-01-01 00:00:00"), periods=loc_in.shape[0], freq="s").array[
+        :, None
+    ]
     met_object = Meteorology()
     met_object.location = location
     met_object.time = time
@@ -58,10 +57,9 @@ def fixture_met_object_single():
     location = ENU(ref_longitude=0, ref_latitude=0, ref_altitude=0)
     loc_in = np.array([[0, 0, 0]])
     location.from_array(loc_in)
-    time = pd.array(
-        pd.date_range(pd.Timestamp.fromisoformat("2022-01-01 00:00:00"), periods=loc_in.shape[0], freq="s"),
-        dtype="datetime64[ns]",
-    )[:, None]
+    time = pd.date_range(pd.Timestamp.fromisoformat("2022-01-01 00:00:00"), periods=loc_in.shape[0], freq="s").array[
+        :, None
+    ]
     met_object = Meteorology()
     met_object.location = location
     met_object.time = time
@@ -83,9 +81,7 @@ def fixture_sensor_object():
     location = ENU(ref_longitude=0, ref_latitude=0, ref_altitude=0)
     location.from_array(np.array([[25, 0, 0]]))
     sensor_object.location = location
-    time = pd.array(
-        pd.date_range(pd.Timestamp.fromisoformat("2022-01-01 00:00:00"), periods=5, freq="ns"), dtype="datetime64[ns]"
-    )[:, None]
+    time = pd.date_range(pd.Timestamp.fromisoformat("2022-01-01 00:00:00"), periods=5, freq="ns").array[:, None]
     sensor_object.time = time
     sensor_object.concentration = np.zeros(time.size)
     sensor_object.label = "Generic"
@@ -100,10 +96,9 @@ def fixture_drone_object():
     loc_in = np.array([[0, 50, 0], [25, 25, 0], [50, 0, 0]])
     location.from_array(loc_in)
     sensor_object.location = location
-    time = pd.array(
-        pd.date_range(pd.Timestamp.fromisoformat("2022-01-01 00:00:00"), periods=loc_in.shape[0], freq="s"),
-        dtype="datetime64[ns]",
-    )[:, None]
+    time = pd.date_range(pd.Timestamp.fromisoformat("2022-01-01 00:00:00"), periods=loc_in.shape[0], freq="s").array[
+        :, None
+    ]
     sensor_object.time = time
     sensor_object.concentration = np.zeros(time.size)
     sensor_object.label = "Generic"
@@ -117,9 +112,7 @@ def fixture_beam_object():
     beam_location.from_array(np.array([[24.99, 0, 0], [25.01, 0, 0]]))
     beam_object = Beam()
     beam_object.location = beam_location
-    time = pd.array(
-        pd.date_range(pd.Timestamp.fromisoformat("2022-01-01 00:00:00"), periods=4, freq="ns"), dtype="datetime64[ns]"
-    )[:, None]
+    time = pd.date_range(pd.Timestamp.fromisoformat("2022-01-01 00:00:00"), periods=4, freq="ns").array[:, None]
     beam_object.time = time
     beam_object.concentration = np.zeros(time.size)
     beam_object.label = "Beam"

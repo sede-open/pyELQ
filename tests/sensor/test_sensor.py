@@ -59,7 +59,7 @@ def test_subset_sensor(source_on):
     rng = np.random.default_rng(42)
     sensor = Sensor()
     sensor.label = "sensor_0"
-    sensor.time = pd.array(pd.date_range("2024-01-01", periods=len(source_on)), dtype="datetime64[ns]")
+    sensor.time = pd.date_range("2024-01-01", periods=len(source_on)).array
     sensor.concentration = rng.random((len(source_on), 1))
     sensor.location = LLA(
         latitude=np.ones((len(source_on), 1)) * 10,
