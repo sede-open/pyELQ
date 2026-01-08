@@ -121,19 +121,16 @@ class DLM:
 
         for i in range(nof_timesteps):
             if i == 0:
-                state[:, [i]] = (
-                    self.g_matrix @ init_state
-                    + multivariate_normal.rvs(mean=mean_state_noise, cov=self.w_matrix, size=1).reshape((-1, 1))
-                )
+                state[:, [i]] = self.g_matrix @ init_state + multivariate_normal.rvs(
+                    mean=mean_state_noise, cov=self.w_matrix, size=1
+                ).reshape((-1, 1))
             else:
-                state[:, [i]] = (
-                    self.g_matrix @ state[:, [i - 1]]
-                    + multivariate_normal.rvs(mean=mean_state_noise, cov=self.w_matrix, size=1).reshape((-1, 1))
-                )
-            obs[:, [i]] = (
-                self.f_matrix.T @ state[:, [i]]
-                + multivariate_normal.rvs(mean=mean_observation_noise, cov=self.v_matrix, size=1).reshape((-1, 1))
-            )
+                state[:, [i]] = self.g_matrix @ state[:, [i - 1]] + multivariate_normal.rvs(
+                    mean=mean_state_noise, cov=self.w_matrix, size=1
+                ).reshape((-1, 1))
+            obs[:, [i]] = self.f_matrix.T @ state[:, [i]] + multivariate_normal.rvs(
+                mean=mean_observation_noise, cov=self.v_matrix, size=1
+            ).reshape((-1, 1))
 
         return state, obs
 
