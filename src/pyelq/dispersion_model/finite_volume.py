@@ -333,11 +333,11 @@ class FiniteVolume(DispersionModel):
         """
         self.compute_forward_matrix(met_windfield)
         if coupling_matrix is None:
-            coupling_matrix = sp.csr_array(self.source_grid_link.shape, dtype=self.forward_matrix.dtype)
+            coupling_matrix = sp.csc_array(self.source_grid_link.shape, dtype=self.forward_matrix.dtype)
         scale_factor = self.dt / self.cell_volume
         if self.implicit_solver:
             rhs = (1.0 / scale_factor) * coupling_matrix + self.source_grid_link
-            coupling_matrix = -spsolve(self.forward_matrix, rhs).reshape(self.source_grid_link.shape)
+            coupling_matrix = -spsolve(self.forward_matrix.tocsc(), rhs).reshape(self.source_grid_link.shape)
             if not sp.issparse(coupling_matrix):
                 coupling_matrix = sp.csr_array(coupling_matrix)
         else:

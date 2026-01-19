@@ -39,7 +39,7 @@ def fixture_grid_coordinates():
 
 @pytest.fixture(params=[0, 10, 20], ids=["0-m", "10-m", "20-m"], name="height")
 def fixture_height(request):
-    """Fixture for the cyliner heights."""
+    """Fixture for the cylinder heights."""
     return request.param
 
 

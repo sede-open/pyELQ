@@ -199,8 +199,8 @@ class SpatioTemporalBackground(Background):
     The background parameter is an [n_location * n_time x 1] (if self.spatial_dependence is True) or an [n_time x 1]
     vector (if self.spatial_dependence is False). In the spatio-temporal case, the background vector is assumed to
     unwrap over space and time as follows:
-    bg = [b_1(t_1), b_2(t_1),..., b_nlct(t_1),...,b_1(t_k),..., b_nlct(t_k),...].T
-    where nlct is the number of sensor locations.
+    bg = [b_1(t_1), b_2(t_1),..., b_n_lct(t_1),...,b_1(t_k),..., b_n_lct(t_k),...].T
+    where n_lct is the number of sensor locations.
     This unwrapping mechanism is chosen as it greatly speeds up the sparse matrix operations in the solver (vs. the
     alternative).
 
