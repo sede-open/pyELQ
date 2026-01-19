@@ -9,7 +9,6 @@ This module provides tests for the gas species superclass in pyELQ
 
 """
 
-
 import numpy as np
 import pytest
 

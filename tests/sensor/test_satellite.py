@@ -8,6 +8,7 @@
 This module provides tests for the satellite sensor class in pyELQ.
 
 """
+
 import numpy as np
 import pytest
 

@@ -10,6 +10,7 @@ The class for the Gaussian Plume dispersion model used in pyELQ.
 The Mathematics of Atmospheric Dispersion Modeling, John M. Stockie, DOI. 10.1137/10080991X
 
 """
+
 from copy import deepcopy
 from dataclasses import dataclass
 from typing import Union

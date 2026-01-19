@@ -8,6 +8,7 @@
 The superclass for the meteorology classes
 
 """
+
 import warnings
 from dataclasses import dataclass, field
 

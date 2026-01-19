@@ -9,6 +9,7 @@ The superclass for the Gas species classes. It contains a few gas species with i
 calculate the density of the gas and do emission rate conversions from m^3/s to kg/hr and back
 
 """
+
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from typing import Union

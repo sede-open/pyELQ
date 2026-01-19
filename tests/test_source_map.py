@@ -8,6 +8,7 @@
 This module provides tests for the source map class in pyELQ.
 
 """
+
 import numpy as np
 import pytest
 

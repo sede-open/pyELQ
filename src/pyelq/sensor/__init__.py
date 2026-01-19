@@ -2,4 +2,5 @@
 #
 # SPDX-License-Identifier: Apache-2.0
 """Sensor Module."""
+
 __all__ = ["satellite", "beam", "sensor"]

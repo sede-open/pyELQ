@@ -8,6 +8,7 @@
 This module provides tests for the SensorGroup superclass in pyELQ
 
 """
+
 from copy import deepcopy
 
 import numpy as np

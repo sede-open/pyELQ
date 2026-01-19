@@ -9,6 +9,7 @@ This module provides a class definition for the main functionalities of the code
 openMCMC repo and defining some plotting wrappers.
 
 """
+
 import re
 import warnings
 from dataclasses import dataclass, field

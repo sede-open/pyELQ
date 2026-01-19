@@ -2,6 +2,7 @@
 #
 # SPDX-License-Identifier: Apache-2.0
 """Main test module."""
+
 __all__ = [
     "component",
     "sensor",

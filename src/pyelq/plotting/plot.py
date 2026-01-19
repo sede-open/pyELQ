@@ -9,6 +9,7 @@ Large module containing all the plotting code used to create various plots. Cont
 definition.
 
 """
+
 import re
 import warnings
 from copy import deepcopy
