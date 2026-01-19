@@ -26,19 +26,15 @@ class SiteLayout:
     around the cylindrical obstacles.
 
     Attributes:
-        cylinders_coordinate (ENU): The coordinates of the cylindrical obstacles in the site layout.
-        cylinders_radius (np.ndarray): The radius of the cylindrical obstacles in the site layout.
+        cylinder_coordinates (ENU): The coordinates of the cylindrical obstacles in the site layout.
+        cylinder_radius (np.ndarray): The radius of the cylindrical obstacles in the site layout.
         id_obstacles (np.ndarray): Boolean array indicating which grid points are within obstacle regions.
-        id_obstacles_index (np.ndarray): The indices of the grid points that are within obstacle regions.
-
-    Methods:
-        find_index_obstacles(grid_coordinates: ENU) -> None:
-            Find the indices of the grid_coordinates that are within the radius of the obstacles.
+        id_obstacles_index (np.ndarray): The indices of the grid points that are within obstacle regions.   
 
     """
 
-    cylinders_coordinate: ENU
-    cylinders_radius: np.ndarray
+    cylinder_coordinates: ENU
+    cylinder_radius: np.ndarray
 
     id_obstacles: np.ndarray = field(init=False)
     id_obstacles_index: np.ndarray = field(init=False)
@@ -46,9 +42,9 @@ class SiteLayout:
     @property
     def nof_cylinders(self) -> int:
         """Returns the number of cylinders in the site layout."""
-        if self.cylinders_coordinate is None:
+        if self.cylinder_coordinates is None:
             return 0
-        return self.cylinders_coordinate.nof_observations
+        return self.cylinder_coordinates.nof_observations
 
     def find_index_obstacles(self, grid_coordinates: ENU):
         """Find the indices of the grid_coordinates that are within the radius of the obstacles.
@@ -61,15 +57,15 @@ class SiteLayout:
             grid_coordinates (ENU): The coordinates of the grid points to check.
 
         """
-        if self.cylinders_coordinate is None or self.cylinders_coordinate.nof_observations == 0:
+        if self.cylinder_coordinates is None or self.cylinder_coordinates.nof_observations == 0:
             self.id_obstacles = np.zeros((grid_coordinates.nof_observations, 1), dtype=bool)
             return
         grid_coordinates_array = grid_coordinates.to_array(dim=2)
         tree = spatial.KDTree(grid_coordinates_array)
-        indices = tree.query_ball_point(x=self.cylinders_coordinate.to_array(dim=2), r=self.cylinders_radius.flatten())
+        indices = tree.query_ball_point(x=self.cylinder_coordinates.to_array(dim=2), r=self.cylinder_radius.flatten())
 
         if grid_coordinates.up is not None:
-            for i, height in enumerate(self.cylinders_coordinate.up):
+            for i, height in enumerate(self.cylinder_coordinates.up):
                 indices[i] = np.array(indices[i])
                 if len(indices[i]) > 0:
                     indices[i] = indices[i][grid_coordinates.up[indices[i]].flatten() <= height]

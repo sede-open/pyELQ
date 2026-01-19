@@ -11,7 +11,7 @@ from pyelq.meteorology.meteorology_windfield import MeteorologyWindfield
 
 @pytest.fixture(
     params=[[[1.0, 0.0, 0.0]], [[0.0, 1.0, 0.0], [0.0, 1.0, 0.0]], [[10.0, 6.0, 7.0]]],
-    ids=["wind_1_0_0", "wind_2time_0_1_0", "wind_10_6_7"],
+    ids=["wind_u=1_v=0_w=0", "wind_2time_u=0_v=1_w=0", "wind_u=10_v=6_w=7"],
     name="meteorology",
 )
 def fixture_meteorology(request):
@@ -28,7 +28,7 @@ def fixture_meteorology(request):
 def fixture_grid_coordinates():
     """Fixture for grid coordinates."""
     return ENU(
-        east=np.array([0, 1, 2]).T,
+        east=np.array([[0, 1, 2]]).T,
         north=np.array([[0, 1, 2]]).T,
         up=np.array([[0, 10, 20]]).T,
         ref_latitude=0,
@@ -48,12 +48,12 @@ def fixture_site_layout(request, height, grid_coordinates):
     """Fixture for site layout."""
     number_cylinders = request.param
     radius = np.array([[1, 2, 3]]).T[:number_cylinders]
-    east = np.array([0, 0, 0]).T[:number_cylinders]
-    north = np.array([0, 1, 2]).T[:number_cylinders]
+    east = np.array([[0, 0, 0]]).T[:number_cylinders]
+    north = np.array([[0, 1, 2]]).T[:number_cylinders]
     height = height * np.ones_like(radius)
 
     site_layout = SiteLayout(
-        cylinders_coordinate=ENU(
+        cylinder_coordinates=ENU(
             east=east,
             north=north,
             up=height,
@@ -61,7 +61,7 @@ def fixture_site_layout(request, height, grid_coordinates):
             ref_longitude=0,
             ref_altitude=0,
         ),
-        cylinders_radius=radius,
+        cylinder_radius=radius,
     )
     site_layout.find_index_obstacles(grid_coordinates)
     return site_layout
@@ -87,7 +87,7 @@ def test_find_index_obstacles(site_layout, grid_coordinates, height):
     assert site_layout.id_obstacles.shape == (grid_coordinates.nof_observations, 1)
     assert site_layout.id_obstacles.dtype == bool
     assert not np.any(site_layout.id_obstacles[grid_coordinates.up > height])
-    site_layout.find_index_obstacles(site_layout.cylinders_coordinate)
+    site_layout.find_index_obstacles(site_layout.cylinder_coordinates)
     assert np.all(site_layout.id_obstacles)
 
 

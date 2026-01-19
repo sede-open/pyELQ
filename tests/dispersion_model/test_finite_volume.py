@@ -130,7 +130,7 @@ def fixture_finite_volume(solver_type, use_obstacle, dimension, source_map, use_
     """
     diffusion_constants = [1.0] * len(dimension)
     if use_obstacle:
-        cylinders_coordinate = ENU(
+        cylinder_coordinates = ENU(
             east=np.array(0.0, ndmin=2),
             north=np.array(0.0, ndmin=2),
             up=np.array(10.0, ndmin=2),
@@ -138,7 +138,7 @@ def fixture_finite_volume(solver_type, use_obstacle, dimension, source_map, use_
             ref_longitude=0,
             ref_altitude=0,
         )
-        site_layout = SiteLayout(cylinders_coordinate=cylinders_coordinate, cylinders_radius=np.array([[1.0]]))
+        site_layout = SiteLayout(cylinder_coordinates=cylinder_coordinates, cylinder_radius=np.array([[1.0]]))
     else:
         site_layout = None
 

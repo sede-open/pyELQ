@@ -119,7 +119,7 @@ class MeteorologyWindfield(Meteorology):
         )
         rotated_grid = np.einsum("ijt,nj->nit", rotation_matrix, grid_coordinates.to_array(dim=2))
         rotated_cylinders = np.einsum(
-            "ijt,nj->nit", rotation_matrix, self.site_layout.cylinders_coordinate.to_array(dim=2)
+            "ijt,nj->nit", rotation_matrix, self.site_layout.cylinder_coordinates.to_array(dim=2)
         )
         return (rotation_matrix, rotated_grid, rotated_cylinders)
 
@@ -161,7 +161,7 @@ class MeteorologyWindfield(Meteorology):
         radial_distance = np.linalg.norm(diff, axis=2)
         x_diff = diff[:, :, 0, :]
         y_diff = diff[:, :, 1, :]
-        radius_squared = self.site_layout.cylinders_radius.T**2
+        radius_squared = self.site_layout.cylinder_radius.T**2
         radial_distance_sq = radial_distance**2
         radial_distance_quad = radial_distance_sq**2
         radius_sq_over_r4 = radius_squared[:, :, np.newaxis] / radial_distance_quad
@@ -170,7 +170,7 @@ class MeteorologyWindfield(Meteorology):
             sum_term_x = np.einsum("nct, nct->nt", radius_sq_over_r4, (y_diff**2 - x_diff**2))
             sum_term_y = np.einsum("nct, nct->nt", radius_sq_over_r4, (y_diff * x_diff))
         else:
-            height_mask = grid_coordinates.up <= self.site_layout.cylinders_coordinate.up.T
+            height_mask = grid_coordinates.up <= self.site_layout.cylinder_coordinates.up.T
             height_mask = height_mask.reshape(grid_coordinates.nof_observations, self.site_layout.nof_cylinders)
             sum_term_x = np.einsum("nc, nct, nct->nt", height_mask, radius_sq_over_r4, (y_diff**2 - x_diff**2))
             sum_term_y = np.einsum("nc, nct, nct->nt", height_mask, radius_sq_over_r4, (y_diff * x_diff))
