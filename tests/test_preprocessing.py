@@ -129,7 +129,7 @@ def check_field_values(data_object, field_list):
 def test_initialize(sensor_mod, meteorology, time_bin_edges):
     """Test that the preprocessing class initialises successfully.
 
-    Using the wrapper construction to test both a single Meteorology input object as well as a MeteorologyGroup. 
+    Using the wrapper construction to test both a single Meteorology input object as well as a MeteorologyGroup.
     In case of no time_bin_edges the MeteorologyGroup case is not required and should not be used.
 
     """
@@ -166,12 +166,11 @@ def wrapper_initialise(sensor_mod_input, meteorology_input, time_bin_edges_input
             np.zeros(preprocess.time_bin_edges.shape),
         )
         for sns, met in zip(preprocess.sensor_object.values(), preprocess.met_object.values()):
-            assert np.allclose(np.array(sns.time - met.time, dtype=float), np.zeros(sns.time.shape))  
+            assert np.allclose(np.array(sns.time - met.time, dtype=float), np.zeros(sns.time.shape))
         met_out = preprocess.met_object
     else:
         met_out = {}
-        met_out['single_met'] = preprocess.met_object       
-       
+        met_out["single_met"] = preprocess.met_object
 
     for met in met_out.values():
         assert np.all(
@@ -198,7 +197,8 @@ def wrapper_initialise(sensor_mod_input, meteorology_input, time_bin_edges_input
             assert np.all(met.wind_speed >= limit)
     else:
         assert np.all(preprocess_limit_high.met_object.wind_speed <= limit)
-        assert np.all(preprocess_limit_low.met_object.wind_speed >= limit)    
+        assert np.all(preprocess_limit_low.met_object.wind_speed >= limit)
+
 
 def test_block_data(sensor_mod, meteorology, time_bin_edges, block_times):
     """Test that the data blocking functionality returns expected results.
@@ -211,7 +211,7 @@ def test_block_data(sensor_mod, meteorology, time_bin_edges, block_times):
             which lie entirely outside the time range of the data.
 
     """
-    
+
     preprocess = Preprocessor(time_bin_edges=time_bin_edges, sensor_object=sensor_mod, met_object=meteorology)
 
     if preprocess.is_regularized is False:
