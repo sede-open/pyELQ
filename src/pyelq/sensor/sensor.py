@@ -115,6 +115,10 @@ class Sensor:
         the source is turned on and off multiple times, (0 values in `source_on` indicate off periods and positive
         integers indicate different on periods). For example, if section_index=1, a new Sensor will be returned
         containing only observations where self.source_on == 1.
+
+        If sensor.location.shape[0] and sensor.time.shape[0] align we assume the location values are dependent on time and 
+        therefore need to be filtered accordingly and otherwise we keep the original location.
+        
         This functionality is useful for situations where data is collected in multiple sections, e.g. repeated on/off
         releases where we want to work with one section at a time or later stitch multiple per-section segments
         together.
@@ -126,6 +130,9 @@ class Sensor:
             new_sensor (Sensor): A new Sensor object containing only the specified observations.
 
         """
+        if self.source_on is None:
+            return deepcopy(self)
+
         section_indices = (self.source_on == section_index).flatten()
         new_sensor = deepcopy(self)
         new_sensor.time = self.time[section_indices]
@@ -135,7 +142,7 @@ class Sensor:
             location_object = location_object[section_indices, :]
             new_sensor.location = new_sensor.location.from_array(location_object)
 
-        new_sensor.source_on = self.source_on[section_indices] if self.source_on is not None else None
+        new_sensor.source_on = self.source_on[section_indices]
         return new_sensor
 
 
@@ -201,7 +208,9 @@ class SensorGroup(dict):
 
     @property
     def source_on(self) -> np.ndarray:
-        """Column vector of booleans indicating whether sources are expected to be on, unwrapped over sensors.
+        """Column vector of integers indicating whether sources are expected to be on, unwrapped over sensors. 
+
+        Different integer values represent different sections where the source is on.
 
         Assumes source is on when None is specified for a specific sensor.
 

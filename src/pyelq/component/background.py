@@ -168,6 +168,9 @@ class TemporalBackground(Background):
 
     def initialise(self, sensor_object: SensorGroup, meteorology: MeteorologyGroup, gas_species: GasSpecies):
         """Create temporal background model from sensor, meteorology and gas species inputs.
+        
+        The precision matrix is made to be full rank by adjusting the precision at the first time point using the
+        precision_time_0 attribute.
 
         Args:
             sensor_object (SensorGroup): sensor data object.
@@ -332,6 +335,9 @@ class SpatioTemporalBackground(Background):
         """Create the full precision matrix for the background parameters.
 
         Defined as the Kronecker product of the temporal precision matrix and the spatial precision matrix.
+
+        The precision matrix is made to be full rank by adjusting the precision at the first time point using the
+        precision_time_0 attribute.
 
         """
         self.temporal_precision_matrix = gmrf.precision_temporal(time=self.time)

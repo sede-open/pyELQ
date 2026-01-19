@@ -179,9 +179,8 @@ class GaussianPlume(DispersionModel):
                 gas_density=gas_density,
             )
 
-        if sensor_object.source_on is not None:
-            sensor_object.source_on[sensor_object.source_on != 0] = 1
-            plume_coupling = plume_coupling * sensor_object.source_on[:, None]
+        if sensor_object.source_on is not None:                        
+            plume_coupling = plume_coupling *  np.where(sensor_object.source_on != 0, 1, 0)[:, None]
 
         return plume_coupling
 
