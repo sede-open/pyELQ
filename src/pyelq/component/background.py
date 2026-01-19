@@ -168,7 +168,7 @@ class TemporalBackground(Background):
 
     def initialise(self, sensor_object: SensorGroup, meteorology: MeteorologyGroup, gas_species: GasSpecies):
         """Create temporal background model from sensor, meteorology and gas species inputs.
-        
+
         The precision matrix is made to be full rank by adjusting the precision at the first time point using the
         precision_time_0 attribute.
 

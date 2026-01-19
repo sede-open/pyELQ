@@ -145,7 +145,7 @@ class Preprocessor:
         """Filter out data points where any of the specified sensor or meteorology fields has a NaN value.
 
         Function first works through all sensor and meteorology fields and finds indices of all times where there is a
-        NaN value in any field. Then, it uses the resulting index to filter all fields. 
+        NaN value in any field. Then, it uses the resulting index to filter all fields.
         The sensor_object and met_object are not assumed to have the same time stamps and they are treated separately.
 
         The result of this function is that the sensor_object and met_object attributes of the class are updated, any

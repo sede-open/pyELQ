@@ -116,9 +116,9 @@ class Sensor:
         integers indicate different on periods). For example, if section_index=1, a new Sensor will be returned
         containing only observations where self.source_on == 1.
 
-        If sensor.location.shape[0] and sensor.time.shape[0] align we assume the location values are dependent on time and 
+        If sensor.location.shape[0] and sensor.time.shape[0] align we assume the location values are dependent on time and
         therefore need to be filtered accordingly and otherwise we keep the original location.
-        
+
         This functionality is useful for situations where data is collected in multiple sections, e.g. repeated on/off
         releases where we want to work with one section at a time or later stitch multiple per-section segments
         together.
@@ -208,7 +208,7 @@ class SensorGroup(dict):
 
     @property
     def source_on(self) -> np.ndarray:
-        """Column vector of integers indicating whether sources are expected to be on, unwrapped over sensors. 
+        """Column vector of integers indicating whether sources are expected to be on, unwrapped over sensors.
 
         Different integer values represent different sections where the source is on.
 
