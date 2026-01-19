@@ -66,7 +66,7 @@ class Preprocessor:
         None, the sensor and meteorology group objects will not have identical time stamps, but will be free of NaNs.
         The time stamps for the sensor objects and meteorology objects will be the original time stamps.
 
-        """        
+        """
         self.met_object.calculate_uv_from_wind_speed_direction()
         if self.time_bin_edges is not None:
             self.regularize_data()
@@ -77,7 +77,6 @@ class Preprocessor:
             self.filter_nans()
         else:
             self.filter_nans_no_regularize()
-            
 
     def regularize_data(self) -> None:
         """Smoothing or interpolation of data onto a common set of time points.
@@ -120,7 +119,6 @@ class Preprocessor:
 
         self.sensor_object = sensor_out
         self.met_object = met_out
-        
 
     def filter_nans(self) -> None:
         """Filter out data points where any of the specified sensor or meteorology fields has a NaN value.
@@ -192,12 +190,12 @@ class Preprocessor:
     def filter_on_met(self, filter_variable: list, lower_limit: list = None, upper_limit: list = None) -> None:
         """Filter the supplied data on given properties of the meteorological data.
 
-       
+
         If self.is_regularized, the filtering is done on both sensor_object and met_object and assumes that the
-        SensorGroup and MeteorologyGroup objects attached as attributes have corresponding values (one per sensor 
+        SensorGroup and MeteorologyGroup objects attached as attributes have corresponding values (one per sensor
         device), and have attributes that have been pre-smoothed/interpolated onto a common time grid per device.
 
-        If the data is not regularized, the filtering is done on the met_object only. In this case a MeteorologyGroup 
+        If the data is not regularized, the filtering is done on the met_object only. In this case a MeteorologyGroup
         is not allowed.
 
         The result of this function is that the sensor_object and met_object attributes are updated with the filtered
@@ -227,11 +225,9 @@ class Preprocessor:
         else:
             if isinstance(self.met_object, MeteorologyGroup):
                 raise TypeError("MeteorologyGroup not required in case with no regularization.")
-            for vrb, low, high in zip(filter_variable, lower_limit, upper_limit):                
-                index_keep = np.logical_and(
-                    getattr(self.met_object, vrb) >= low, getattr(self.met_object, vrb) <= high
-                )
-                self.met_object = self.filter_object_fields(self.met_object, self.met_fields, index_keep)                                           
+            for vrb, low, high in zip(filter_variable, lower_limit, upper_limit):
+                index_keep = np.logical_and(getattr(self.met_object, vrb) >= low, getattr(self.met_object, vrb) <= high)
+                self.met_object = self.filter_object_fields(self.met_object, self.met_fields, index_keep)
 
     def block_data(
         self, time_edges: pd.arrays.DatetimeArray, data_object: Union[SensorGroup, MeteorologyGroup]
