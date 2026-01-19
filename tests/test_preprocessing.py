@@ -129,7 +129,8 @@ def check_field_values(data_object, field_list):
 def test_initialize(sensor_mod, meteorology, time_bin_edges):
     """Test that the preprocessing class initialises successfully.
 
-    Using the wrapper construction to test both a single Meteorology input object as well as a MeteorologyGroup.
+    Using the wrapper construction to test both a single Meteorology input object as well as a MeteorologyGroup. 
+    In case of no time_bin_edges the MeteorologyGroup case is not required and should not be used.
 
     """
     wrapper_initialise(sensor_mod, meteorology, time_bin_edges)
@@ -159,17 +160,18 @@ def wrapper_initialise(sensor_mod_input, meteorology_input, time_bin_edges_input
         time_bin_edges=time_bin_edges_input, sensor_object=sensor_mod_input, met_object=meteorology_input
     )
 
-    if time_bin_edges_input is not None:
+    if preprocess.is_regularized:
         assert np.allclose(
             np.array(preprocess.time_bin_edges.to_numpy() - time_bin_edges_input.to_numpy(), dtype=float),
             np.zeros(preprocess.time_bin_edges.shape),
         )
         for sns, met in zip(preprocess.sensor_object.values(), preprocess.met_object.values()):
-            assert np.allclose(np.array(sns.time - met.time, dtype=float), np.zeros(sns.time.shape))
+            assert np.allclose(np.array(sns.time - met.time, dtype=float), np.zeros(sns.time.shape))  
         met_out = preprocess.met_object
     else:
         met_out = {}
-        met_out["met_station"] = preprocess.met_object
+        met_out['single_met'] = preprocess.met_object       
+       
 
     for met in met_out.values():
         assert np.all(
@@ -186,21 +188,22 @@ def wrapper_initialise(sensor_mod_input, meteorology_input, time_bin_edges_input
     preprocess_limit_high = deepcopy(preprocess)
     preprocess_limit_low = deepcopy(preprocess)
     limit = 2.0
-    if time_bin_edges_input is not None:
-        preprocess_limit_low.filter_on_met(filter_variable=["wind_speed"], lower_limit=[limit])
-        preprocess_limit_high.filter_on_met(filter_variable=["wind_speed"], upper_limit=[limit])
+    preprocess_limit_low.filter_on_met(filter_variable=["wind_speed"], lower_limit=[limit])
+    preprocess_limit_high.filter_on_met(filter_variable=["wind_speed"], upper_limit=[limit])
+
+    if isinstance(preprocess_limit_high.met_object, MeteorologyGroup):
         for met in preprocess_limit_high.met_object.values():
             assert np.all(met.wind_speed <= limit)
-
         for met in preprocess_limit_low.met_object.values():
             assert np.all(met.wind_speed >= limit)
-
+    else:
+        assert np.all(preprocess_limit_high.met_object.wind_speed <= limit)
+        assert np.all(preprocess_limit_low.met_object.wind_speed >= limit)    
 
 def test_block_data(sensor_mod, meteorology, time_bin_edges, block_times):
     """Test that the data blocking functionality returns expected results.
 
-    In the case of the finite volume we don't get a MeteorologyGroup back but it also doesn't make sense to use this
-    function in that case so the test is skipped.
+    In the case the data is not regularised we cannot use the block_data function and this test is skipped.
 
     Checks that:
         - the field values after blocking do not contain any NaNs or Infs.
@@ -208,10 +211,11 @@ def test_block_data(sensor_mod, meteorology, time_bin_edges, block_times):
             which lie entirely outside the time range of the data.
 
     """
-    if time_bin_edges is None:
-        return
-
+    
     preprocess = Preprocessor(time_bin_edges=time_bin_edges, sensor_object=sensor_mod, met_object=meteorology)
+
+    if preprocess.is_regularized is False:
+        return
 
     with pytest.raises(TypeError):
         preprocess.block_data(block_times, data_object="bad_argument")

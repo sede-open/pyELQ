@@ -4,7 +4,7 @@
 """Class for performing preprocessing on the loaded data."""
 
 from copy import deepcopy
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Union
 
 import numpy as np
@@ -27,7 +27,7 @@ class Preprocessor:
         aggregate_function (str): function to be used for aggregation of data. Defaults to mean.
         sensor_fields (list): standard list of sensor attributes that we wish to regularize and/or filter.
         met_fields (list): standard list of meteorology attributes that we wish to regularize/filter.
-
+        is_regularized (bool): flag indicating whether the met and sensor data has been regularized.
     """
 
     time_bin_edges: Union[pd.arrays.DatetimeArray, None]
@@ -47,6 +47,7 @@ class Preprocessor:
         "wind_turbulence_horizontal",
         "wind_turbulence_vertical",
     ]
+    is_regularized: bool = field(init=False, default=False)
 
     def __post_init__(self) -> None:
         """Initialise the class.
@@ -65,16 +66,18 @@ class Preprocessor:
         None, the sensor and meteorology group objects will not have identical time stamps, but will be free of NaNs.
         The time stamps for the sensor objects and meteorology objects will be the original time stamps.
 
-        """
+        """        
         self.met_object.calculate_uv_from_wind_speed_direction()
         if self.time_bin_edges is not None:
             self.regularize_data()
+
         self.met_object.calculate_wind_direction_from_uv()
         self.met_object.calculate_wind_speed_from_uv()
-        if self.time_bin_edges is None:
-            self.filter_nans_single_meteorology()
-        else:
+        if self.is_regularized:
             self.filter_nans()
+        else:
+            self.filter_nans_no_regularize()
+            
 
     def regularize_data(self) -> None:
         """Smoothing or interpolation of data onto a common set of time points.
@@ -95,6 +98,7 @@ class Preprocessor:
         will have identical time stamps, but may still contain NaNs.
 
         """
+        self.is_regularized = True
         sensor_out = deepcopy(self.sensor_object)
         for sns_new, sns_old in zip(sensor_out.values(), self.sensor_object.values()):
             for field in self.sensor_fields:
@@ -116,6 +120,7 @@ class Preprocessor:
 
         self.sensor_object = sensor_out
         self.met_object = met_out
+        
 
     def filter_nans(self) -> None:
         """Filter out data points where any of the specified sensor or meteorology fields has a NaN value.
@@ -141,7 +146,7 @@ class Preprocessor:
             self.sensor_object[sns_key] = self.filter_object_fields(sns_in, self.sensor_fields, filter_index)
             self.met_object[met_key] = self.filter_object_fields(met_in, self.met_fields, filter_index)
 
-    def filter_nans_single_meteorology(self) -> None:
+    def filter_nans_no_regularize(self) -> None:
         """Filter out data points where any of the specified sensor or meteorology fields has a NaN value.
 
         Function first works through all sensor and meteorology fields and finds indices of all times where there is a
@@ -157,8 +162,11 @@ class Preprocessor:
             filter_index = self.get_nan_filter_index(sns_in, self.sensor_fields)
             self.sensor_object[sns_key] = self.filter_object_fields(sns_in, self.sensor_fields, filter_index)
 
-        filter_index = self.get_nan_filter_index(self.met_object, self.met_fields)
-        self.met_object = self.filter_object_fields(self.met_object, self.met_fields, filter_index)
+        if isinstance(self.met_object, Meteorology):
+            filter_index = self.get_nan_filter_index(self.met_object, self.met_fields)
+            self.met_object = self.filter_object_fields(self.met_object, self.met_fields, filter_index)
+        else:
+            raise TypeError("MeteorologyGroup not required in case with no regularization.")
 
     @staticmethod
     def get_nan_filter_index(obj: Union[Sensor, Meteorology], field_list: list) -> np.ndarray:
@@ -175,18 +183,22 @@ class Preprocessor:
         """
         filter_index = np.ones(obj.nof_observations, dtype=bool)
 
-        for field in field_list:
-            if (field != "time") and (getattr(obj, field) is not None):
-                filter_index = np.logical_and(filter_index, np.logical_not(np.isnan(getattr(obj, field))))
+        for field_name in field_list:
+            if (field_name != "time") and (getattr(obj, field_name) is not None):
+                filter_index = np.logical_and(filter_index, np.logical_not(np.isnan(getattr(obj, field_name))))
 
         return filter_index
 
     def filter_on_met(self, filter_variable: list, lower_limit: list = None, upper_limit: list = None) -> None:
         """Filter the supplied data on given properties of the meteorological data.
 
-        Assumes that the SensorGroup and MeteorologyGroup objects attached as attributes have corresponding values (one
-        per sensor device), and have attributes that have been pre-smoothed/interpolated onto a common time grid per
-        device.
+       
+        If self.is_regularized, the filtering is done on both sensor_object and met_object and assumes that the
+        SensorGroup and MeteorologyGroup objects attached as attributes have corresponding values (one per sensor 
+        device), and have attributes that have been pre-smoothed/interpolated onto a common time grid per device.
+
+        If the data is not regularized, the filtering is done on the met_object only. In this case a MeteorologyGroup 
+        is not allowed.
 
         The result of this function is that the sensor_object and met_object attributes are updated with the filtered
         versions.
@@ -204,13 +216,22 @@ class Preprocessor:
         if upper_limit is None:
             upper_limit = [np.inf] * len(filter_variable)
 
-        for vrb, low, high in zip(filter_variable, lower_limit, upper_limit):
-            for sns_key, met_key in zip(self.sensor_object, self.met_object):
-                sns_in = self.sensor_object[sns_key]
-                met_in = self.met_object[met_key]
-                index_keep = np.logical_and(getattr(met_in, vrb) >= low, getattr(met_in, vrb) <= high)
-                self.sensor_object[sns_key] = self.filter_object_fields(sns_in, self.sensor_fields, index_keep)
-                self.met_object[met_key] = self.filter_object_fields(met_in, self.met_fields, index_keep)
+        if self.is_regularized:
+            for vrb, low, high in zip(filter_variable, lower_limit, upper_limit):
+                for sns_key, met_key in zip(self.sensor_object, self.met_object):
+                    sns_in = self.sensor_object[sns_key]
+                    met_in = self.met_object[met_key]
+                    index_keep = np.logical_and(getattr(met_in, vrb) >= low, getattr(met_in, vrb) <= high)
+                    self.sensor_object[sns_key] = self.filter_object_fields(sns_in, self.sensor_fields, index_keep)
+                    self.met_object[met_key] = self.filter_object_fields(met_in, self.met_fields, index_keep)
+        else:
+            if isinstance(self.met_object, MeteorologyGroup):
+                raise TypeError("MeteorologyGroup not required in case with no regularization.")
+            for vrb, low, high in zip(filter_variable, lower_limit, upper_limit):                
+                index_keep = np.logical_and(
+                    getattr(self.met_object, vrb) >= low, getattr(self.met_object, vrb) <= high
+                )
+                self.met_object = self.filter_object_fields(self.met_object, self.met_fields, index_keep)                                           
 
     def block_data(
         self, time_edges: pd.arrays.DatetimeArray, data_object: Union[SensorGroup, MeteorologyGroup]
@@ -273,9 +294,9 @@ class Preprocessor:
 
         """
         return_object = deepcopy(data_object)
-        for field in fields:
-            if getattr(return_object, field) is not None:
-                setattr(return_object, field, getattr(return_object, field)[index])
+        for field_name in fields:
+            if getattr(return_object, field_name) is not None:
+                setattr(return_object, field_name, getattr(return_object, field_name)[index])
         return return_object
 
     def interpolate_single_met_object(self, met_in_object: Meteorology) -> Meteorology:
@@ -290,15 +311,15 @@ class Preprocessor:
         """
         met_out_object = Meteorology()
         time_out = None
-        for field in self.met_fields:
-            if (field != "time") and (getattr(met_in_object, field) is not None):
+        for field_name in self.met_fields:
+            if (field_name != "time") and (getattr(met_in_object, field_name) is not None):
                 time_out, resampled_values = temporal_resampling(
                     met_in_object.time,
-                    getattr(met_in_object, field),
+                    getattr(met_in_object, field_name),
                     self.time_bin_edges,
                     self.aggregate_function,
                 )
-                setattr(met_out_object, field, resampled_values)
+                setattr(met_out_object, field_name, resampled_values)
 
         if time_out is not None:
             met_out_object.time = time_out
