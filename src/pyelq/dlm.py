@@ -9,6 +9,7 @@ This module provides a class definition for the Dynamic Linear Models following 
 'Bayesian Forecasting and Dynamic Models' (2nd ed), Springer New York, NY, Chapter 4, https://doi.org/10.1007/b98971
 
 """
+
 from dataclasses import dataclass, field
 from typing import Tuple, Union
 

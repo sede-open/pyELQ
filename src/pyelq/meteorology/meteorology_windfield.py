@@ -9,6 +9,7 @@ Version of the meteorology class that deals with spatial wind fields and can cal
 cylindrical obstacles.
 
 """
+
 from dataclasses import dataclass
 from typing import Optional, Tuple, Union
 
@@ -82,7 +83,7 @@ class MeteorologyWindfield(Meteorology):
             self.v_component = np.broadcast_to(v.T, (grid_coordinates.nof_observations, v.shape[0]))
             return
         mathematical_wind_direction = np.arctan2(v, u).flatten()
-        (rotation_matrix, rotated_grid, rotated_cylinders) = self._rotate_coordinates(
+        rotation_matrix, rotated_grid, rotated_cylinders = self._rotate_coordinates(
             grid_coordinates, mathematical_wind_direction
         )
         u_rot, v_rot = self._calculate_wind_field_cardinal(

@@ -8,6 +8,7 @@
 Module containing some functions used in post-processing of the results.
 
 """
+
 import warnings
 from typing import TYPE_CHECKING, Tuple, Union
 

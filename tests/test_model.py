@@ -3,6 +3,7 @@
 # SPDX-License-Identifier: Apache-2.0
 
 """Tests for the main ELQModel class."""
+
 from copy import deepcopy
 
 import pytest

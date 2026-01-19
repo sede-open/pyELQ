@@ -391,7 +391,7 @@ def test_compute_time_bins(finite_volume, sensor_group, meteorology):
     Meteorology time bins may not be well defined if the time range is not the same as the sensor time range.
 
     """
-    (time_bins, time_index_sensor, time_index_met) = finite_volume.compute_time_bins(sensor_group, meteorology)
+    time_bins, time_index_sensor, time_index_met = finite_volume.compute_time_bins(sensor_group, meteorology)
     n_bins = len(time_bins)
     assert time_bins[1] - time_bins[0] == pd.Timedelta(finite_volume.dt, unit="s")
     for key, sensor in sensor_group.items():

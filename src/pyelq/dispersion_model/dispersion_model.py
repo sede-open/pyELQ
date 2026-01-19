@@ -10,6 +10,7 @@ The super class for the Gaussian Plume and Finite Volume dispersion models used 
 The Mathematics of Atmospheric Dispersion Modeling, John M. Stockie, DOI. 10.1137/10080991X
 
 """
+
 from abc import ABC
 from dataclasses import dataclass
 from typing import Union

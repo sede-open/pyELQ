@@ -29,7 +29,7 @@ class SiteLayout:
         cylinder_coordinates (ENU): The coordinates of the cylindrical obstacles in the site layout.
         cylinder_radius (np.ndarray): The radius of the cylindrical obstacles in the site layout.
         id_obstacles (np.ndarray): Boolean array indicating which grid points are within obstacle regions.
-        id_obstacles_index (np.ndarray): The indices of the grid points that are within obstacle regions.   
+        id_obstacles_index (np.ndarray): The indices of the grid points that are within obstacle regions.
 
     """
 

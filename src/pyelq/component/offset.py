@@ -4,6 +4,7 @@
 
 # -*- coding: utf-8 -*-
 """Offset module."""
+
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Union
 
