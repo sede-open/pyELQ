@@ -9,8 +9,9 @@ This module defines the SiteLayout class, which represents the layout of a site,
 (e.g. buildings, tanks, equipment) as cylinders obstructing the flow field.
 
 """
-from typing import Union
+
 from dataclasses import dataclass, field
+from typing import Union
 
 import numpy as np
 from scipy import spatial
@@ -77,6 +78,7 @@ class SiteLayout:
         self.id_obstacles_index = indices_conc
         self.id_obstacles = np.zeros((grid_coordinates.nof_observations, 1), dtype=bool)
         self.id_obstacles[[indices_conc]] = True
+
     def check_reference_coordinates(self, grid_coordinates: ENU):
         """Check if the reference coordinates of the grid and cylinder coordinates match.
 
@@ -86,7 +88,6 @@ class SiteLayout:
         Raises:
             ValueError: If the reference coordinates do not match.
         """
-
         if grid_coordinates.ref_altitude != self.cylinder_coordinates.ref_altitude:
             raise ValueError("Grid coordinates and cylinder coordinates must have the same reference altitude.")
         if grid_coordinates.ref_longitude != self.cylinder_coordinates.ref_longitude:
