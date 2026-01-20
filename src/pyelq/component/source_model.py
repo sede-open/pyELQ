@@ -665,7 +665,7 @@ class SourceModel(Component, SourceGrouping, SourceDistribution):
         if self.sensor_object.source_on is not None:
             couplings = deepcopy(couplings)
             index_keep = self.sensor_object.source_on > 0
-            couplings = couplings[index_keep]
+            couplings = couplings[index_keep, :]
 
         coupling_threshold = self.threshold_function(couplings, **kwargs)
         no_warning_threshold = np.where(coupling_threshold <= 1e-100, 1, coupling_threshold)
