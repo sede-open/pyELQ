@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: 2024 Shell Global Solutions International B.V. All Rights Reserved.
+#
+# SPDX-License-Identifier: Apache-2.0
 """Unit Testing for the SiteLayout and MeteorologyWindfield classes."""
 
 import numpy as np

@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: 2024 Shell Global Solutions International B.V. All Rights Reserved.
+#
+# SPDX-License-Identifier: Apache-2.0
 """Test module for finite volume dispersion model.
 
 This module provides various tests for the Finite volume related code part of pyELQ
