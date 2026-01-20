@@ -12,8 +12,6 @@ __all__ = [
     "test_coordinate_system",
     "test_dlm",
     "test_gas_species",
-    "test_meteorology",
-    "test_meteorology_windfield",
     "test_preprocessing",
     "test_source_map",
 ]
