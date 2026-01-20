@@ -190,7 +190,6 @@ class Preprocessor:
     def filter_on_met(self, filter_variable: list, lower_limit: list = None, upper_limit: list = None) -> None:
         """Filter the supplied data on given properties of the meteorological data.
 
-
         If self.is_regularized, the filtering is done on both sensor_object and met_object and assumes that the
         SensorGroup and MeteorologyGroup objects attached as attributes have corresponding values (one per sensor
         device), and have attributes that have been pre-smoothed/interpolated onto a common time grid per device.
