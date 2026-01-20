@@ -165,6 +165,7 @@ class MeteorologyWindfield(Meteorology):
         radius_squared = self.site_layout.cylinder_radius.T**2
         radial_distance_sq = radial_distance**2
         radial_distance_quad = radial_distance_sq**2
+        radial_distance_quad[radial_distance_quad == 0] = np.nan
         radius_sq_over_r4 = radius_squared[:, :, np.newaxis] / radial_distance_quad
 
         if grid_coordinates.up is None:
