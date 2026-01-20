@@ -36,7 +36,7 @@ def fix_time_bin_edges(request, sensor_group):
         return None
     else:
         min_time, max_time = get_time_lims(sensor_group=sensor_group)
-        min_time, max_time = min_time - timedelta(seconds=60), max_time + timedelta(seconds=60)
+        min_time, max_time = min_time - timedelta(seconds=240), max_time + timedelta(seconds=240)
         time_bin_edges = pd.date_range(min_time, max_time, freq="120s").array
     return time_bin_edges
 
