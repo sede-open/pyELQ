@@ -539,7 +539,7 @@ class SourceModel(Component, SourceGrouping, SourceDistribution):
     emission_proposal_std: float = 0.5
 
     update_precision: bool = False
-    prior_precision_shape: Union[float, np.ndarray] = 1
+    prior_precision_shape: Union[float, np.ndarray] = 1.0
     prior_precision_rate: Union[float, np.ndarray] = 1e-3
     initial_precision: Union[float, np.ndarray] = 1.0
     precision_scalar: np.ndarray = field(init=False)

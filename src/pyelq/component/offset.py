@@ -58,7 +58,7 @@ class PerSensor(Component):
     indicator_basis: sparse.csc_matrix = field(init=False)
     update_precision: bool = False
     mean_offset: float = 0.0
-    prior_precision_shape: float = 1e-3
+    prior_precision_shape: float = 1.0
     prior_precision_rate: float = 1e-3
     initial_precision: float = 1.0
 
