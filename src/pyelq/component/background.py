@@ -61,7 +61,7 @@ class Background(Component):
     precision_matrix: Union[np.ndarray, sparse.csc_matrix] = field(init=False)
     mean_bg: Union[float, None] = None
     update_precision: bool = False
-    prior_precision_shape: float = 1.0
+    prior_precision_shape: float = 1e-3
     prior_precision_rate: float = 1e-3
     initial_precision: float = 1.0
     basis_matrix: sparse.csr_array = field(init=False)

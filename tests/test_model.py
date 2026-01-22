@@ -28,6 +28,7 @@ def fix_model_default(sensor_group, met_group, gas_species):
 def fix_background_model(request):
     """Fix a particular type of background model."""
     background_model = request.param
+
     if background_model is None:
         return None
     return background_model()
@@ -54,8 +55,10 @@ def fix_source_model(request):
 def fix_offset_model(request):
     """Fix a particular type of offset model."""
     offset_model = request.param
+
     if offset_model is None:
         return None
+
     return offset_model()
 
 
@@ -68,6 +71,7 @@ def fix_error_model(request):
 
     """
     error_model = request.param
+
     if error_model is None:
         return BySensor()
     return error_model()
@@ -90,8 +94,10 @@ def fix_model(
 
     if background_model is not None:
         background_model.update_precision = True
+        background_model.prior_precision_shape = 1
     if offset_model is not None:
         offset_model.update_precision = True
+        offset_model.prior_precision_shape = 1
     if local_source_model is not None:
         if not isinstance(local_source_model, list):
             local_source_model = [deepcopy(local_source_model)]
@@ -99,6 +105,7 @@ def fix_model(
         for source_model_i in local_source_model:
             source_model_i.dispersion_model = deepcopy(dispersion_model)
             source_model_i.update_precision = True
+            source_model_i.prior_precision_shape = 1
             if source_model_i.reversible_jump:
                 source_model_i.site_limits = site_limits
 
