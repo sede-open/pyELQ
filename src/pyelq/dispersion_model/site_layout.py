@@ -27,7 +27,8 @@ class SiteLayout:
     around the cylindrical obstacles.
 
     Attributes:
-        cylinder_coordinates (Union[ENU, None]): The coordinates of the cylindrical obstacles in the site layout.
+        cylinder_coordinates (Union[ENU, None]): The coordinates of the cylindrical obstacles in the site layout. The
+            east, north represent the the center of the cylinder and the up coordinate represents the cylinder height.
         cylinder_radius (np.ndarray): The radius of the cylindrical obstacles in the site layout.
         id_obstacles (np.ndarray): Boolean array indicating which grid points are within obstacle regions.
         id_obstacles_index (np.ndarray): The indices of the grid points that are within obstacle regions.
@@ -42,7 +43,7 @@ class SiteLayout:
 
     @property
     def nof_cylinders(self) -> int:
-        """Returns the number of cylinders in the site layout."""
+        """Int: Returns the number of cylinders in the site layout."""
         if self.cylinder_coordinates is None:
             return 0
         return self.cylinder_coordinates.nof_observations

@@ -30,7 +30,7 @@ from pyelq.source_map import SourceMap
 
 @pytest.fixture(
     params=[[[10.0, 6.0, 7.0]]],
-    ids=["wind_10,6,7"],
+    ids=["wind_u=10_v=6_w=7"],
     name="meteorology",
 )
 def fixture_meteorology(request):
@@ -384,7 +384,10 @@ def test_compute_coupling(finite_volume, meteorology, sensor_group, output_stack
             assert output[key].shape == (sensor.nof_observations, finite_volume.source_map.nof_sources)
             assert output[key].dtype == "float64"
             assert np.all(output[key] >= 0)
+
             assert np.all(np.isfinite(output[key]))
+            if sensor.source_on is not None:
+                assert np.all(output[key][sensor.source_on == 0, :] == 0)
 
 
 def test_compute_time_bins(finite_volume, sensor_group, meteorology):

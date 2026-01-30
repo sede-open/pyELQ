@@ -40,9 +40,9 @@ class FiniteVolume(DispersionModel):
     Uses an advection-diffusion solver to create the coupling matrix between a set of source locations and a set of
     sensor locations.
 
-    Args:
+    Attributes:
         dimensions (list): list of FiniteVolumeDimension for each grid dimension (e.g., x, y, z).
-        diffusion_constants (np.ndarray): array of diffusion constants ([x,y,z], m^2/s).
+        diffusion_constants (np.ndarray): array of diffusion constants [x,y,z], units m^2/s.
         site_layout (Union[SiteLayout, None]): the layout of the site including cylinder coordinates and radii.
             (default is None). If None, no obstacles are considered in the model.
         dt (float): time step (s) (default is None). (If None, the time step is set using the CFL condition).
@@ -54,7 +54,6 @@ class FiniteVolume(DispersionModel):
             computing coupling. (default is True).
         use_lookup_table (bool): if True, uses a lookup table for coupling matrix interpolation (default is True).
 
-    Attributes:
         grid_coordinates (np.ndarray): shape=(total_number_cells, number_dimensions), coordinates of the grid points.
         source_grid_link (csr_array): is a sparse matrix linking the source map to the grid coordinates.
         cell_volume (float): volume of a single grid cell.
@@ -304,8 +303,8 @@ class FiniteVolume(DispersionModel):
         return interpolated_coupling
 
     def propagate_solver_single_time_step(
-        self, met_windfield: MeteorologyWindfield, coupling_matrix: np.ndarray = None
-    ) -> sp.csr_array:
+        self, met_windfield: MeteorologyWindfield, coupling_matrix: Union[sp.csc_array, None] = None
+    ) -> sp.csc_array:
         """Time-step the finite volume solver.
 
         Time-step the finite volume solver to map the coupling matrix at time t to the coupling matrix at time (t +
@@ -315,18 +314,18 @@ class FiniteVolume(DispersionModel):
         evolved by a single time-step using either an implicit or explicit solver approach, depending on the value of
         self.implicit_solver.
 
-        coupling_matrix will be a sparse csr_array with shape=(total_number_cells, number of sources)
+        coupling_matrix will be a sparse csc_array with shape=(total_number_cells, number of sources)
 
         If minimum_contribution is set, all elements in the coupling matrix smaller than this number will be set to 0.
         This can speed up computation.
 
         Args:
             met_windfield (MeteorologyWindfield): meteorology object containing wind field information.
-            coupling_matrix (np.ndarray): shape=(self.total_number_cells, number of sources). Coupling matrix at the
-                current time. Units are s/m^3.
+            coupling_matrix Union[(sparse.csc_array, None]: shape=(self.total_number_cells, number of sources). Coupling matrix at the
+            coupling_matrix (Union[np.ndarray, None]): shape=(self.total_number_cells, number of sources). Coupling matrix at the
 
         Returns:
-            coupling_matrix (sparse.csr_array): shape=(self.total_number_cells, number of sources). Coupling
+            coupling_matrix (sparse.csc_array): shape=(self.total_number_cells, number of sources). Coupling
                 matrix on the finite volume grid. Represents the contribution of each cell to the source term in the
                 transport equation.
 
@@ -339,10 +338,10 @@ class FiniteVolume(DispersionModel):
             rhs = (1.0 / scale_factor) * coupling_matrix + self.source_grid_link
             coupling_matrix = -spsolve(self.forward_matrix.tocsc(), rhs).reshape(self.source_grid_link.shape)
             if not sp.issparse(coupling_matrix):
-                coupling_matrix = sp.csr_array(coupling_matrix)
+                coupling_matrix = sp.csc_array(coupling_matrix)
         else:
             coupling_matrix = scale_factor * (self.forward_matrix @ coupling_matrix + self.source_grid_link)
-        if self.minimum_contribution > 0 and sp.issparse(coupling_matrix):
+        if self.minimum_contribution > 0:
             coupling_matrix.data[abs(coupling_matrix.data) <= self.minimum_contribution] = 0
             coupling_matrix.eliminate_zeros()
         if self.site_layout is not None:
@@ -409,7 +408,7 @@ class FiniteVolume(DispersionModel):
     def _construct_diagonals_advection_diffusion(self) -> None:
         """Construct the diagonals of the advection and diffusion contributions to the overall solver matrix.
 
-        In the docstring of the function self._combine_advection_diffusion_terms(), the coefficients of the advection
+        In the function self._combine_advection_diffusion_terms(), the coefficients of the advection
         terms are stored in the matrix F, and the coefficients of the diffusion terms are stored in the matrix G. This
         function creates the diagonals of the F and G matrices.
 
@@ -495,10 +494,10 @@ class FiniteVolume(DispersionModel):
         self.forward_matrix = self._forward_matrix_transpose.T
 
     def _update_diagonal_matrix(self) -> None:
-        """Update the diagonal matrix for the solver.
+        """Update the self.forward_matrix for the solver.
 
-        This method updates the diagonal matrix using the specified forward matrix. Avoid reconstructing the matrix and
-        just updates the data in place.
+        This method updates the self.forward_matrix  using the updated adv_diff_terms Avoid reconstructing the sparse
+        matrix and just updates the data in place for speed purposes.
 
         Since the forward_matrix is transposed, we need to update the transposed version of the forward matrix then
         transpose it back.
@@ -686,6 +685,8 @@ class FiniteVolume(DispersionModel):
 
         dt is set to the minimum of the advection and diffusion time steps multiplied by self.courant_number.
 
+        dt is rounded to the nearest 0.1s due to usage in pd.date_range in other parts of the code.
+
         Args:
             meteorology_object (Meteorology): meteorology object containing timeseries of wind data.
 
@@ -802,9 +803,10 @@ class FiniteVolume(DispersionModel):
                     ref_longitude=self.grid_coordinates.ref_longitude,
                     ref_altitude=self.grid_coordinates.ref_altitude,
                 )
-                sensor.location.from_array(sensor_array)
                 if self.number_dimensions == 2:
                     sensor_array = np.delete(sensor_array, 2, axis=1)
+                sensor.location.from_array(sensor_array)
+
         return sensor_object_beam_knots_added
 
     def _calculate_number_burn_steps(self, meteorology_object: Meteorology) -> int:
@@ -847,7 +849,7 @@ class FiniteVolumeDimension:
     Assuming that each solver dimension is a regular grid, this class stores grid properties, such as cell edges,
     centre points and cell widths.
 
-    Args:
+    Attributes:
         label (str): name of this dimension (e.g., 'x', 'y', 'z').
         number_cells (int): number of cells in this dimension.
         limits (list): limits of this dimension (e.g., [0, 100]).
@@ -855,7 +857,6 @@ class FiniteVolumeDimension:
             e.g., external_boundary_type=['dirichlet', 'neumann'].
             If only 1 type is specified, it is used for both faces of this dimension.
 
-    Attributes:
         cell_edges (np.ndarray): shape=(self.number_cells + 1,) edge locations for the cells in this dimension.
         cell_centers (np.ndarray): shape=(self.number_cells,) central locations of the cells in this dimension.
         cell_width (float): width of the cells in this dimension.
@@ -914,10 +915,9 @@ class FiniteVolumeDimension:
 class FiniteVolumeFace(ABC):
     """Face type for a grid cell in the finite volume method.
 
-    Args:
+    Attributes:
         external_boundary_type (str): The type of boundary condition for the face. either 'dirichlet' or 'neumann'.
 
-    Attributes:
         cell_face_area (float): The area of the face.
         cell_volume (float): The volume of the face.
         cell_width (float): The width of the cell in the direction normal to the face.
@@ -947,9 +947,9 @@ class FiniteVolumeFace(ABC):
             raise ValueError(f"Invalid external boundary type: {self.external_boundary_type}. ")
         self.adv_diff_terms = {"advection": SolverDiagonals(), "diffusion": SolverDiagonals()}
 
-    def set_boundary_type(self, external_boundaries, site_layout: SiteLayout = None) -> None:
+    def set_boundary_type(self, external_boundaries: np.ndarray, site_layout: Union[SiteLayout, None] = None) -> None:
         """Set the boundary condition for the face based on the external boundary type.
-
+    def set_boundary_type(self, external_boundaries: np.ndarray, site_layout: Union[SiteLayout, None] = None) -> None:
         External boundaries are set to 'dirichlet' or 'neumann' based on the specified external_boundary_type. Internal
         boundaries are set to 'internal'.
 
@@ -959,7 +959,7 @@ class FiniteVolumeFace(ABC):
         Args:
             external_boundaries (np.ndarray): shape=(total_number_cells, 1). Boolean array indicating which faces are
                 external boundaries.
-            site_layout (SiteLayout): SiteLayout object containing obstacle information. Defaults to None.
+             site_layout (Union[SiteLayout, None]): SiteLayout object containing obstacle information. Defaults to None.
 
         """
         self.boundary_type = np.full(self.neighbour_index.shape, "internal", dtype="<U10")
@@ -1003,7 +1003,7 @@ class FiniteVolumeFace(ABC):
         other dimensions have been dropped.
 
         Args:
-            diffusion_constants (scalar) : diffusion coefficient in this dimension.
+            diffusion_constants (float) : diffusion coefficient in this dimension.
 
         """
         term = self.adv_diff_terms["diffusion"]
