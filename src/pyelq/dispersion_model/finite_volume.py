@@ -928,6 +928,7 @@ class FiniteVolumeFace(ABC):
             and "diffusion", each containing a SolverDiagonals object.
 
     """
+
     external_boundary_type: str
     cell_face_area: float = field(init=False)
     cell_volume: float = field(init=False)
