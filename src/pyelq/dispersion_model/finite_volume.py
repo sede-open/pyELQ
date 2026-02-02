@@ -928,7 +928,6 @@ class FiniteVolumeFace(ABC):
             and "diffusion", each containing a SolverDiagonals object.
 
     """
-
     external_boundary_type: str
     cell_face_area: float = field(init=False)
     cell_volume: float = field(init=False)
@@ -949,17 +948,17 @@ class FiniteVolumeFace(ABC):
 
     def set_boundary_type(self, external_boundaries: np.ndarray, site_layout: Union[SiteLayout, None] = None) -> None:
         """Set the boundary condition for the face based on the external boundary type.
-        def set_boundary_type(self, external_boundaries: np.ndarray, site_layout: Union[SiteLayout, None] = None) -> None:
-            External boundaries are set to 'dirichlet' or 'neumann' based on the specified external_boundary_type. Internal
-            boundaries are set to 'internal'.
 
-            The function also handles the case where the face is affected by an obstacle. Obstacle boundaries are set to
-            'neumann'.
+        External boundaries are set to 'dirichlet' or 'neumann' based on the specified external_boundary_type. Internal
+        boundaries are set to 'internal'.
 
-            Args:
-                external_boundaries (np.ndarray): shape=(total_number_cells, 1). Boolean array indicating which faces are
-                    external boundaries.
-                 site_layout (Union[SiteLayout, None]): SiteLayout object containing obstacle information. Defaults to None.
+        The function also handles the case where the face is affected by an obstacle. Obstacle boundaries are set to
+        'neumann'.
+
+        Args:
+            external_boundaries (np.ndarray): shape=(total_number_cells, 1). Boolean array indicating which faces are
+                external boundaries.
+            site_layout (Union[SiteLayout, None]): SiteLayout object containing obstacle information. Defaults to None.
 
         """
         self.boundary_type = np.full(self.neighbour_index.shape, "internal", dtype="<U10")

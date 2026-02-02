@@ -37,11 +37,11 @@ class MeteorologyWindfield(Meteorology):
     static_wind_field: Meteorology
     site_layout: Optional[Union[SiteLayout, None]] = None
 
-    def calculate_spatial_wind_field(self, grid_coordinates, time_index: int = None):
+    def calculate_spatial_wind_field(self, grid_coordinates: ENU, time_index: int = None):
         """Calculates the spatial wind field over a grid considering obstacles.
 
-        Computes the full spatial wind field over a grid considering both ambient meteorological conditions and local
-        distortions due to obstacles.
+        Computes the full spatial wind field from a time series stored in self.static_wind_field at grid locations
+        provided in grid_coordinates considering distortion effects due to flow around cylindrical obstacles.
 
         The method:
         - Rotates grid coordinates into the wind-aligned frame based on mathematical wind direction.
@@ -51,32 +51,26 @@ class MeteorologyWindfield(Meteorology):
         - If w_component is present in the static wind field, it is broadcasted to match the grid points.
         - If no site layout is provided, the wind field remains undisturbed and is simply broadcasted across the grid.
 
-        The method updates the following properties in place:
+        Output: The method updates the following properties in place:
         - u_component np.ndarray: (n_grid x n_time) The x-component of the wind field at the grid points.
         - v_component np.ndarray: (n_grid x n_time) The y-component of the wind field at the grid points.
-        - w_component np.ndarray: (n_grid x n_time) The y-component of the wind field at the grid points.
+        - w_component np.ndarray: (n_grid x n_time) The z-component of the wind field at the grid points.
 
         Args:
             grid_coordinates (ENU): The coordinates of the grid points.
             time_index (int): The time index for the meteorological data.
 
         """
-        if time_index is not None:
-            u = self.static_wind_field.u_component.reshape(-1, 1)[time_index]
-            v = self.static_wind_field.v_component.reshape(-1, 1)[time_index]
-            if self.static_wind_field.w_component is not None:
-                self.w_component = np.broadcast_to(
-                    self.static_wind_field.w_component[time_index].T,
-                    (grid_coordinates.nof_observations, u.shape[0]),
-                )
-        else:
-            u = self.static_wind_field.u_component.reshape(-1, 1)
-            v = self.static_wind_field.v_component.reshape(-1, 1)
-            if self.static_wind_field.w_component is not None:
-                self.w_component = np.broadcast_to(
-                    self.static_wind_field.w_component.T,
-                    (grid_coordinates.nof_observations, self.static_wind_field.w_component.shape[0]),
-                )
+        if time_index is None:
+            time_index = np.ones_like(self.static_wind_field.u_component).astype(bool)
+
+        u = self.static_wind_field.u_component.reshape(-1, 1)[time_index]
+        v = self.static_wind_field.v_component.reshape(-1, 1)[time_index]
+        if self.static_wind_field.w_component is not None:
+            self.w_component = np.broadcast_to(
+                self.static_wind_field.w_component[time_index].T,
+                (grid_coordinates.nof_observations, u.shape[0]),
+            )
 
         if self.site_layout is None:
             self.u_component = np.broadcast_to(u.T, (grid_coordinates.nof_observations, u.shape[0]))
@@ -100,7 +94,7 @@ class MeteorologyWindfield(Meteorology):
         self.v_component = rotated_wind[:, :, 1]
 
     def _rotate_coordinates(
-        self, grid_coordinates: ENU, wind_direction: float
+        self, grid_coordinates: ENU, wind_direction: np.ndarray
     ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
         """Rotates the x, y coordinates based on the wind direction.
 
@@ -109,7 +103,9 @@ class MeteorologyWindfield(Meteorology):
             wind_direction (np.array): The wind direction in radians.
 
         Returns:
-            tuple: The rotated coordinates for the grid and cylinders.
+            rotation_matrix: rotation matrix used for inverse rotation
+            rotated_grid: grid_coordinates in rotated coordinate system
+            rotated_cylinders: cylinder locations in rotated coordinate system
 
         """
         rotation_matrix = np.array(
@@ -122,7 +118,7 @@ class MeteorologyWindfield(Meteorology):
         rotated_cylinders = np.einsum(
             "ijt,nj->nit", rotation_matrix, self.site_layout.cylinder_coordinates.to_array(dim=2)
         )
-        return (rotation_matrix, rotated_grid, rotated_cylinders)
+        return rotation_matrix, rotated_grid, rotated_cylinders
 
     def _calculate_wind_field_cardinal(
         self,
@@ -132,7 +128,7 @@ class MeteorologyWindfield(Meteorology):
         rotated_grid: np.ndarray,
         rotated_cylinders: np.ndarray,
     ) -> Tuple[np.ndarray, np.ndarray]:
-        """Calculates the distorted wind field components (u_x, u_y) in the wind-aligned (cardinal) frame.
+        """Calculates the distorted wind field components (u, v) in the wind-aligned (cardinal) frame.
 
         The method:
         - Determines whether each grid point is influenced by nearby cylinders based on distance and cylinder radius.
