@@ -321,8 +321,9 @@ class FiniteVolume(DispersionModel):
 
         Args:
             met_windfield (MeteorologyWindfield): meteorology object containing wind field information.
-            coupling_matrix (Union[(sparse.csc_array, None]): shape=(self.total_number_cells, number of sources). Coupling matrix at the
-            coupling_matrix (Union[np.ndarray, None]): shape=(self.total_number_cells, number of sources). Coupling matrix at the
+            coupling_matrix (Union[(sparse.csc_array, None]): shape=(self.total_number_cells, number of sources).
+                coupling matrix matrix on the finite volume grid if None will get preallocated for future time steps
+
 
         Returns:
             coupling_matrix (sparse.csc_array): shape=(self.total_number_cells, number of sources). Coupling
