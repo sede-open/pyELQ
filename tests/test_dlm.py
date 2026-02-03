@@ -496,7 +496,10 @@ def test_missing_value_mahalanobis_distance(nof_observables, order, forecast_hor
             )
 
     assert np.all(np.isnan(error[1, start_idx_missing:end_idx_missing]))
-    assert np.all(~np.isnan(mhd_per_beam[:, start_idx_missing + 1 : end_idx_missing + forecast_horizon - 2]))
+    assert np.all(
+        mhd_per_beam[1, start_idx_missing + 1 : end_idx_missing + forecast_horizon - 2]
+        <= mhd_per_beam[0, start_idx_missing + 1 : end_idx_missing + forecast_horizon - 2]
+    )
     assert np.all(
         dof_per_beam[1, start_idx_missing : end_idx_missing + forecast_horizon - 2]
         <= dof_per_beam[0, start_idx_missing : end_idx_missing + forecast_horizon - 2]
