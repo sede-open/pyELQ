@@ -220,7 +220,7 @@ class FiniteVolume(DispersionModel):
         field at the first time-step.
 
         If the coupling matrix is unstable (norm > 1e3), an error is raised suggesting to check the CFL number and dt.
-        This condition is only checked at time t = 0.
+        This condition is checked every 10% of the time steps.
 
         Args:
             sensor_object (SensorGroup): sensor data object.
