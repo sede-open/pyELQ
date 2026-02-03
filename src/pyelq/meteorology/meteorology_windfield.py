@@ -103,9 +103,9 @@ class MeteorologyWindfield(Meteorology):
             wind_direction (np.array): The wind direction in radians.
 
         Returns:
-            rotation_matrix: rotation matrix used for inverse rotation
-            rotated_grid: grid_coordinates in rotated coordinate system
-            rotated_cylinders: cylinder locations in rotated coordinate system
+            rotation_matrix (np.ndarray): rotation matrix used for inverse rotation
+            rotated_grid (np.ndarray): grid_coordinates in rotated coordinate system
+            rotated_cylinders (np.ndarray): cylinder locations in rotated coordinate system
 
         """
         rotation_matrix = np.array(

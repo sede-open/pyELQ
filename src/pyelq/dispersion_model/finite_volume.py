@@ -321,7 +321,7 @@ class FiniteVolume(DispersionModel):
 
         Args:
             met_windfield (MeteorologyWindfield): meteorology object containing wind field information.
-            coupling_matrix Union[(sparse.csc_array, None]: shape=(self.total_number_cells, number of sources). Coupling matrix at the
+            coupling_matrix (Union[(sparse.csc_array, None]): shape=(self.total_number_cells, number of sources). Coupling matrix at the
             coupling_matrix (Union[np.ndarray, None]): shape=(self.total_number_cells, number of sources). Coupling matrix at the
 
         Returns:
@@ -696,9 +696,9 @@ class FiniteVolume(DispersionModel):
         u_max = np.max(meteorology_object.wind_speed)
         dx = np.min([dim.cell_width for dim in self.dimensions])
 
-        dt_adv = np.round(self.courant_number * dx / u_max, decimals=1)
+        dt_adv = self.courant_number * dx / u_max
         dt_diff = (self.courant_number * dx**2) / (2 * np.max(self.diffusion_constants))
-        self.dt = np.minimum(dt_adv, dt_diff)
+        self.dt = np.round(np.minimum(dt_adv, dt_diff), decimals=1)
 
     def interpolate_coupling_grid_to_sensor(
         self,
