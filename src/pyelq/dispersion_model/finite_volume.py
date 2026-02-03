@@ -265,7 +265,7 @@ class FiniteVolume(DispersionModel):
                 i_time=i_time,
                 coupling_sensor=coupling_sensor,
             )
-            if i_time == np.floor(0.1 * (time_bins.size + n_burn_steps)):
+            if i_time % np.floor(0.1 * (time_bins.size + n_burn_steps)) == 0:
                 coupling_grid_sourcemap_norm = sp.linalg.norm(coupling_grid)
                 if coupling_grid_sourcemap_norm > 1e3:
                     raise ValueError(
