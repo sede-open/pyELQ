@@ -259,7 +259,7 @@ class FiniteVolume(DispersionModel):
             coupling_grid = self.propagate_solver_single_time_step(met_windfield, coupling_matrix=coupling_grid)
             scaled_coupling = coupling_grid * (1e6 / (gas_density_i.item() * 3600))
             coupling_sensor = self.interpolate_coupling_grid_to_sensor(
-                sensor_object,
+                sensor_object=sensor_object,
                 scaled_coupling=scaled_coupling,
                 time_index_sensor=time_index_sensor,
                 i_time=i_time,
@@ -803,8 +803,6 @@ class FiniteVolume(DispersionModel):
                     ref_longitude=self.grid_coordinates.ref_longitude,
                     ref_altitude=self.grid_coordinates.ref_altitude,
                 )
-                if self.number_dimensions == 2:
-                    sensor_array = np.delete(sensor_array, 2, axis=1)
                 sensor.location.from_array(sensor_array)
 
         return sensor_object_beam_knots_added
