@@ -117,8 +117,8 @@ nav:
     - DLM: pyelq/dlm.md
     - Gas Species: pyelq/gas_species.md
     - Meteorology:
-      - Overview: pyelq/meteorology.md
-      - Windfield: pyelq/meteorology_windfield.md
+      - Overview: pyelq/meteorology/meteorology.md
+      - Windfield: pyelq/meteorology/meteorology_windfield.md
     - Model: pyelq/model.md
     - Plotting: pyelq/plotting/plot.md
     - Pre-Processing: pyelq/preprocessing.md
