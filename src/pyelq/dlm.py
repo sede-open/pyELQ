@@ -9,11 +9,12 @@ This module provides a class definition for the Dynamic Linear Models following 
 'Bayesian Forecasting and Dynamic Models' (2nd ed), Springer New York, NY, Chapter 4, https://doi.org/10.1007/b98971
 
 """
+
 from dataclasses import dataclass, field
 from typing import Tuple, Union
 
 import numpy as np
-from scipy.stats import chi2
+from scipy.stats import chi2, multivariate_normal
 
 
 @dataclass
@@ -119,23 +120,18 @@ class DLM:
         mean_state_noise = np.zeros(self.nof_state_parameters)
         mean_observation_noise = np.zeros(self.nof_observables)
 
-        random_generator = np.random.default_rng(seed=None)
-
         for i in range(nof_timesteps):
             if i == 0:
-                state[:, [i]] = (
-                    self.g_matrix @ init_state
-                    + random_generator.multivariate_normal(mean_state_noise, self.w_matrix, size=1).T
-                )
+                state[:, [i]] = self.g_matrix @ init_state + multivariate_normal.rvs(
+                    mean=mean_state_noise, cov=self.w_matrix, size=1
+                ).reshape((-1, 1))
             else:
-                state[:, [i]] = (
-                    self.g_matrix @ state[:, [i - 1]]
-                    + random_generator.multivariate_normal(mean_state_noise, self.w_matrix, size=1).T
-                )
-            obs[:, [i]] = (
-                self.f_matrix.T @ state[:, [i]]
-                + random_generator.multivariate_normal(mean_observation_noise, self.v_matrix, size=1).T
-            )
+                state[:, [i]] = self.g_matrix @ state[:, [i - 1]] + multivariate_normal.rvs(
+                    mean=mean_state_noise, cov=self.w_matrix, size=1
+                ).reshape((-1, 1))
+            obs[:, [i]] = self.f_matrix.T @ state[:, [i]] + multivariate_normal.rvs(
+                mean=mean_observation_noise, cov=self.v_matrix, size=1
+            ).reshape((-1, 1))
 
         return state, obs
 

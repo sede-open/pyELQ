@@ -42,6 +42,8 @@ def test_make_state(error_model: ErrorModel, sensor_group: SensorGroup):
         n_param = n_sensor
     elif isinstance(error_model, ByRelease):
         n_param = 2 * n_sensor
+    else:
+        raise TypeError("Unknown error model type.")
 
     assert state["tau"].shape == (n_param,)
     assert state["a_tau"].shape == (n_param,)
@@ -75,7 +77,7 @@ def test_precision_predictor(error_model: ErrorModel):
 
     """
     state = error_model.make_state(state=None)
-    state["tau"] = np.arange(state["tau"].shape[0])
+    state["tau"] = np.arange(state["tau"].shape[0], dtype=float)
     precision_matrix = error_model.precision_parameter.predictor(state)
 
     assert sparse.issparse(precision_matrix)

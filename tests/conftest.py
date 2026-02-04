@@ -13,7 +13,7 @@ from openmcmc.model import Model
 from pyelq.coordinate_system import ENU
 from pyelq.dispersion_model.gaussian_plume import GaussianPlume
 from pyelq.gas_species import CH4
-from pyelq.meteorology import Meteorology, MeteorologyGroup
+from pyelq.meteorology.meteorology import Meteorology, MeteorologyGroup
 from pyelq.sensor.beam import Beam
 from pyelq.sensor.sensor import Sensor, SensorGroup
 from pyelq.source_map import SourceMap
@@ -50,19 +50,20 @@ def fix_sensor_group(request, ref_longitude, ref_latitude):
     The location of the sensors is set to be on a straight line in the east direction, with the last sensor being a Beam sensor.
 
     """
+    rng = np.random.default_rng(42)
     [n_time, n_sensor] = request.param
     sensor_x = np.linspace(10, 100, n_sensor).reshape(n_sensor, 1)
     sensor_y = np.zeros(shape=(n_sensor, 1))
     locations = np.concatenate((sensor_x, sensor_y), axis=1)
+    start_time = datetime(2024, 1, 1, 0, 0, 0)
     sensor = SensorGroup()
     for k in range(n_sensor - 1):
         device_name = "device_" + str(k)
         sensor[device_name] = Sensor()
-        sensor[device_name].time = pd.array(
-            pd.date_range(start=datetime.now(), end=datetime.now() + timedelta(hours=1.0), periods=n_time),
-            dtype="datetime64[ns]",
-        )
-        sensor[device_name].concentration = np.random.random_sample(size=(n_time,))
+        sensor[device_name].time = pd.date_range(
+            start=start_time, end=start_time + timedelta(hours=1.0), periods=n_time
+        ).array
+        sensor[device_name].concentration = rng.random(size=(n_time,))
         sensor[device_name].location = ENU(
             east=locations[k, 0],
             north=locations[k, 1],
@@ -71,17 +72,17 @@ def fix_sensor_group(request, ref_longitude, ref_latitude):
             ref_latitude=ref_latitude,
             ref_altitude=0.0,
         ).to_lla()
-        sensor[device_name].source_on = np.random.choice(a=[False, True], size=(n_time,), p=[0.5, 0.5])
+        sensor[device_name].source_on = rng.choice(a=[False, True], size=(n_time,), p=[0.5, 0.5])
         sensor[device_name].source_on[0] = True
 
     k = n_sensor - 1
     device_name = "device_" + str(k)
     sensor[device_name] = Beam()
-    sensor[device_name].time = pd.array(
-        pd.date_range(start=datetime.now(), end=datetime.now() + timedelta(hours=1.0), periods=n_time),
-        dtype="datetime64[ns]",
-    )
-    sensor[device_name].concentration = np.random.random_sample(size=(n_time,))
+    sensor[device_name].time = pd.date_range(
+        start=start_time, end=start_time + timedelta(hours=1.0), periods=n_time
+    ).array
+
+    sensor[device_name].concentration = rng.random(size=(n_time,))
     sensor[device_name].location = ENU(
         east=np.array([0, locations[k, 0]]),
         north=np.array([0, locations[k, 1]]),
@@ -90,7 +91,7 @@ def fix_sensor_group(request, ref_longitude, ref_latitude):
         ref_latitude=ref_latitude,
         ref_altitude=0.0,
     ).to_lla()
-    sensor[device_name].source_on = np.random.choice(a=[False, True], size=(n_time,), p=[0.5, 0.5])
+    sensor[device_name].source_on = rng.choice(a=[False, True], size=(n_time,), p=[0.5, 0.5])
     sensor[device_name].source_on[0] = True
     return sensor
 

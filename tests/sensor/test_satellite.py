@@ -8,6 +8,7 @@
 This module provides tests for the satellite sensor class in pyELQ.
 
 """
+
 import numpy as np
 import pytest
 
@@ -23,7 +24,8 @@ def test_orbits():
         sensor.get_orbits()
 
     orbits = np.array([1, 2, 3, 4, 5])
-    random_integer = np.random.randint(low=1, high=10 + 1)
+    rng = np.random.default_rng(42)
+    random_integer = rng.integers(low=1, high=10 + 1)
     random_repeat = np.repeat(orbits, random_integer)
     sensor.orbit = random_repeat
     result = sensor.get_orbits()

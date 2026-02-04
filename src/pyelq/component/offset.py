@@ -4,6 +4,7 @@
 
 # -*- coding: utf-8 -*-
 """Offset module."""
+
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Union
 
@@ -17,7 +18,7 @@ from scipy import sparse
 
 from pyelq.component.component import Component
 from pyelq.gas_species import GasSpecies
-from pyelq.meteorology import Meteorology
+from pyelq.meteorology.meteorology import Meteorology
 from pyelq.sensor.sensor import Sensor, SensorGroup
 
 if TYPE_CHECKING:

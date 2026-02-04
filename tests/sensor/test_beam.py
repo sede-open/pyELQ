@@ -8,6 +8,7 @@
 This module provides tests for the beam sensor class in pyELQ.
 
 """
+
 import numpy as np
 
 from pyelq.coordinate_system import ENU

@@ -11,25 +11,33 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from pyelq.meteorology import Meteorology, MeteorologyGroup
+from pyelq.meteorology.meteorology import Meteorology, MeteorologyGroup
 from pyelq.preprocessing import Preprocessor
 
 
 def get_time_lims(sensor_group):
     """Extract the time limits from the sensor group."""
-    min_time, max_time = datetime.now(), datetime.now()
+    start_time = datetime(2024, 1, 1, 0, 0, 0)
+    min_time, max_time = start_time, start_time
     for sns in sensor_group.values():
         min_time = np.minimum(min_time, np.min(sns.time))
         max_time = np.maximum(max_time, np.max(sns.time))
     return min_time, max_time
 
 
-@pytest.fixture(name="time_bin_edges")
-def fix_time_bin_edges(sensor_group):
-    """Fix the time bin edges to be used for aggregation."""
-    min_time, max_time = get_time_lims(sensor_group=sensor_group)
-    min_time, max_time = min_time - timedelta(seconds=60), max_time + timedelta(seconds=60)
-    time_bin_edges = pd.array(pd.date_range(min_time, max_time, freq="120s"), dtype="datetime64[ns]")
+@pytest.fixture(params=[None, "bins"], ids=["none", "bins"], name="time_bin_edges")
+def fix_time_bin_edges(request, sensor_group):
+    """Fix the time bin edges to be used for aggregation.
+
+    Case with none should not do regularisation.
+    """
+    time_bin_edges = request.param
+    if time_bin_edges is None:
+        return None
+    else:
+        min_time, max_time = get_time_lims(sensor_group=sensor_group)
+        min_time, max_time = min_time - timedelta(seconds=240), max_time + timedelta(seconds=240)
+        time_bin_edges = pd.date_range(min_time, max_time, freq="120s").array
     return time_bin_edges
 
 
@@ -38,14 +46,15 @@ def fix_block_times(sensor_group):
     """Fix the time bin edges for re-blocking the processed data."""
     min_time, max_time = get_time_lims(sensor_group=sensor_group)
     min_time, max_time = min_time - timedelta(hours=1), max_time + timedelta(hours=1)
-    block_times = pd.array(pd.date_range(min_time, max_time, freq="1200s"), dtype="datetime64[ns]")
+    block_times = pd.date_range(min_time, max_time, freq="1200s").array
     return block_times
 
 
 def add_random_nans(data_object, fields, percent_nan):
     """Take in a data object (Sensor or Meteorology) and add NaNs in random locations."""
+    rng = np.random.default_rng(42)
     for field in fields:
-        idx_nans = np.random.choice(
+        idx_nans = rng.choice(
             np.arange(data_object.time.shape[0]),
             int(np.floor(data_object.time.shape[0] * percent_nan / 100)),
             replace=False,
@@ -74,16 +83,18 @@ def fix_meteorology(request, sensor_group):
     preprocessing can recover values in this range.
 
     """
+    rng = np.random.default_rng(42)
     with_nans = request.param
     min_time, max_time = get_time_lims(sensor_group=sensor_group)
     meteorology = Meteorology()
-    meteorology.time = pd.array(pd.date_range(min_time, max_time, freq="1s"), dtype="datetime64[ns]")
-    meteorology.wind_speed = 1.9 + 0.2 * np.random.random_sample(size=meteorology.time.shape)
-    meteorology.wind_direction = np.mod(358.0 + 4.0 * np.random.random_sample(size=meteorology.time.shape), 360)
+    meteorology.time = pd.date_range(min_time, max_time, freq="1s").array
+    meteorology.wind_speed = 1.9 + 0.2 * rng.random(size=meteorology.time.shape)
+    meteorology.wind_direction = np.mod(358.0 + 4.0 * rng.random(size=meteorology.time.shape), 360)
     meteorology.wind_turbulence_horizontal = 10.0 * np.ones(shape=meteorology.time.shape)
     meteorology.wind_turbulence_vertical = 10.0 * np.ones(shape=meteorology.time.shape)
     meteorology.temperature = 293.0 * np.ones(shape=meteorology.time.shape)
     meteorology.pressure = 101.0 * np.ones(shape=meteorology.time.shape)
+
     if with_nans:
         meteorology = add_random_nans(
             meteorology,
@@ -119,15 +130,18 @@ def test_initialize(sensor_mod, meteorology, time_bin_edges):
     """Test that the preprocessing class initialises successfully.
 
     Using the wrapper construction to test both a single Meteorology input object as well as a MeteorologyGroup.
+    In case of no time_bin_edges the MeteorologyGroup case is not required and should not be used.
 
     """
     wrapper_initialise(sensor_mod, meteorology, time_bin_edges)
-    met_group = MeteorologyGroup()
-    for key in sensor_mod.keys():
-        temp_object = deepcopy(meteorology)
-        temp_object.label = key
-        met_group.add_object(temp_object)
-    wrapper_initialise(sensor_mod, met_group, time_bin_edges)
+
+    if time_bin_edges is not None:
+        met_group = MeteorologyGroup()
+        for key in sensor_mod.keys():
+            temp_object = deepcopy(meteorology)
+            temp_object.label = key
+            met_group.add_object(temp_object)
+        wrapper_initialise(sensor_mod, met_group, time_bin_edges)
 
 
 def wrapper_initialise(sensor_mod_input, meteorology_input, time_bin_edges_input):
@@ -146,15 +160,19 @@ def wrapper_initialise(sensor_mod_input, meteorology_input, time_bin_edges_input
         time_bin_edges=time_bin_edges_input, sensor_object=sensor_mod_input, met_object=meteorology_input
     )
 
-    assert np.allclose(
-        np.array(preprocess.time_bin_edges.to_numpy() - time_bin_edges_input.to_numpy(), dtype=float),
-        np.zeros(preprocess.time_bin_edges.shape),
-    )
+    if preprocess.is_regularized:
+        assert np.allclose(
+            np.array(preprocess.time_bin_edges.to_numpy() - time_bin_edges_input.to_numpy(), dtype=float),
+            np.zeros(preprocess.time_bin_edges.shape),
+        )
+        for sns, met in zip(preprocess.sensor_object.values(), preprocess.met_object.values()):
+            assert np.allclose(np.array(sns.time - met.time, dtype=float), np.zeros(sns.time.shape))
+        met_out = preprocess.met_object
+    else:
+        met_out = {}
+        met_out["single_met"] = preprocess.met_object
 
-    for sns, met in zip(preprocess.sensor_object.values(), preprocess.met_object.values()):
-        assert np.allclose(np.array(sns.time - met.time, dtype=float), np.zeros(sns.time.shape))
-
-    for met in preprocess.met_object.values():
+    for met in met_out.values():
         assert np.all(
             np.logical_or(
                 np.logical_and(met.wind_direction >= 358.0, met.wind_direction <= 360.0),
@@ -164,7 +182,7 @@ def wrapper_initialise(sensor_mod_input, meteorology_input, time_bin_edges_input
         assert np.all(np.logical_and(met.wind_speed >= 1.9, met.wind_speed <= 2.1))
 
     check_field_values(data_object=preprocess.sensor_object, field_list=preprocess.sensor_fields)
-    check_field_values(data_object=preprocess.met_object, field_list=preprocess.met_fields)
+    check_field_values(data_object=met_out, field_list=preprocess.met_fields)
 
     preprocess_limit_high = deepcopy(preprocess)
     preprocess_limit_low = deepcopy(preprocess)
@@ -172,15 +190,20 @@ def wrapper_initialise(sensor_mod_input, meteorology_input, time_bin_edges_input
     preprocess_limit_low.filter_on_met(filter_variable=["wind_speed"], lower_limit=[limit])
     preprocess_limit_high.filter_on_met(filter_variable=["wind_speed"], upper_limit=[limit])
 
-    for met in preprocess_limit_high.met_object.values():
-        assert np.all(met.wind_speed <= limit)
-
-    for met in preprocess_limit_low.met_object.values():
-        assert np.all(met.wind_speed >= limit)
+    if isinstance(preprocess_limit_high.met_object, MeteorologyGroup):
+        for met in preprocess_limit_high.met_object.values():
+            assert np.all(met.wind_speed <= limit)
+        for met in preprocess_limit_low.met_object.values():
+            assert np.all(met.wind_speed >= limit)
+    else:
+        assert np.all(preprocess_limit_high.met_object.wind_speed <= limit)
+        assert np.all(preprocess_limit_low.met_object.wind_speed >= limit)
 
 
 def test_block_data(sensor_mod, meteorology, time_bin_edges, block_times):
     """Test that the data blocking functionality returns expected results.
+
+    In the case the data is not regularised we cannot use the block_data function and this test is skipped.
 
     Checks that:
         - the field values after blocking do not contain any NaNs or Infs.
@@ -188,7 +211,11 @@ def test_block_data(sensor_mod, meteorology, time_bin_edges, block_times):
             which lie entirely outside the time range of the data.
 
     """
+
     preprocess = Preprocessor(time_bin_edges=time_bin_edges, sensor_object=sensor_mod, met_object=meteorology)
+
+    if preprocess.is_regularized is False:
+        return
 
     with pytest.raises(TypeError):
         preprocess.block_data(block_times, data_object="bad_argument")
@@ -206,5 +233,5 @@ def test_block_data(sensor_mod, meteorology, time_bin_edges, block_times):
         if ((block_times[k] < min_time) and (block_times[k + 1] < min_time)) or (
             (block_times[k] > max_time) and (block_times[k + 1] > max_time)
         ):
-            assert not list(sensor_list[k].keys())
-            assert not list(met_list[k].keys())
+            assert len(sensor_list[k]) == 0
+            assert len(met_list[k]) == 0

@@ -2,4 +2,5 @@
 #
 # SPDX-License-Identifier: Apache-2.0
 """Plotting Module."""
+
 __all__ = ["plot"]

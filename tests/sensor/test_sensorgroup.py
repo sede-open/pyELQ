@@ -8,6 +8,7 @@
 This module provides tests for the SensorGroup superclass in pyELQ
 
 """
+
 from copy import deepcopy
 
 import numpy as np
@@ -29,7 +30,7 @@ def test_sensorgroup():
         nof_observations = random_generator.integers(1, 10)
         total_observations += nof_observations
         sensor.concentration = random_generator.random(size=(nof_observations, 1))
-        sensor.time = pd.array(pd.date_range(start="1/1/2022", periods=nof_observations), dtype="datetime64[ns]")
+        sensor.time = pd.date_range(start="1/1/2022", periods=nof_observations).array
         sensor.location = LLA(
             latitude=0.01 * random_generator.random(),
             longitude=0.01 * random_generator.random(),
@@ -59,7 +60,7 @@ def test_plotting():
         sensor = Sensor()
         nof_observations = random_generator.integers(5, 10)
         sensor.concentration = random_generator.random(size=(nof_observations, 1))
-        sensor.time = pd.array(pd.date_range(start="1/1/2022", periods=nof_observations), dtype="datetime64[ns]")
+        sensor.time = pd.date_range(start="1/1/2022", periods=nof_observations).array
         location = LLA()
         location.latitude = np.array(idx)
         location.longitude = np.array(idx)

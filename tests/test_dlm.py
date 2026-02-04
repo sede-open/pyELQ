@@ -21,7 +21,7 @@ from pyelq.dlm import DLM
 
 @pytest.mark.parametrize(
     "g_matrix, power",
-    [(np.array([3], ndmin=2), 3), (np.identity(4), 4), (np.random.default_rng().random(size=(5, 5)), 5)],
+    [(np.array([3], ndmin=2), 3), (np.identity(4), 4), (np.random.default_rng(42).random(size=(5, 5)), 5)],
 )
 def test_calculate_g_power(g_matrix: np.ndarray, power: int):
     """Test to check calculate_g_power method.
@@ -354,12 +354,6 @@ def full_dlm_update_and_mahalanobis_distance(
         temp_mhd[::forecast_horizon], "chi2", args=(forecast_horizon * model.nof_observables,)
     )
 
-    # plt.figure()
-    # plt.hist(temp_mhd, density=True, cumulative=True, bins=100, histtype='step', color='k')
-    # plt.hist(temp_mhd[::forecast_horizon], density=True, cumulative=True, bins=100, histtype='step', color='r')
-    # x = np.linspace(start=0, stop=np.nanmax(mhd_overall), num=100)
-    # plt.plot(x, chi2.cdf(x, df=forecast_horizon * model.nof_observables), '-g')
-
     overall_test_fail = overall_test_result.pvalue < 0.05
     per_beam_test_fail = np.zeros(nof_observables).astype(bool)
 
@@ -435,7 +429,7 @@ def test_full_dlm_update_and_mahalanobis_distance(nof_observables, order, rho, f
 def test_missing_value_mahalanobis_distance(nof_observables, order, forecast_horizon):
     """Function to test if missing values in the observations are handled correctly.
 
-    The functions hsould return a nan value in the one step ahead error where applicable.
+    The functions should return a nan value in the one step ahead error where applicable.
     We create 2 identical beams and remove data for a few timesteps of 1 of the beams. The mahalanobis distance should
     be lower for the beam with missing data because effectively that error has been set to 0 in the processing and also
     the number of degrees of freedom should be lower too. For the Mahalanobis distance check we add 1 to the start idx

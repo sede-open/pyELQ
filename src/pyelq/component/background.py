@@ -1,7 +1,6 @@
 # SPDX-FileCopyrightText: 2024 Shell Global Solutions International B.V. All Rights Reserved.
 #
 # SPDX-License-Identifier: Apache-2.0
-
 """Model components for background modelling."""
 
 from abc import abstractmethod
@@ -22,7 +21,7 @@ from sklearn.neighbors import NearestNeighbors
 from pyelq.component.component import Component
 from pyelq.coordinate_system import Coordinate
 from pyelq.gas_species import GasSpecies
-from pyelq.meteorology import MeteorologyGroup
+from pyelq.meteorology.meteorology import MeteorologyGroup
 from pyelq.sensor.beam import Beam
 from pyelq.sensor.sensor import SensorGroup
 
@@ -51,6 +50,7 @@ class Background(Component):
         initial_precision (float): initial value for the scalar precision parameter.
         basis_matrix (sparse.csr_array): [n_obs x n_time] matrix mapping the background model parameters on to the
             observations.
+        precision_time_0 (float): precision relating to the first time stamp in the model. Defaults to 0.01.
 
     """
 
@@ -65,6 +65,7 @@ class Background(Component):
     prior_precision_rate: float = 1e-3
     initial_precision: float = 1.0
     basis_matrix: sparse.csr_array = field(init=False)
+    precision_time_0: float = field(init=False, default=0.01)
 
     @abstractmethod
     def initialise(self, sensor_object: SensorGroup, meteorology: MeteorologyGroup, gas_species: GasSpecies):
@@ -168,6 +169,9 @@ class TemporalBackground(Background):
     def initialise(self, sensor_object: SensorGroup, meteorology: MeteorologyGroup, gas_species: GasSpecies):
         """Create temporal background model from sensor, meteorology and gas species inputs.
 
+        The precision matrix is made to be full rank by adjusting the precision at the first time point using the
+        precision_time_0 attribute.
+
         Args:
             sensor_object (SensorGroup): sensor data object.
             meteorology (MeteorologyGroup): meteorology data object.
@@ -180,6 +184,8 @@ class TemporalBackground(Background):
         self.n_parameter = len(self.time)
         self.basis_matrix = sparse.csr_array((np.ones(self.n_obs), (np.array(range(self.n_obs)), unique_inverse)))
         self.precision_matrix = gmrf.precision_temporal(time=self.time)
+        lam = self.precision_matrix[0, 0]
+        self.precision_matrix[0, 0] = lam * (2.0 - lam / (self.precision_time_0 + lam))
         if self.mean_bg is None:
             self.mean_bg = gas_species.global_background
 
@@ -193,8 +199,8 @@ class SpatioTemporalBackground(Background):
     The background parameter is an [n_location * n_time x 1] (if self.spatial_dependence is True) or an [n_time x 1]
     vector (if self.spatial_dependence is False). In the spatio-temporal case, the background vector is assumed to
     unwrap over space and time as follows:
-    bg = [b_1(t_1), b_2(t_1),..., b_nlct(t_1),...,b_1(t_k),..., b_nlct(t_k),...].T
-    where nlct is the number of sensor locations.
+    bg = [b_1(t_1), b_2(t_1),..., b_n_lct(t_1),...,b_1(t_k),..., b_n_lct(t_k),...].T
+    where n_lct is the number of sensor locations.
     This unwrapping mechanism is chosen as it greatly speeds up the sparse matrix operations in the solver (vs. the
     alternative).
 
@@ -226,7 +232,6 @@ class SpatioTemporalBackground(Background):
         spatial_precision_matrix (np.ndarray): spatial component of the precision matrix. The full model precision
             matrix is the Kronecker product of this matrix with the self.temporal_precision_matrix. Simply set to 1 if
             self.spatial_dependence is False.
-        precision_time_0 (float): precision relating to the first time stamp in the model. Defaults to 0.01.
 
     """
 
@@ -238,7 +243,6 @@ class SpatioTemporalBackground(Background):
     location: Coordinate = field(init=False)
     temporal_precision_matrix: Union[np.ndarray, sparse.csc_matrix] = field(init=False)
     spatial_precision_matrix: np.ndarray = field(init=False)
-    precision_time_0: float = field(init=False, default=0.01)
 
     def initialise(self, sensor_object: SensorGroup, meteorology: MeteorologyGroup, gas_species: GasSpecies):
         """Take data inputs and extract relevant properties.
@@ -303,10 +307,9 @@ class SpatioTemporalBackground(Background):
             self.time = pd.array(np.unique(sensor_object.time), dtype="datetime64[ns]")
             self.n_time = len(self.time)
         else:
-            self.time = pd.array(
-                pd.date_range(start=np.min(sensor_object.time), end=np.max(sensor_object.time), periods=self.n_time),
-                dtype="datetime64[ns]",
-            )
+            self.time = pd.date_range(
+                start=np.min(sensor_object.time), end=np.max(sensor_object.time), periods=self.n_time
+            ).array
 
     def make_spatial_knots(self, sensor_object: SensorGroup):
         """Create the spatial grid for the model.
@@ -332,6 +335,9 @@ class SpatioTemporalBackground(Background):
         """Create the full precision matrix for the background parameters.
 
         Defined as the Kronecker product of the temporal precision matrix and the spatial precision matrix.
+
+        The precision matrix is made to be full rank by adjusting the precision at the first time point using the
+        precision_time_0 attribute.
 
         """
         self.temporal_precision_matrix = gmrf.precision_temporal(time=self.time)
@@ -386,6 +392,6 @@ class SpatioTemporalBackground(Background):
                 self.location.north[k] = np.mean(sensor.location.to_enu().north, axis=0)
                 self.location.up[k] = np.mean(sensor.location.to_enu().up, axis=0)
             else:
-                self.location.east[k] = sensor.location.to_enu().east
-                self.location.north[k] = sensor.location.to_enu().north
-                self.location.up[k] = sensor.location.to_enu().up
+                self.location.east[k] = sensor.location.to_enu().east.item()
+                self.location.north[k] = sensor.location.to_enu().north.item()
+                self.location.up[k] = sensor.location.to_enu().up.item()

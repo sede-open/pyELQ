@@ -2,4 +2,5 @@
 #
 # SPDX-License-Identifier: Apache-2.0
 """Data Access Module."""
+
 __all__ = ["data_access"]
