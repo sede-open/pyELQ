@@ -229,7 +229,7 @@ class FiniteVolume(DispersionModel):
         field at the first time-step.
 
         If the coupling matrix is unstable (norm > 1e3), an error is raised suggesting to check the CFL number and dt.
-        This condition is only checked at time t = 0.
+        This condition is checked every 10% of the time steps.
 
         Args:
             sensor_object (SensorGroup): sensor data object.
@@ -274,7 +274,7 @@ class FiniteVolume(DispersionModel):
                 i_time=i_time,
                 coupling_sensor=coupling_sensor,
             )
-            if i_time == np.floor(0.1 * (time_bins.size + n_burn_steps)):
+            if i_time % np.floor(0.1 * (time_bins.size + n_burn_steps)) == 0:
                 coupling_grid_sourcemap_norm = sp.linalg.norm(coupling_grid)
                 if coupling_grid_sourcemap_norm > 1e3:
                     raise ValueError(
@@ -330,8 +330,9 @@ class FiniteVolume(DispersionModel):
 
         Args:
             met_windfield (MeteorologyWindfield): meteorology object containing wind field information.
-            coupling_matrix Union[(sparse.csc_array, None]: shape=(self.total_number_cells, number of sources). Coupling matrix at the
-            coupling_matrix (Union[np.ndarray, None]): shape=(self.total_number_cells, number of sources). Coupling matrix at the
+            coupling_matrix (Union[(sparse.csc_array, None]): shape=(self.total_number_cells, number of sources).
+                coupling matrix matrix on the finite volume grid if None will get preallocated for future time steps
+
 
         Returns:
             coupling_matrix (sparse.csc_array): shape=(self.total_number_cells, number of sources). Coupling
@@ -705,9 +706,9 @@ class FiniteVolume(DispersionModel):
         u_max = np.max(meteorology_object.wind_speed)
         dx = np.min([dim.cell_width for dim in self.dimensions])
 
-        dt_adv = np.round(self.courant_number * dx / u_max, decimals=1)
+        dt_adv = self.courant_number * dx / u_max
         dt_diff = (self.courant_number * dx**2) / (2 * np.max(self.diffusion_constants))
-        self.dt = np.minimum(dt_adv, dt_diff)
+        self.dt = np.round(np.minimum(dt_adv, dt_diff), decimals=1)
 
     def interpolate_coupling_grid_to_sensor(
         self,
