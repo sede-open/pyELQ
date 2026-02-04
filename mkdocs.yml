@@ -109,10 +109,16 @@ nav:
       - Source Model: pyelq/component/source_model.md
     - Coordinate System: pyelq/coordinate_system.md
     - Data Access: pyelq/data_access/data_access.md
-    - Dispersion Model: pyelq/dispersion_model/gaussian_plume.md
+    - Dispersion Model:
+      - Overview: pyelq/dispersion_model/dispersion_model.md
+      - Finite Volume: pyelq/dispersion_model/finite_volume.md
+      - Gaussian Plume: pyelq/dispersion_model/gaussian_plume.md
+      - Site Layout: pyelq/dispersion_model/site_layout.md
     - DLM: pyelq/dlm.md
     - Gas Species: pyelq/gas_species.md
-    - Meteorology: pyelq/meteorology.md
+    - Meteorology:
+      - Overview: pyelq/meteorology.md
+      - Windfield: pyelq/meteorology_windfield.md
     - Model: pyelq/model.md
     - Plotting: pyelq/plotting/plot.md
     - Pre-Processing: pyelq/preprocessing.md
@@ -121,4 +127,6 @@ nav:
       - Beam: pyelq/sensor/beam.md
       - Satellite: pyelq/sensor/satellite.md
     - Source Map: pyelq/source_map.md
-    - Support Functions: pyelq/support_functions/spatio_temporal_interpolation.md
+    - Support Functions:
+      - Spatio Temporal Interpolation: pyelq/support_functions/spatio_temporal_interpolation.md
+      - Post Processing: pyelq/support_functions/post_processing.md
