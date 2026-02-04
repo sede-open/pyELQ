@@ -172,6 +172,15 @@ class FiniteVolume(DispersionModel):
         defined by the source_on attribute of the sensor object which indicates which time steps the source is on where
         0 indicates the source is off and integers starting from 1 indicate different source on sections.
 
+        To avoid additional computational effort when a source is not emitting we do not compute the forward model when
+        the source_on attribute of the sensor object is set to 0. When a source starts emitting we can either assume it
+        was already emitting and calculate an equilibrium state by setting the burn_in_steady_state attribute to True.
+        Or we assume it starts right then and set this burn_in_steady_state attribute to False. When a source stops
+        emitting there is still some gas present in the area of interest and it will take some time for this gas to
+        disperse out of the area. However we assume the solution will not improve enough during this time to warrant
+        the additional computational effort to compute the forward model for this period. Which is why we stop computing
+        the forward model again when the source_on attribute switches from 1 to 0.
+
         Args:
             sensor_object (SensorGroup): sensor data object.
             meteorology_object (MeteorologyWindfield): wind field data object.
