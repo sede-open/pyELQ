@@ -14,13 +14,16 @@ import re
 import warnings
 from copy import deepcopy
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING, Any, Callable, Type, Union
+from typing import TYPE_CHECKING, Any, Callable, Type, Union, cast
 
+import math
 import numpy as np
 import pandas as pd
 import plotly.express as px
 import plotly.figure_factory as ff
 import plotly.graph_objects as go
+from plotly.subplots import make_subplots
+
 from geojson import Feature, FeatureCollection
 from openmcmc.mcmc import MCMC
 from shapely import geometry
@@ -29,8 +32,8 @@ from pyelq.component.background import TemporalBackground
 from pyelq.component.error_model import ErrorModel
 from pyelq.component.offset import PerSensor
 from pyelq.component.source_model import SlabAndSpike, SourceModel
-from pyelq.coordinate_system import LLA
-from pyelq.dispersion_model.gaussian_plume import GaussianPlume
+from pyelq.coordinate_system import LLA, ENU
+from pyelq.source_map import SourceMap
 from pyelq.sensor.sensor import Sensor, SensorGroup
 from pyelq.support_functions.post_processing import (
     calculate_rectangular_statistics,
@@ -462,10 +465,10 @@ def plot_regular_grid(
 
     polygons = [
         geometry.box(
-            coordinates.longitude[idx] - gridsize_lon / 2,
-            coordinates.latitude[idx] - gridsize_lat / 2,
-            coordinates.longitude[idx] + gridsize_lon / 2,
-            coordinates.latitude[idx] + gridsize_lat / 2,
+            coordinates.longitude[idx].item() - gridsize_lon / 2,
+            coordinates.latitude[idx].item() - gridsize_lat / 2,
+            coordinates.longitude[idx].item() + gridsize_lon / 2,
+            coordinates.latitude[idx].item() + gridsize_lat / 2,
         )
         for idx in range(coordinates.nof_observations)
     ]
@@ -1142,39 +1145,123 @@ class Plot:
 
     def plot_coverage(
         self,
-        coordinates: LLA,
-        couplings: np.ndarray,
-        threshold_function: Callable = np.max,
-        coverage_threshold: float = 6,
+        model_object: "ELQModel",
         opacity: float = 0.8,
         map_color_scale="jet",
     ):
         """Creates a coverage plot using the coverage function from Gaussian Plume.
 
         Args:
-            coordinates (LLA object): A LLA coordinate object containing a set of locations.
-            couplings (np.array): The calculated values of coupling (The 'A matrix') for a set of wind data.
-            threshold_function (Callable, optional): Callable function which returns some single value that defines the
-                                         maximum or 'threshold' coupling. Examples: np.quantile(q=0.9),
-                                         np.max, np.mean. Defaults to np.max.
-            coverage_threshold (float, optional): The threshold value of the estimated emission rate which is
+            source_model (SourceModel): The source model object containing the source locations and emission rates.
+            opacity (float): The opacity of the grid cells when they are plotted.
+            map_color_scale (str): The string which defines which plotly colour scale should be used when plotting
+                                   the values.
+
                                                   considered to be within the coverage. Defaults to 6 kg/hr.
             opacity (float): The opacity of the grid cells when they are plotted.
             map_color_scale (str): The string which defines which plotly colour scale should be used when plotting
                                    the values.
 
         """
-        coverage_values = GaussianPlume(source_map=None).compute_coverage(
-            couplings=couplings, threshold_function=threshold_function, coverage_threshold=coverage_threshold
+        source_model = model_object.components["source"]
+        site_limits = source_model.site_limits
+        grid_shape = (10, 10, 12)
+        source_map = SourceMap()
+        location_object = ENU(
+            ref_latitude=source_model.dispersion_model.source_map.location.ref_latitude,
+            ref_longitude=source_model.dispersion_model.source_map.location.ref_longitude,
+            ref_altitude=source_model.dispersion_model.source_map.location.ref_altitude
         )
-        self.plot_values_on_map(
-            dict_key="coverage_map",
-            coordinates=coordinates,
-            values=coverage_values,
-            aggregate_function=np.max,
-            opacity=opacity,
-            map_color_scale=map_color_scale,
+
+        source_map.generate_sources(
+            coordinate_object=location_object,
+            sourcemap_limits=site_limits,
+            sourcemap_type="grid", nof_sources=math.prod(grid_shape), grid_shape=grid_shape
         )
+        source_model.dispersion_model.source_map = source_map
+        coupling_matrix = source_model.dispersion_model.compute_coupling(
+            sensor_object=model_object.sensor_object,
+            meteorology_object=model_object.meteorology,
+            gas_object=model_object.gas_species,
+            output_stacked=True,
+        )
+        in_coverage_area = source_model.compute_coverage(coupling_matrix)
+
+        dict_key = "coverage_map"
+        grid_locations = source_map.location.to_enu()
+
+        self.figure_dict[dict_key] = make_subplots(
+            rows=4, cols=3,
+            subplot_titles=[f"Height = {height:.3f}" for height in np.unique(grid_locations.up)],
+            vertical_spacing=0.05,
+            horizontal_spacing=0.02,
+            shared_xaxes=True, shared_yaxes=True,
+        )
+        heights = np.unique(grid_locations.up)
+        colorscale = [[0.0, "blue"],
+                      [0.4999, "blue"],
+                      [0.5, "yellow"],
+                      [1.0, "yellow"]]
+        for i, height in enumerate(heights):
+            row = i // 3 + 1
+            col = i % 3 + 1
+            is_first_subplot = (row == 1) and (col == 1)
+            idx_height = (grid_locations.up == height).flatten()
+
+            x = grid_locations.east[idx_height]
+            y = grid_locations.north[idx_height]
+            in_cov = in_coverage_area[idx_height].astype(int)
+            x_unique = np.unique(x)
+            y_unique = np.unique(y)
+            incov_grid = in_cov.reshape(len(y_unique), len(x_unique))
+
+            self.figure_dict[dict_key].add_trace(
+                go.Heatmap(
+                    x=x_unique,
+                    y=y_unique,
+                    z=incov_grid,
+                    colorscale=colorscale,
+                    zmin=0,
+                    zmax=1,
+                    name=f"Height {height}",
+                    showscale=is_first_subplot,
+                    colorbar=dict(
+                            orientation="h",
+                            title="Coverage",
+                            tickmode="array",
+                            tickvals=[0, 1],
+                            ticktext=["Out of coverage", "In coverage"],
+                            len =0.5,
+                        )
+                    ),
+                row=row,
+                col=col,
+            )
+            marker_dict = {"size": 10, "opacity": 0.8}
+            for i, sensor in enumerate(model_object.sensor_object.values()):
+                marker_dict["color"] = model_object.sensor_object.color_map[i]
+                enu_object = sensor.location.to_enu(
+                    ref_altitude=grid_locations.ref_altitude,
+                    ref_latitude=grid_locations.ref_latitude,
+                    ref_longitude=grid_locations.ref_longitude)
+
+                self.figure_dict[dict_key].add_trace(
+                    go.Scatter(
+                        mode="markers+lines",
+                        x=np.array(enu_object.east),
+                        y=np.array(enu_object.north),
+                        marker=marker_dict,
+                        line={"width": 3},
+                        name=sensor.label,
+                        showlegend=is_first_subplot
+                    ),
+                    row=row,
+                    col=col,
+                )
+
+        if self.figure_dict[dict_key].layout is not None:
+            self.figure_dict[dict_key].update_layout(template=self.layout)
+
 
     @staticmethod
     def create_summary_trace(
