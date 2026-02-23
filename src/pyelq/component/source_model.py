@@ -612,10 +612,10 @@ class SourceModel(Component, SourceGrouping, SourceDistribution):
     ):
         """Initialise the dispersion model.
 
-        Attempts to generated a source map with sources in the coverage area, and to generate a coupling matrix.
+        Attempts to generate a source map with sources in the coverage area, and to generate a coupling matrix.
 
         If a dispersion_model has not already been attached to the instance, then this function adds a GaussianPlume
-        dispersion model, with a default source map that has limits set based on the sensor locations.
+        dispersion model, with a default source map that has limits set based on the site limits
 
         If no sources are in the source map, generate_sources will be run with default arguments to generate an initial
         source map with sources in the coverage area.
@@ -647,10 +647,9 @@ class SourceModel(Component, SourceGrouping, SourceDistribution):
     ):
         """Generate random source locations for the source map using a hyper_cube design within coverage area.
 
-        Uses the sensor locations to set the limits for the source map, and attempts to generate a source map with
-        sources in the coverage area. If no sources are in the coverage area, the function will keep trying to
-        generate a source map until it finds one with sources in the coverage area, or until it has tried 100 times
-        (in which case it raises a ValueError).
+        Attempts to generate a source map within the site_limits and with all sources in the coverage area. If no
+        sources are in the coverage area, the function will keep trying to generate a source map until it finds one with
+        sources in the coverage area, or until it has tried 100 times (in which case it raises a ValueError).
 
         Args:
             sensor_object (SensorGroup): object containing sensor data.
