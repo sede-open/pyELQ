@@ -636,12 +636,12 @@ class SourceModel(Component, SourceGrouping, SourceDistribution):
             if self.site_limits is None:
                 buffer = 1
                 self.site_limits = np.array(
-                        [
-                            [np.min(sensor_locations.east) - buffer, np.max(sensor_locations.east) + buffer],
-                            [np.min(sensor_locations.north) - buffer, np.max(sensor_locations.north) + buffer],
-                            [np.min(sensor_locations.up) - buffer, np.max(sensor_locations.up) + buffer],
-                        ]
-                    )
+                    [
+                        [np.min(sensor_locations.east) - buffer, np.max(sensor_locations.east) + buffer],
+                        [np.min(sensor_locations.north) - buffer, np.max(sensor_locations.north) + buffer],
+                        [np.min(sensor_locations.up) - buffer, np.max(sensor_locations.up) + buffer],
+                    ]
+                )
             self.dispersion_model = GaussianPlume(blank_source_map)
 
         if self.nof_sources == 0:
