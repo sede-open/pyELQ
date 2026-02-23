@@ -159,6 +159,7 @@ def test_generate_sources(source_model, sensor_group, met_group, gas_species, no
 
     assert source_model.dispersion_model.source_map.nof_sources == nof_sources_before_screening
 
+
 def test_birth_function(source_model):
     """Test the birth_function implementation, and some aspects of the reversible jump sampler.
 
