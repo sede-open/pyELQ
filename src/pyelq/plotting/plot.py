@@ -384,7 +384,7 @@ def plot_single_box(fig: go.Figure, y_values: np.ndarray, color: str, name: str)
 
 def plot_polygons_on_map(
     polygons: Union[np.ndarray, list], values: np.ndarray, opacity: float, map_color_scale: str, **kwargs: Any
-) -> go.Choroplethmap:
+) -> go.Choroplethmapbox:
     """Plot a set of polygons on a map.
 
     Args:
@@ -393,11 +393,11 @@ def plot_polygons_on_map(
                              used in coloring the polygons on the map.
         opacity (float): Float between 0 and 1 specifying the opacity of the polygon fill color.
         map_color_scale (str): The string which defines which plotly color scale.
-        **kwargs (Any): Additional key word arguments which can be passed on the go.Choroplethmap object
+        **kwargs (Any): Additional key word arguments which can be passed on the go.Choroplethmapbox object
             (will override the default values as specified in this function)
 
     Returns:
-        trace: go.Choroplethmap trace with the colored polygons which can be added to a go.Figure object.
+        trace: go.Choroplethmapbox trace with the colored polygons which can be added to a go.Figure object.
 
     """
     polygon_id = list(range(values.shape[0]))
@@ -426,7 +426,7 @@ def plot_polygons_on_map(
     for key, value in kwargs.items():
         trace_options[key] = value
 
-    trace = go.Choroplethmap(**trace_options)
+    trace = go.Choroplethmapbox(**trace_options)
 
     return trace
 
@@ -439,7 +439,7 @@ def plot_regular_grid(
     tolerance: float = 1e-7,
     unit: str = "kg/hr",
     name="Values",
-) -> go.Choroplethmap:
+) -> go.Choroplethmapbox:
     """Plots a regular grid of LLA data onto a map.
 
     So long as the input array is regularly spaced, the value of the spacing is found. A set of rectangles are defined
@@ -457,7 +457,7 @@ def plot_regular_grid(
         name (str, optional): Name for the trace to be used in the color bar as well
 
     Returns:
-        trace (go.Choroplethmap): Trace with the colored polygons which can be added to a go.Figure object.
+        trace (go.Choroplethmapbox): Trace with the colored polygons which can be added to a go.Figure object.
 
     """
     _, gridsize_lat = is_regularly_spaced(coordinates.latitude, tolerance=tolerance)
@@ -1146,7 +1146,7 @@ class Plot:
     def plot_coverage(
         self,
         model_object: "ELQModel",
-        opacity: float = 0.8,
+        opacity: float = 0.4,
         map_color_scale="jet",
     ):
         """Creates a coverage plot using the coverage function from Gaussian Plume.
@@ -1189,78 +1189,85 @@ class Plot:
 
         dict_key = "coverage_map"
         grid_locations = source_map.location.to_enu()
+        grid_locations_lla = grid_locations.to_lla()
+        self.create_empty_map_figure(dict_key=dict_key)
 
-        self.figure_dict[dict_key] = make_subplots(
-            rows=4, cols=3,
-            subplot_titles=[f"Height = {height:.3f}" for height in np.unique(grid_locations.up)],
-            vertical_spacing=0.05,
-            horizontal_spacing=0.02,
-            shared_xaxes=True, shared_yaxes=True,
-        )
+        trace_groups = []
         heights = np.unique(grid_locations.up)
-        colorscale = [[0.0, "blue"],
-                      [0.4999, "blue"],
-                      [0.5, "yellow"],
-                      [1.0, "yellow"]]
         for i, height in enumerate(heights):
-            row = i // 3 + 1
-            col = i % 3 + 1
-            is_first_subplot = (row == 1) and (col == 1)
+            group_idxs = []
             idx_height = (grid_locations.up == height).flatten()
+            coverge_height = in_coverage_area[idx_height].astype(int)
+            in_coverage_indices = np.nonzero(coverge_height == 1)[0]
 
-            x = grid_locations.east[idx_height]
-            y = grid_locations.north[idx_height]
-            in_cov = in_coverage_area[idx_height].astype(int)
-            x_unique = np.unique(x)
-            y_unique = np.unique(y)
-            incov_grid = in_cov.reshape(len(y_unique), len(x_unique))
+            latitude = grid_locations_lla.latitude[idx_height][in_coverage_indices]
+            longitude = grid_locations_lla.longitude[idx_height][in_coverage_indices]
+            altitude = grid_locations_lla.altitude[idx_height][in_coverage_indices]
+            coordinates_plot = LLA(latitude=latitude, longitude=longitude, altitude=altitude)
 
-            self.figure_dict[dict_key].add_trace(
-                go.Heatmap(
-                    x=x_unique,
-                    y=y_unique,
-                    z=incov_grid,
-                    colorscale=colorscale,
-                    zmin=0,
-                    zmax=1,
-                    name=f"Height {height}",
-                    showscale=is_first_subplot,
-                    colorbar=dict(
-                            orientation="h",
-                            title="Coverage",
-                            tickmode="array",
-                            tickvals=[0, 1],
-                            ticktext=["Out of coverage", "In coverage"],
-                            len =0.5,
-                        )
-                    ),
-                row=row,
-                col=col,
-            )
+            trace = plot_regular_grid(
+                coordinates=coordinates_plot,
+                values=np.ones_like(latitude),
+                opacity=opacity,
+                map_color_scale=map_color_scale,
+                tolerance=1e-7,
+                unit="")
+            trace.showlegend = False
+            trace.showscale = False
+            self.figure_dict[dict_key].add_trace(trace)
+            group_idxs.append(len(self.figure_dict[dict_key].data) - 1)
+
             marker_dict = {"size": 10, "opacity": 0.8}
             for i, sensor in enumerate(model_object.sensor_object.values()):
                 marker_dict["color"] = model_object.sensor_object.color_map[i]
-                enu_object = sensor.location.to_enu(
-                    ref_altitude=grid_locations.ref_altitude,
-                    ref_latitude=grid_locations.ref_latitude,
-                    ref_longitude=grid_locations.ref_longitude)
-
                 self.figure_dict[dict_key].add_trace(
-                    go.Scatter(
+                    go.Scattermapbox(
                         mode="markers+lines",
-                        x=np.array(enu_object.east),
-                        y=np.array(enu_object.north),
+                        lat=np.array(sensor.location.latitude),
+                        lon=np.array(sensor.location.longitude),
                         marker=marker_dict,
                         line={"width": 3},
                         name=sensor.label,
-                        showlegend=is_first_subplot
-                    ),
-                    row=row,
-                    col=col,
-                )
+                        showlegend=True
+                    )
+                    )
+                group_idxs.append(len(self.figure_dict[dict_key].data) - 1)
+            trace_groups.append(group_idxs)
+        
+        steps = []
+        n_traces = len(self.figure_dict[dict_key].data)
+        base_title = "Coverage plot for different heights where the areas within the coverage are shown"
+        for i, height in enumerate(heights):
+            visible = [False] * n_traces
+            for idx in trace_groups[i]:
+                visible[idx] = True
+            steps.append(
+                {"method": "update",
+                 "args": [{"visible": visible},
+                          {"title": {"text": f"{base_title}<br>Height = {height:.3f} m"}}],
+                          "label": f"{height:.3f} m"
+                }
+            )
 
-        if self.figure_dict[dict_key].layout is not None:
-            self.figure_dict[dict_key].update_layout(template=self.layout)
+        init_visible = steps[0]["args"][0]["visible"]
+        for tr, v in zip(self.figure_dict[dict_key].data, init_visible):
+            tr.visible = v
+
+
+        self.figure_dict[dict_key].update_layout(
+        mapbox={
+            "style": "carto-positron",
+            "center": {"lat": grid_locations.ref_latitude, "lon": grid_locations.ref_longitude},
+            "zoom": 16,
+        },
+        sliders=[{
+            "active": 0,
+            "currentvalue": {"prefix": "Height: "},
+            "pad": {"t": 40},
+            "steps": steps
+        }],
+        )
+
 
 
     @staticmethod
