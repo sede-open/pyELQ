@@ -25,8 +25,8 @@ from pyelq.sensor.beam import Beam
 from pyelq.sensor.satellite import Satellite
 from pyelq.sensor.sensor import Sensor, SensorGroup
 from pyelq.source_map import SourceMap
-from pyelq.dispersion_model.turbulence_model import TurbulenceModel, AngularModel, DraxlerModel
-
+from pyelq.dispersion_model.turbulence_model import TurbulenceModel, AngularModel
+import pyelq.support_functions.spatio_temporal_interpolation as sti
 
 @dataclass
 class GaussianPlume(DispersionModel):
@@ -51,7 +51,7 @@ class GaussianPlume(DispersionModel):
         self,
         sensor_object: Union[SensorGroup, Sensor],
         meteorology_object: Union[MeteorologyGroup, Meteorology],
-        gas_object: GasSpecies = None,
+        gas_object: GasSpecies | None = None,
         output_stacked: bool = False,
         run_interpolation: bool = True,
     ) -> Union[list, np.ndarray, dict]:
