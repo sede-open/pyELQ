@@ -22,10 +22,10 @@ def test_lla(n):
         n (int): Parameter to define size of location vector
 
     """
-
-    lat = np.random.rand(n) * 10 + 40
-    lon = (np.random.rand(n) - 0.5) * 5
-    alt = np.random.rand(n) * 100
+    rng = np.random.default_rng(42)
+    lat = rng.random(n) * 10 + 40
+    lon = (rng.random(n) - 0.5) * 5
+    alt = rng.random(n) * 100
     crd = LLA(latitude=lat, longitude=lon, altitude=alt)
 
     crd2 = crd.to_lla()
@@ -48,9 +48,10 @@ def test_enu(n):
         n (int): Parameter to define size of location vector
 
     """
-    east = np.random.rand(n) * 10000
-    north = (np.random.rand(n)) * 5000
-    up = np.random.rand(n) * 100
+    rng = np.random.default_rng(42)
+    east = rng.random(n) * 10000
+    north = (rng.random(n)) * 5000
+    up = rng.random(n) * 100
     ref_lat = 50
     ref_lon = 0
     ref_alt = 0
@@ -82,10 +83,10 @@ def test_ecef(n):
         n (int): Parameter to define size of location vector
 
     """
-
-    x = np.random.rand(n) * 1000 + 4107864.0912067825
-    y = np.random.rand(n) * 1000
-    z = np.random.rand(n) * 5 + 4862789.037706433
+    rng = np.random.default_rng(42)
+    x = rng.random(n) * 1000 + 4107864.0912067825
+    y = rng.random(n) * 1000
+    z = rng.random(n) * 5 + 4862789.037706433
     crd = ECEF(x=x, y=y, z=z)
 
     crd2 = crd.to_ecef()
@@ -165,7 +166,8 @@ def test_interpolate_single_values():
     location = LLA()
     location.from_array(np.array([[0, 0, 0]]))
 
-    temp_array = np.random.uniform(-30, 30, (5, 3))
+    rng = np.random.default_rng(42)
+    temp_array = rng.uniform(-30, 30, (5, 3))
     output_location = LLA()
     output_location.from_array(temp_array)
 
@@ -182,8 +184,9 @@ def test_consistency_from_array_to_array(dim):
     attributes with random data and see if we get back the same data
 
     """
-    n_samples = np.random.randint(1, 100)
-    array = np.random.random((n_samples, dim))
+    rng = np.random.default_rng(42)
+    n_samples = rng.integers(1, 100)
+    array = rng.random((n_samples, dim))
 
     lla_object = LLA()
     lla_object.from_array(array)
@@ -200,8 +203,9 @@ def test_consistency_from_array_to_array(dim):
 
 def test_nof_observations():
     """Test nof_observations calculation."""
-    n_samples = np.random.randint(1, 100)
-    array = np.random.random((n_samples, 3))
+    rng = np.random.default_rng(42)
+    n_samples = rng.integers(1, 100)
+    array = rng.random((n_samples, 3))
 
     lla_object = LLA()
     assert lla_object.nof_observations == 0
@@ -235,7 +239,8 @@ def test_make_grid(grid_type, dim):
     enu_object = ENU(ref_latitude=0, ref_longitude=0, ref_altitude=0)
     grid_limits = np.array([[-100, 100], [-100, 100], [-100, 100]])
     grid_limits = grid_limits[:dim, :]
-    random_shape = np.random.randint(1, 100, size=dim)
+    rng = np.random.default_rng(42)
+    random_shape = rng.integers(1, 100, size=dim)
 
     if grid_type in ["rectangular", "spherical"]:
         grid = enu_object.make_grid(bounds=grid_limits, grid_type=grid_type, shape=random_shape)
@@ -246,7 +251,7 @@ def test_make_grid(grid_type, dim):
             assert np.all(grid[:, idx] <= grid_limits[idx, 1])
     else:
         with pytest.raises(NotImplementedError):
-            grid = enu_object.make_grid(bounds=grid_limits, grid_type=grid_type, shape=random_shape)
+            enu_object.make_grid(bounds=grid_limits, grid_type=grid_type, shape=random_shape)
 
 
 @pytest.mark.parametrize("input_system", [LLA, ENU, ECEF])
@@ -276,7 +281,7 @@ def test_to_object_type(input_system, output_system):
     assert isinstance(test_object, output_system)
 
     with pytest.raises(TypeError):
-        test_object = input_object.to_object_type("test")
+        input_object.to_object_type("test")
 
 
 @pytest.mark.parametrize("dim", [2, 3])
@@ -291,7 +296,8 @@ def test_make_latin_hypercube(dim):
     """
     grid_limits = np.array([[-100, 100], [-100, 100], [-100, 100]])
     grid_limits = grid_limits[:dim, :]
-    random_number = np.random.randint(1, 100)
+    rng = np.random.default_rng(42)
+    random_number = rng.integers(1, 100)
     array = make_latin_hypercube(bounds=grid_limits, nof_samples=random_number)
 
     assert array.shape == (random_number, dim)

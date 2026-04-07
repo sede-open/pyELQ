@@ -107,6 +107,44 @@ class Sensor:
 
         return fig
 
+    def subset_sensor(self, section_index: int) -> "Sensor":
+        """Subset the sensor based on the provided section index.
+
+        The method is designed to return a new `Sensor` object containing only the observations corresponding to a
+        specified section index. Sections are defined by unique values in the `source_on` attribute. For a case where
+        the source is turned on and off multiple times, (0 values in `source_on` indicate off periods and positive
+        integers indicate different on periods). For example, if section_index=1, a new Sensor will be returned
+        containing only observations where self.source_on == 1.
+
+        If sensor.location.shape[0] and sensor.time.shape[0] align we assume the location values are dependent on time and
+        therefore need to be filtered accordingly and otherwise we keep the original location.
+
+        This functionality is useful for situations where data is collected in multiple sections, e.g. repeated on/off
+        releases where we want to work with one section at a time or later stitch multiple per-section segments
+        together.
+
+        Args:
+            section_index (int): Integer indicating which observations to keep.
+
+        Returns:
+            new_sensor (Sensor): A new Sensor object containing only the specified observations.
+
+        """
+        if self.source_on is None:
+            return deepcopy(self)
+
+        section_indices = (self.source_on == section_index).flatten()
+        new_sensor = deepcopy(self)
+        new_sensor.time = self.time[section_indices]
+        new_sensor.concentration = self.concentration[section_indices]
+        location_object = new_sensor.location.to_array()
+        if location_object.shape[0] == self.time.shape[0]:
+            location_object = location_object[section_indices, :]
+            new_sensor.location = new_sensor.location.from_array(location_object)
+
+        new_sensor.source_on = self.source_on[section_indices]
+        return new_sensor
+
 
 @dataclass
 class SensorGroup(dict):
@@ -170,7 +208,9 @@ class SensorGroup(dict):
 
     @property
     def source_on(self) -> np.ndarray:
-        """Column vector of booleans indicating whether sources are expected to be on, unwrapped over sensors.
+        """Column vector of integers indicating whether sources are expected to be on, unwrapped over sensors.
+
+        Different integer values represent different sections where the source is on.
 
         Assumes source is on when None is specified for a specific sensor.
 
@@ -179,14 +219,14 @@ class SensorGroup(dict):
 
         """
         overall_idx = np.array([])
-        for curr_key in list(self.keys()):
+        for curr_key in self.keys():
             if self[curr_key].source_on is None:
-                temp_idx = np.ones(self[curr_key].nof_observations).astype(bool)
+                temp_idx = np.ones(self[curr_key].nof_observations).astype(int)
             else:
-                temp_idx = self[curr_key].source_on
+                temp_idx = self[curr_key].source_on.flatten()
 
             overall_idx = np.concatenate([overall_idx, temp_idx])
-        return overall_idx.astype(bool)
+        return overall_idx.astype(int)
 
     @property
     def nof_sensors(self) -> int:
@@ -239,3 +279,28 @@ class SensorGroup(dict):
             fig = sensor.plot_timeseries(fig, color=color_map[color_idx], mode=mode)
 
         return fig
+
+    def subset_sensor(self, section_index: int) -> "SensorGroup":
+        """Subset the sensor based on the provided section index.
+
+        The method is designed to return a new `SensorGroup` object containing only the observations corresponding to a
+        specified section index. Sections are defined by unique values in the `sensor.source_on` attribute. For a case
+        where the source is turned on and off multiple times, (0 values in `sensor.source_on` indicate off periods and
+        positive integers indicate different on periods). For example, if section_index=1, a new SensorGroup will be
+        returned containing only observations where sensor.source_on == 1.
+        This functionality is useful for situations where data is collected in multiple sections, e.g. repeated on/off
+        releases where we want to work with one section at a time or later stitch multiple per-section segments
+        together.
+
+        Args:
+            section_index (int): An integer indicating which observations to keep.
+
+        Returns:
+            SensorGroup: A new SensorGroup object containing only the specified observations
+
+        """
+        subset_sensor = SensorGroup()
+        for _, sensor in enumerate(self.values()):
+            subset_sensor_i = sensor.subset_sensor(section_index)
+            subset_sensor.add_sensor(subset_sensor_i)
+        return subset_sensor

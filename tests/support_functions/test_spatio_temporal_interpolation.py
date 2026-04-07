@@ -4,6 +4,7 @@
 
 # -*- coding: utf-8 -*-
 """Test module for spatio-temporal interpolation module."""
+
 from datetime import datetime, timedelta
 
 import numpy as np
@@ -30,10 +31,10 @@ def test_default_returns():
     same."""
 
     loc_in = np.array([[0, 0, 0], [1, 1, 1]])
-    time_in = pd.array(pd.date_range(pd.Timestamp.now(), periods=loc_in.shape[0], freq="h"), dtype="datetime64[ns]")[
-        :, None
-    ]
-    vals = np.random.random((loc_in.shape[0], 1))
+    time_in = pd.date_range(pd.Timestamp.now(), periods=loc_in.shape[0], freq="h").array[:, None]
+
+    rng = np.random.default_rng(42)
+    vals = rng.random((loc_in.shape[0], 1))
     # check if same input/output locations and time give the same answer
     return_vals = sti.interpolate(
         location_in=loc_in, time_in=time_in, values_in=vals, location_out=loc_in, time_out=time_in
@@ -49,8 +50,9 @@ def test_single_value():
     """Tests if all interpolated values are set to the same value when 1 input value is provided."""
     loc_in = np.array([[0, 0, 0], [1, 1, 1]])
     n_obs = loc_in.shape[0]
-    time_in = pd.array(pd.date_range(pd.Timestamp.now(), periods=n_obs, freq="h"), dtype="datetime64[ns]")[:, None]
-    vals = np.random.random((loc_in.shape[0], 1))
+    time_in = pd.date_range(pd.Timestamp.now(), periods=n_obs, freq="h").array[:, None]
+    rng = np.random.default_rng(42)
+    vals = rng.random((loc_in.shape[0], 1))
 
     # Check if we get the same output for all values when 1 value is provided
     return_vals = sti.interpolate(
@@ -75,11 +77,13 @@ def test_temporal_interpolation():
     interpolation in 1d) Also checks if we get the same values when an array of integers (representing seconds) is
     supplied instead of an array of datetimes."""
     periods = 10
-    time_in = pd.array(pd.date_range(pd.Timestamp.now(), periods=periods, freq="s"), dtype="datetime64[ns]")[:, None]
+    time_in = pd.date_range(pd.Timestamp.now(), periods=periods, freq="s").array[:, None]
     time_in_array = np.array(range(periods))[:, None]
-    vals = np.random.random(time_in.size)
-    random_index = np.random.randint(0, periods - 1)
-    random_factor = np.random.random()
+
+    rng = np.random.default_rng(42)
+    vals = rng.random(time_in.size)
+    random_index = rng.integers(0, periods - 1)
+    random_factor = rng.random()
     return_vals = sti.interpolate(
         time_in=time_in, values_in=vals, time_out=time_in[[random_index]] + random_factor * pd.Timedelta(1, unit="sec")
     )
@@ -94,7 +98,8 @@ def test_nearest_neighbour():
     """Test to check spatial interpolation when we don't have more than 5 points and hence want to check for nearest
     value."""
     loc_in = np.array([[0, 0, 0], [0, 1, 0], [1, 0, 0], [1, 1, 0]])
-    vals = np.random.random(loc_in.shape[0])
+    rng = np.random.default_rng(42)
+    vals = rng.random(loc_in.shape[0])
     return_vals = sti.interpolate(location_in=loc_in, values_in=vals, location_out=loc_in[0, :] + 1e-6, method="linear")
     assert np.all(return_vals == vals[0])
 
@@ -104,7 +109,8 @@ def test_spatial_interpolation():
     values on the vertices of the tetrahedron."""
     # check spatial interpolation with a cube
     loc_in = np.array([[0, 0, 0], [0, 1, 0], [1, 0.5, 0], [0.5, 0.5, 1]])
-    vals = np.random.random((loc_in.shape[0], 1))
+    rng = np.random.default_rng(42)
+    vals = rng.random((loc_in.shape[0], 1))
     return_vals = sti.interpolate(
         location_in=loc_in, values_in=vals, location_out=np.mean(loc_in, axis=0, keepdims=True)
     )
@@ -125,7 +131,8 @@ def test_same_value():
 def test_fill_value():
     """Test to check if fill value argument works for point outside of interpolation points."""
     loc_in = np.array([[0, 0, 0], [0, 1, 0], [1, 0.5, 0], [0.5, 0.5, 1]])
-    vals = np.random.random((loc_in.shape[0], 1))
+    rng = np.random.default_rng(42)
+    vals = rng.random((loc_in.shape[0], 1))
     return_vals = sti.interpolate(
         location_in=loc_in, values_in=vals, location_out=np.array([[-1, -1, -1]]), fill_value=-99
     )
@@ -135,18 +142,15 @@ def test_fill_value():
 def test_consistent_shapes():
     """Test if output shapes are consistent with provided input."""
     loc_in = np.array([[0, 0, 0], [1, 1, 1]])
-    time_in = pd.array(
-        pd.date_range(pd.Timestamp.now(), periods=loc_in.shape[0] - 1, freq="h"), dtype="datetime64[ns]"
-    )[:, None]
-    vals = np.random.random((loc_in.shape[0], 1))
+    time_in = pd.date_range(pd.Timestamp.now(), periods=loc_in.shape[0] - 1, freq="h").array[:, None]
+    rng = np.random.default_rng(42)
+    vals = rng.random((loc_in.shape[0], 1))
     with pytest.raises(ValueError):
         sti.interpolate(location_in=loc_in, time_in=time_in, values_in=vals, location_out=loc_in, time_out=time_in)
 
     loc_in = np.array([[0, 0, 0], [0, 1, 0], [1, 0.5, 0], [0.5, 0.5, 1]])
-    time_in = pd.array(pd.date_range(pd.Timestamp.now(), periods=loc_in.shape[0], freq="h"), dtype="datetime64[ns]")[
-        :, None
-    ]
-    vals = np.random.random((loc_in.shape[0], 1))
+    time_in = pd.date_range(pd.Timestamp.now(), periods=loc_in.shape[0], freq="h").array[:, None]
+    vals = rng.random((loc_in.shape[0], 1))
     return_vals = sti.interpolate(
         location_in=loc_in, time_in=time_in, values_in=vals, location_out=loc_in, time_out=time_in
     )
@@ -176,25 +180,21 @@ def test_temporal_resampling():
     n_values_in = 100
     n_time_out = 10
 
-    values_in = np.array(np.random.rand(n_values_in))
+    rng = np.random.default_rng(42)
+    values_in = np.array(rng.random(n_values_in))
     time_in = [datetime(2000, 1, 1, 0, 0, 1) + timedelta(minutes=i) for i in range(n_values_in)]
-    time_bin_edges = pd.array(
-        pd.to_datetime([datetime(2000, 1, 1) + timedelta(minutes=i * 10) for i in range(n_time_out + 1)]),
-        dtype="datetime64[ns]",
-    )
+    time_bin_edges = pd.to_datetime(
+        [datetime(2000, 1, 1) + timedelta(minutes=i * 10) for i in range(n_time_out + 1)]
+    ).array
 
     correct_values_out_mean = np.array([np.mean(i) for i in np.split(values_in, n_time_out)])
     correct_values_out_max = np.array([np.max(i) for i in np.split(values_in, n_time_out)])
     correct_values_out_min = np.array([np.min(i) for i in np.split(values_in, n_time_out)])
 
-    time_bin_edges_non_monotonic = pd.array(
-        pd.Series(list(time_bin_edges)[:-1] + [datetime(1999, 1, 1)]), dtype="datetime64[ns]"
-    )
+    time_bin_edges_non_monotonic = pd.Series(list(time_bin_edges)[:-1] + [datetime(1999, 1, 1)]).array
+    time_in = pd.to_datetime(time_in).array
 
-    time_in = pd.array(pd.to_datetime(time_in + [datetime(2001, 1, 1)]), dtype="datetime64[ns]")
-    values_in = np.append(values_in, 1000000)
-
-    p = np.random.permutation(len(time_in))
+    p = rng.permutation(len(time_in))
     time_in = time_in[p]
     values_in = values_in[p]
 

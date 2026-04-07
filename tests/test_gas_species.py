@@ -9,7 +9,6 @@ This module provides tests for the gas species superclass in pyELQ
 
 """
 
-
 import numpy as np
 import pytest
 
@@ -27,10 +26,11 @@ def test_consistency_emission_rate(gas_species):
         gas_species (pyelq.gas_species): gas species type to check
 
     """
-    emission_m3s_start = np.random.rand(5, 1) * 10
-    emission_kghr_start = np.random.rand(5, 1) * 1000
-    alternate_temperature = 273.15 * (np.random.rand(1) + 0.5)
-    alternate_pressure = 100 * (np.random.rand(1) + 0.5)
+    rng = np.random.default_rng(42)
+    emission_m3s_start = rng.random((5, 1)) * 10
+    emission_kghr_start = rng.random((5, 1)) * 1000
+    alternate_temperature = 273.15 * (rng.random(1) + 0.5)
+    alternate_pressure = 100 * (rng.random(1) + 0.5)
     gas_object = gas_species()
 
     kghr_intermediate = gas_object.convert_emission_m3s_to_kghr(emission_m3s_start)

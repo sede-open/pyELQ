@@ -4,6 +4,8 @@
 
 name: ManualReleaseTag
 
+permissions: write-all
+
 on:
   workflow_dispatch:
 

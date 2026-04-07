@@ -8,6 +8,7 @@
 The class for the source maps used in pyELQ
 
 """
+
 from dataclasses import dataclass, field
 from typing import Union
 
