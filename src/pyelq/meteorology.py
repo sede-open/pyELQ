@@ -109,7 +109,7 @@ class Meteorology:
 
         Outputted values are calculated at the center of the window and at least 3 observations are required in a
         window for the calculation. If the window contains less values the result will be np.nan.
-        The result of the calculation will be stored as the wind_turbulence_horizontal_deg attribute.
+        The result of the calculation will be stored as the wind_turbulence_horizontal attribute.
 
         Args:
             window (str): The size of the window in which values are aggregated specified as an offset alias:

@@ -91,23 +91,23 @@ class Coordinate(ABC):
         """
 
     @abstractmethod
-    def to_lla(self):
+    def to_lla(self) -> "LLA":
         """LLA: Converts coordinates to latitude/longitude/altitude system."""
 
     @abstractmethod
-    def to_ecef(self):
+    def to_ecef(self) -> "ECEF":
         """ECEF: Convert coordinates to earth centered earth fixed coordinates."""
 
     @abstractmethod
-    def to_enu(self, ref_latitude: float = None, ref_longitude: float = None, ref_altitude: float = None):
+    def to_enu(self, ref_latitude: float | None = None, ref_longitude: float | None = None, ref_altitude: float | None = None) -> "ENU":
         """Converts coordinates to East North Up system.
 
         If a reference is not provided, the  minimum of coordinates in Lat/Lon/Alt is used as the reference.
 
         Args:
-            ref_latitude (float, optional): reference latitude for ENU
-            ref_longitude (float, optional): reference longitude for ENU
-            ref_altitude (float, optional):  reference altitude for ENU
+            ref_latitude (float | None, optional): reference latitude for ENU
+            ref_longitude (float | None, optional): reference longitude for ENU
+            ref_altitude (float | None, optional):  reference altitude for ENU
 
         Returns:
            (ENU): East North Up coordinate object

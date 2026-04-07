@@ -44,10 +44,8 @@ class Preprocessor:
         "u_component",
         "v_component",
         "w_component",
-        "wind_turbulence_horizontal_deg",
-        "wind_turbulence_vertical_deg",
-        "wind_turbulence_horizontal_meter_per_sec",
-        "wind_turbulence_vertical_meter_per_sec",
+        "wind_turbulence_horizontal",
+        "wind_turbulence_vertical",
     ]
 
     def __post_init__(self) -> None:

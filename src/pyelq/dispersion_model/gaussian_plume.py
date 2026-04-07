@@ -384,24 +384,6 @@ class GaussianPlume:
 
         """
 
-        if isinstance(self.turbulence_model_horizontal, DraxlerModel):
-            unit_turbulence_horizontal = "meter_per_sec"
-        elif isinstance(self.turbulence_model_horizontal, AngularModel):
-            unit_turbulence_horizontal = "deg"
-        else:
-            raise ValueError(
-                f"Unit for unknown horizontal turbulence model '{self.turbulence_model_horizontal.__class__.__name__}' undefined."
-            )
-
-        if isinstance(self.turbulence_model_vertical, DraxlerModel):
-            unit_turbulence_vertical = "meter_per_sec"
-        elif isinstance(self.turbulence_model_vertical, AngularModel):
-            unit_turbulence_vertical = "deg"
-        else:
-            raise ValueError(
-                f"Unit for unknown vertical turbulence model '{self.turbulence_model_vertical.__class__.__name__}' undefined."
-            )
-
         if run_interpolation:
             gas_density = self.calculate_gas_density(
                 meteorology=meteorology, sensor_object=sensor_object, gas_object=gas_object
@@ -414,12 +396,12 @@ class GaussianPlume:
             )
             wind_turbulence_horizontal = self.interpolate_meteorology(
                 meteorology=meteorology,
-                variable_name=f"wind_turbulence_horizontal_{unit_turbulence_horizontal}",
+                variable_name="wind_turbulence_horizontal",
                 sensor_object=sensor_object,
             )
             wind_turbulence_vertical = self.interpolate_meteorology(
                 meteorology=meteorology,
-                variable_name=f"wind_turbulence_vertical_{unit_turbulence_vertical}",
+                variable_name="wind_turbulence_vertical",
                 sensor_object=sensor_object,
             )
         else:
@@ -428,9 +410,9 @@ class GaussianPlume:
             u_interpolated = meteorology.u_component.reshape((meteorology.u_component.size, 1))
             v_interpolated = meteorology.v_component.reshape((meteorology.v_component.size, 1))
             turbulence_array_horizontal = getattr(
-                meteorology, f"wind_turbulence_horizontal_{unit_turbulence_horizontal}"
+                meteorology, "wind_turbulence_horizontal"
             )
-            turbulence_array_vertical = getattr(meteorology, f"wind_turbulence_vertical_{unit_turbulence_vertical}")
+            turbulence_array_vertical = getattr(meteorology, "wind_turbulence_vertical")
             wind_turbulence_horizontal = turbulence_array_horizontal.reshape((turbulence_array_horizontal.size, 1))
             wind_turbulence_vertical = turbulence_array_vertical.reshape((turbulence_array_vertical.size, 1))
 
