@@ -100,7 +100,9 @@ class Coordinate(ABC):
         """ECEF: Convert coordinates to earth centered earth fixed coordinates."""
 
     @abstractmethod
-    def to_enu(self, ref_latitude: float | None = None, ref_longitude: float | None = None, ref_altitude: float | None = None) -> "ENU":
+    def to_enu(
+        self, ref_latitude: float | None = None, ref_longitude: float | None = None, ref_altitude: float | None = None
+    ) -> "ENU":
         """Converts coordinates to East North Up system.
 
         If a reference is not provided, the  minimum of coordinates in Lat/Lon/Alt is used as the reference.

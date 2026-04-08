@@ -28,6 +28,7 @@ from pyelq.source_map import SourceMap
 from pyelq.dispersion_model.turbulence_model import TurbulenceModel, AngularModel
 import pyelq.support_functions.spatio_temporal_interpolation as sti
 
+
 @dataclass
 class GaussianPlume(DispersionModel):
     """Defines the Gaussian plume dispersion model class.
@@ -407,9 +408,7 @@ class GaussianPlume(DispersionModel):
             gas_density = gas_density.reshape((gas_density.size, 1))
             u_interpolated = meteorology.u_component.reshape((meteorology.u_component.size, 1))
             v_interpolated = meteorology.v_component.reshape((meteorology.v_component.size, 1))
-            turbulence_array_horizontal = getattr(
-                meteorology, "wind_turbulence_horizontal"
-            )
+            turbulence_array_horizontal = getattr(meteorology, "wind_turbulence_horizontal")
             turbulence_array_vertical = getattr(meteorology, "wind_turbulence_vertical")
             wind_turbulence_horizontal = turbulence_array_horizontal.reshape((turbulence_array_horizontal.size, 1))
             wind_turbulence_vertical = turbulence_array_vertical.reshape((turbulence_array_vertical.size, 1))
