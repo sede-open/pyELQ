@@ -33,7 +33,7 @@ class GaussianPlume(DispersionModel):
     """Defines the Gaussian plume dispersion model class.
 
     Attributes:
-        source_map (Sourcemap): SourceMap object used for the dispersion model
+        source_map (SourceMap): SourceMap object used for the dispersion model
         turbulence_model_horizontal (TurbulenceModel): Definition for horizontal turbulence calculation
         turbulence_model_vertical (TurbulenceModel): Definition for vertical turbulence calculation
 
