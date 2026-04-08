@@ -36,9 +36,11 @@ class Meteorology:
         v_component (np.ndarray, optional): v component of wind [m/s] in the northerly direction
         w_component (np.ndarray, optional): w component of wind [m/s] in the vertical direction
         wind_turbulence_horizontal (np.ndarray, optional): Parameter of the wind stability in
-            horizontal direction [deg, m/s]
+            horizontal direction. Vary in units depending on turbulence model:
+            AngularModel -> deg, DraxlerModel -> m/s [deg, m/s]
         wind_turbulence_vertical (np.ndarray, optional): Parameter of the wind stability in
-            vertical direction [deg, m/s]
+            vertical direction. Vary in units depending on turbulence model:
+            AngularModel -> deg, DraxlerModel -> m/s [deg, m/s]
         pressure (np.ndarray, optional): Pressure [kPa]
         temperature (np.ndarray, optional): Temperature [K]
         atmospheric_boundary_layer (np.ndarray, optional): Atmospheric boundary layer [m]
@@ -62,7 +64,7 @@ class Meteorology:
     atmospheric_boundary_layer: np.ndarray = field(init=False, default=None)
     surface_albedo: np.ndarray = field(init=False, default=None)
     time: DatetimeArray = field(init=False, default=None)
-    location: Coordinate = field(init=False, default=None)
+    location: Coordinate | None = field(init=False, default=None)
     label: str = field(init=False)
 
     @property

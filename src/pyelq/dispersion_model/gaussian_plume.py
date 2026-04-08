@@ -42,8 +42,8 @@ class GaussianPlume(DispersionModel):
     """
 
     source_map: SourceMap
-    turbulence_model_horizontal: TurbulenceModel = field(default_factory=AngularModel, init=False)
-    turbulence_model_vertical: TurbulenceModel = field(default_factory=AngularModel, init=False)
+    turbulence_model_horizontal: TurbulenceModel = field(default_factory=AngularModel)
+    turbulence_model_vertical: TurbulenceModel = field(default_factory=AngularModel)
 
     source_half_width: float = 1
 
