@@ -432,6 +432,7 @@ def manually_construct_1d_advection_matrix(wind_vector):
         wind_vector (np.ndarray): wind speed at each grid cell
     Returns:
         F (np.ndarray): advection matrix with shape=(n_grid, n_grid).
+    
     """
     wind_vector = wind_vector.flatten()
     n_grid = wind_vector.shape[0]
@@ -462,8 +463,10 @@ def manually_construct_2d_advection_matrix(wind_vector):
     """Construct advection matrix F using an upwind scheme for 2D grid.
 
     Upwind scheme for a single dimension has the following form:
-            F_i = A * [(u_{i-1/2,j})^{+} * (c_{i,j} - c_{i-1,j}) + (u_{i+1/2,j})^{-} * (c_{i+1,j} - c_{i,j}) +
-                       (v_{i,j-1/2})^{+} * (c_{i,j} - c_{i,j-1}) + (v_{i,j+1/2})^{-} * (c_{i,j+1} - c_{i,j})]
+            F_{ij} = A * [(u_{i-1/2,j})^{+} * (c_{i,j} - c_{i-1,j}) +
+                                (u_{i+1/2,j})^{-} * (c_{i+1,j} - c_{i,j}) +
+                          (v_{i,j-1/2})^{+} * (c_{i,j} - c_{i,j-1}) +
+                                (v_{i,j+1/2})^{-} * (c_{i,j+1} - c_{i,j})]
     where:
         A = cell face area (= 1 in this case, because of grid setup)
         (u_{i-1/2,j})^{+} = max(u_{i-1/2,j}, 0)
@@ -546,8 +549,7 @@ def test_two_dimensional_advection_matrix(n_grid, boundary_type):
     For simplicity in this case, the solver grid is set up so that the cell volume is 1 and time step dt = 1, so the
     multiplicative factor is also V/dt = 1.
 
-    The wind vector is randomly generated for each test case, and the test checks that the resulting advection matrix F
-    matches the manually constructed advection matrix.
+    The wind vector is randomly generated for each test case.
 
     Args:
         n_grid (int): number of cells in each dimension of the 2D grid
@@ -566,7 +568,7 @@ def test_two_dimensional_advection_matrix(n_grid, boundary_type):
     met.v_component = wind_vector[:, [1]]
     fe.compute_forward_matrix(met)
 
-    F = np.eye(n_grid**2) - fe.forward_matrix.toarray() - np.diag(fe.adv_diff_terms["advection"].b_neumann.flatten())
+    F = np.eye(n_grid**2) - fe.forward_matrix.toarray() - np.diag(fe.adv_diff_terms["combined"].b_neumann.flatten())
     F_manual = manually_construct_2d_advection_matrix(wind_vector)
     assert np.allclose(F, F_manual, atol=1e-10)
 
@@ -581,10 +583,9 @@ def test_one_dimensional_advection_matrix(n_grid, boundary_type):
     construction.
 
     For simplicity in this case the finite volume is setup so that the volume is 1 and the dt = 1 so the
-    multiplicative factor is also V/dt = 1.
+    multiplicative factor is simply V/dt = 1.
 
-    The wind vector is randomly generated for each test case, and the test checks that the resulting advection matrix F
-    matches the manually constructed advection matrix.
+    The wind vector is randomly generated for each test case.
 
     Args:
         n_grid (int): number of cells in the 1D grid
@@ -601,13 +602,20 @@ def test_one_dimensional_advection_matrix(n_grid, boundary_type):
     met.u_component = u
     fe.compute_forward_matrix(met)
 
-    F = np.eye(n_grid) - fe.forward_matrix.toarray() - np.diag(fe.adv_diff_terms["advection"].b_neumann.flatten())
+    F = np.eye(n_grid) - fe.forward_matrix.toarray() - np.diag(fe.adv_diff_terms["combined"].b_neumann.flatten())
     F_manual = manually_construct_1d_advection_matrix(u)
     assert np.allclose(F, F_manual, atol=1e-10)
 
 
 def manually_construct_1d_diffusion_matrix(diffusion_constant, n_grid):
     """Make a 1D diffusion matrix by assigning each term individually.
+
+    Finite difference scheme for a single dimension has the following form:
+        G_i = A * K * [(c_{i+1} - c_{i})/dx - (c_{i} - c_{i-1})/dx]
+    where:
+        A = cell face area (= 1 in this case, because of grid setup)
+        K = diffusion constant
+        dx = cell width (= 1 in this case, because of grid setup)
 
     Args:
         diffusion_constant (np.ndarray): diffusion constant.
@@ -625,6 +633,14 @@ def manually_construct_1d_diffusion_matrix(diffusion_constant, n_grid):
 
 def manually_construct_2d_diffusion_matrix(diffusion_constant, n_grid):
     """Make a 2D diffusion matrix by assigning each term individually.
+
+    Finite difference scheme for two dimensions has the following form:
+        G_{ij} = A * K_x * [(c_{i+1,j} - c_{i,j})/dx - (c_{i,j} - c_{i-1,j})/dx] +
+                 A * K_y * [(c_{i,j+1} - c_{i,j})/dy - (c_{i,j} - c_{i,j-1})/dy]
+    where:
+        A = cell face area (= 1 in this case, because of grid setup)
+        K_x, K_y = diffusion constants in x and y directions
+        dx, dy = cell widths in x and y directions (= 1 in this case, because of grid setup)
 
     Args:
         diffusion_constant (np.ndarray): diffusion constant.
@@ -654,20 +670,23 @@ def manually_construct_2d_diffusion_matrix(diffusion_constant, n_grid):
 @pytest.mark.parametrize("n_grid", [3, 5, 10], ids=["3 cells", "5 cells", "10 cells"])
 @pytest.mark.parametrize("boundary_type", ["dirichlet", "neumann"], ids=["Dirichlet", "Neumann"])
 @pytest.mark.parametrize("dimension", [1, 2], ids=["1D", "2D"])
-def test_one_dimensional_diffusion_matrix(n_grid, boundary_type, dimension):
-    """This test checks that the diffusion matrix for a 1D finite volume discretization is correctly constructed.
+def test_diffusion_matrix(n_grid, boundary_type, dimension):
+    """This test checks that the diffusion matrix for a finite volume discretization is correctly constructed.
 
     The test compares the diffusion matrix computed by the finite volume implementation matches a manually
-    constructed diffusion matrix for a 1D grid with n_grid cells that doesn't use the sparse diagonal construction.
-    For simplicity in this case the finite volume is setup so that the volume is 1 and the dt = 1 so the
-    multiplicative factor is also V/dt = 1.
-    The diffusion constant is randomly generated for each test case, and the test checks that the resulting
-    diffusion matrix G matches the manually constructed diffusion matrix.
+    constructed diffusion matrix which doesn't use the sparse diagonal construction.
+
+    For simplicity in this case the finite volume is setup so that the cell volume is 1 and the dt = 1 so the
+    multiplicative factor is simply V/dt = 1.
+
+    The diffusion constant is randomly generated for each test case.
 
     Args:
-        n_grid (int): number of cells in the 1D grid
+        n_grid (int): number of cells in each dimension of the grid
         boundary_type (str): type of boundary condition to apply at the edges of the grid
             (either "dirichlet" or "neumann").
+        dimension (int): dimensionality of the grid (either 1 or 2).
+    
     """
     source_map = SourceMap()
     source_map.location = ENU(ref_latitude=0, ref_longitude=0, ref_altitude=0)
@@ -686,7 +705,7 @@ def test_one_dimensional_diffusion_matrix(n_grid, boundary_type, dimension):
     fe.compute_forward_matrix(met)
 
     G = fe.forward_matrix.toarray() - np.eye(fe.forward_matrix.shape[0]) - \
-            np.diag(fe.adv_diff_terms["diffusion"].b_neumann.flatten())
+            np.diag(fe.adv_diff_terms["combined"].b_neumann.flatten())
     if dimension == 1:
         G_manual = manually_construct_1d_diffusion_matrix(diffusion_constant, n_grid)
     else:
