@@ -468,9 +468,9 @@ class FiniteVolume(DispersionModel):
             terms["combined"].B[:, 0] = terms["combined"].B[:, 0] - self.cell_volume / self.dt
         else:
             terms["combined"].B[:, 0] = terms["combined"].B[:, 0] + self.cell_volume / self.dt
-        terms["combined"].B = terms["combined"].B + terms["advection"].B + terms["diffusion"].B
-        terms["combined"].b_dirichlet = terms["advection"].b_dirichlet + terms["diffusion"].b_dirichlet
-        terms["combined"].b_neumann = terms["advection"].b_neumann + terms["diffusion"].b_neumann
+        terms["combined"].B = terms["combined"].B - terms["advection"].B + terms["diffusion"].B
+        terms["combined"].b_dirichlet = -terms["advection"].b_dirichlet + terms["diffusion"].b_dirichlet
+        terms["combined"].b_neumann = -terms["advection"].b_neumann + terms["diffusion"].b_neumann
         terms["combined"].B[:, 0] = terms["combined"].B[:, 0] + terms["combined"].b_neumann.flatten()
 
     def _construct_diagonal_matrix(self) -> None:
@@ -979,7 +979,7 @@ class FiniteVolumeFace(ABC):
 
         Upwind scheme for a single dimension has the following form:
             F_i = A * [u^{+} * (c_i - c_{i-1}) + u^{-} * (c_{i+1} - c_{i})]
-        where u^{+} = -min(-u, 0) and u^{-} = max(-u, 0), A is the face area, and indices corresponding to other
+        where u^{+} = max(u, 0) and u^{-} = min(u, 0), A is the face area, and indices corresponding to other
         dimensions have been dropped.
 
         Scheme is calculated for each face with the left face calculating
@@ -995,11 +995,11 @@ class FiniteVolumeFace(ABC):
         term = self.adv_diff_terms["advection"]
         u_face = self.wind_cell_face(wind_vector)
         if isinstance(self, FiniteVolumeFaceLeft):
-            term.B_central = -self.cell_face_area * np.maximum(u_face, 0)
-            neighbour_advection = self.cell_face_area * np.maximum(u_face, 0)
+            term.B_central = self.cell_face_area * np.maximum(u_face, 0)
+            neighbour_advection = -self.cell_face_area * np.maximum(u_face, 0)
         else:
-            term.B_central = self.cell_face_area * np.minimum(u_face, 0)
-            neighbour_advection = -self.cell_face_area * np.minimum(u_face, 0)
+            term.B_central = -self.cell_face_area * np.minimum(u_face, 0)
+            neighbour_advection = self.cell_face_area * np.minimum(u_face, 0)
 
         term.B_neighbour = (self.boundary_type == "internal") * neighbour_advection
         term.b_dirichlet = (self.boundary_type == "dirichlet") * neighbour_advection
