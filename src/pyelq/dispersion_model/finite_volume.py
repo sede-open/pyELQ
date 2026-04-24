@@ -1032,9 +1032,11 @@ class FiniteVolumeFace(ABC):
 
         The wind speed at the cell face is calculated as the average of the wind speed in the current cell and the
         neighboring cell across the face. For boundary cells, the wind speed is taken as the value in the current cell.
+
         Args:
             wind_vector (np.ndarray): shape=(total_number_cells, 1). Wind speed vector in dimension of this face
                 e.g. x, y, z.
+
         Returns:
             u_face (np.ndarray): shape=(total_number_cells, 1). Wind speed across the cell face.
 
@@ -1043,8 +1045,8 @@ class FiniteVolumeFace(ABC):
         idx_neighbour = self.neighbour_index[self.boundary_type == "internal"]
         wind_neighbour[self.boundary_type == "internal"] = wind_vector[idx_neighbour].flatten()
         u_face = (wind_neighbour + wind_vector) / 2
-
         return u_face
+
 
 @dataclass
 class FiniteVolumeFaceLeft(FiniteVolumeFace):

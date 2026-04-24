@@ -430,9 +430,10 @@ def manually_construct_1d_advection_matrix(wind_vector):
 
     Args:
         wind_vector (np.ndarray): wind speed at each grid cell
+
     Returns:
         F (np.ndarray): advection matrix with shape=(n_grid, n_grid).
-    
+
     """
     wind_vector = wind_vector.flatten()
     n_grid = wind_vector.shape[0]
@@ -484,9 +485,10 @@ def manually_construct_2d_advection_matrix(wind_vector):
         wind_vector (np.ndarray): array with shape=(n_grid^2, 2) of wind vectors in each grid cell. The i^th
             row is a wind vector (u_{i}, v_{i}) corresponding to the i^th grid cell, using the usual
             np.meshgrid unwrapping convention.
+
     Returns:
         F (np.ndarray): advection matrix with shape=(n_grid^2, n_grid^2).
-    
+
     """
     u_vector = wind_vector[:, 0].flatten()
     v_vector = wind_vector[:, 1].flatten()
@@ -555,7 +557,7 @@ def test_two_dimensional_advection_matrix(n_grid, boundary_type):
         n_grid (int): number of cells in each dimension of the 2D grid
         boundary_type (str): type of boundary condition to apply at the edges of the grid
             (either "dirichlet" or "neumann"). The same boundary type is applied to all grid edges.
-    
+
     """
     source_map = SourceMap()
     source_map.location = ENU(ref_latitude=0, ref_longitude=0, ref_altitude=0)
@@ -591,7 +593,7 @@ def test_one_dimensional_advection_matrix(n_grid, boundary_type):
         n_grid (int): number of cells in the 1D grid
         boundary_type (str): type of boundary condition to apply at the edges of the grid
             (either "dirichlet" or "neumann").
-    
+
     """
     source_map = SourceMap()
     source_map.location = ENU(ref_latitude=0, ref_longitude=0, ref_altitude=0)
@@ -623,11 +625,11 @@ def manually_construct_1d_diffusion_matrix(diffusion_constant, n_grid):
     """
     G = np.zeros((n_grid, n_grid))
     for i in range(n_grid):
-        G[i, i] = - diffusion_constant[0] * 2
+        G[i, i] = -diffusion_constant[0] * 2
         if i > 0:
-            G[i, i-1] = diffusion_constant[0]
+            G[i, i - 1] = diffusion_constant[0]
         if i < n_grid - 1:
-            G[i, i+1] = diffusion_constant[0]
+            G[i, i + 1] = diffusion_constant[0]
     return G
 
 
@@ -655,7 +657,7 @@ def manually_construct_2d_diffusion_matrix(diffusion_constant, n_grid):
             i_right = (i + 1) * n_grid + j
             i_down = i * n_grid + (j - 1)
             i_up = i * n_grid + (j + 1)
-            G[i_central, i_central] = - diffusion_constant[0] * 2 - diffusion_constant[1] * 2
+            G[i_central, i_central] = -diffusion_constant[0] * 2 - diffusion_constant[1] * 2
             if i > 0:
                 G[i_central, i_left] = diffusion_constant[0]
             if i < (n_grid - 1):
@@ -686,16 +688,22 @@ def test_diffusion_matrix(n_grid, boundary_type, dimension):
         boundary_type (str): type of boundary condition to apply at the edges of the grid
             (either "dirichlet" or "neumann").
         dimension (int): dimensionality of the grid (either 1 or 2).
-    
+
     """
     source_map = SourceMap()
     source_map.location = ENU(ref_latitude=0, ref_longitude=0, ref_altitude=0)
     diffusion_constant = np.random.uniform(0, 1, size=(dimension,))
     dim = [FiniteVolumeDimension("x", number_cells=n_grid, limits=[0, n_grid], external_boundary_type=[boundary_type])]
     if dimension == 2:
-        dim.append(FiniteVolumeDimension("y", number_cells=n_grid, limits=[0, n_grid], external_boundary_type=[boundary_type]))
-    fe = FiniteVolume(dimensions=dim, source_map=source_map, dt=1,
-                      diffusion_constants=[diffusion_constant[k] for k in range(dimension)])
+        dim.append(
+            FiniteVolumeDimension("y", number_cells=n_grid, limits=[0, n_grid], external_boundary_type=[boundary_type])
+        )
+    fe = FiniteVolume(
+        dimensions=dim,
+        source_map=source_map,
+        dt=1,
+        diffusion_constants=[diffusion_constant[k] for k in range(dimension)],
+    )
     met = MeteorologyWindfield(static_wind_field=None)
     if dimension == 1:
         met.u_component = np.zeros((n_grid, 1))
@@ -704,8 +712,11 @@ def test_diffusion_matrix(n_grid, boundary_type, dimension):
         met.v_component = np.zeros((n_grid**2, 1))
     fe.compute_forward_matrix(met)
 
-    G = fe.forward_matrix.toarray() - np.eye(fe.forward_matrix.shape[0]) - \
-            np.diag(fe.adv_diff_terms["combined"].b_neumann.flatten())
+    G = (
+        fe.forward_matrix.toarray()
+        - np.eye(fe.forward_matrix.shape[0])
+        - np.diag(fe.adv_diff_terms["combined"].b_neumann.flatten())
+    )
     if dimension == 1:
         G_manual = manually_construct_1d_diffusion_matrix(diffusion_constant, n_grid)
     else:
