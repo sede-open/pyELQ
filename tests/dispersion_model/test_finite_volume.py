@@ -568,7 +568,7 @@ def test_two_dimensional_advection_matrix(n_grid, boundary_type):
     met.v_component = wind_vector[:, [1]]
     fe.compute_forward_matrix(met)
 
-    F = np.eye(n_grid**2) - fe.forward_matrix.toarray() - np.diag(fe.adv_diff_terms["combined"].b_neumann.flatten())
+    F = np.eye(n_grid**2) - fe.forward_matrix.toarray() + np.diag(fe.adv_diff_terms["combined"].b_neumann.flatten())
     F_manual = manually_construct_2d_advection_matrix(wind_vector)
     assert np.allclose(F, F_manual, atol=1e-10)
 
@@ -602,7 +602,7 @@ def test_one_dimensional_advection_matrix(n_grid, boundary_type):
     met.u_component = u
     fe.compute_forward_matrix(met)
 
-    F = np.eye(n_grid) - fe.forward_matrix.toarray() - np.diag(fe.adv_diff_terms["combined"].b_neumann.flatten())
+    F = np.eye(n_grid) - fe.forward_matrix.toarray() + np.diag(fe.adv_diff_terms["combined"].b_neumann.flatten())
     F_manual = manually_construct_1d_advection_matrix(u)
     assert np.allclose(F, F_manual, atol=1e-10)
 
