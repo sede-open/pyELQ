@@ -17,6 +17,7 @@ import pytest
 
 from pyelq.coordinate_system import ENU
 from pyelq.dispersion_model.gaussian_plume import GaussianPlume
+from pyelq.dispersion_model.turbulence_model import DraxlerModel
 from pyelq.gas_species import CH4
 from pyelq.meteorology.meteorology import Meteorology, MeteorologyGroup
 from pyelq.sensor.beam import Beam
@@ -562,3 +563,27 @@ def test_source_on_switch(met_object, sensor_object):
     )
 
     assert np.all(coupling_switch[change_point:] == 0) and np.any(coupling[change_point:] > 0)
+
+
+def test_draxler_model_turbulence(met_object, sensor_object):
+    """Test to check if the DraxlerModel runs successfully."""
+    location = ENU(ref_longitude=0, ref_latitude=0, ref_altitude=0)
+    source_object = SourceMap()
+    source_object.generate_sources(
+        location,
+        sourcemap_type="central",
+        nof_sources=1,
+        sourcemap_limits=np.array([[-100, 100], [-100, 100], [-100, 100]]),
+    )
+
+    plume_object = GaussianPlume(
+        source_map=source_object,
+        turbulence_model_horizontal=DraxlerModel.default_horizontal(),
+        turbulence_model_vertical=DraxlerModel.default_vertical(),
+    )
+    coupling = plume_object.compute_coupling_single_sensor(
+        sensor_object=sensor_object, meteorology=met_object, gas_object=None
+    )
+
+    assert coupling.shape == (sensor_object.nof_observations, source_object.nof_sources)
+
