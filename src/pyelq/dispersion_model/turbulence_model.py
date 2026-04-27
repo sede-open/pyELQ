@@ -1,10 +1,10 @@
-"""Turbulence Models
-"""
+"""Turbulence Models"""
 
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 
 import numpy as np
+
 
 @dataclass
 class TurbulenceModel(ABC):
@@ -111,9 +111,9 @@ class DraxlerModel(TurbulenceModel):
         self, turbulence_vector: np.ndarray, source_z: np.ndarray, wind_speed: np.ndarray, distance_x: np.ndarray
     ) -> np.ndarray:
         """Draxler calculation for atmospheric diffusion. See DOI above for details.
-        
+
         Expects that 'turbulence_vector' is in m/s
-        
+
         """
 
         positive_part_x = np.maximum(distance_x, 0.0)

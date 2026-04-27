@@ -1,4 +1,4 @@
-# SPDX-FileCopyrightText: 2024 Shell Global Solutions International B.V. All Rights Reserved.
+# SPDX-FileCopyrightText: 2026 Shell Global Solutions International B.V. All Rights Reserved.
 #
 # SPDX-License-Identifier: Apache-2.0
 
@@ -10,50 +10,49 @@ The class for the Gaussian Plume dispersion model used in pyELQ.
 The Mathematics of Atmospheric Dispersion Modeling, John M. Stockie, DOI. 10.1137/10080991X
 
 """
+
 from copy import deepcopy
 from dataclasses import dataclass, field
-from typing import Callable, Union
+from typing import Union
 
 import numpy as np
 
-import pyelq.support_functions.spatio_temporal_interpolation as sti
 from pyelq.coordinate_system import ENU, LLA
+from pyelq.dispersion_model.dispersion_model import DispersionModel
 from pyelq.gas_species import GasSpecies
-from pyelq.meteorology import Meteorology, MeteorologyGroup
+from pyelq.meteorology.meteorology import Meteorology, MeteorologyGroup
 from pyelq.sensor.beam import Beam
 from pyelq.sensor.satellite import Satellite
 from pyelq.sensor.sensor import Sensor, SensorGroup
 from pyelq.source_map import SourceMap
-from pyelq.dispersion_model.turbulence_model import TurbulenceModel, AngularModel, DraxlerModel
+from pyelq.dispersion_model.turbulence_model import TurbulenceModel, AngularModel
+import pyelq.support_functions.spatio_temporal_interpolation as sti
 
 
 @dataclass
-class GaussianPlume:
+class GaussianPlume(DispersionModel):
     """Defines the Gaussian plume dispersion model class.
 
     Attributes:
-        source_map (Sourcemap): SourceMap object used for the dispersion model
+        source_map (SourceMap): SourceMap object used for the dispersion model
         turbulence_model_horizontal (TurbulenceModel): Definition for horizontal turbulence calculation
         turbulence_model_vertical (TurbulenceModel): Definition for vertical turbulence calculation
 
         source_half_width (float): Source half width (radius) to be used in the Gaussian plume model (in meters)
-        minimum_contribution (float): All elements in the Gaussian plume coupling smaller than this number will be set
-            to 0. Helps to speed up matrix multiplications/matrix inverses, also helps with stability
 
     """
 
     source_map: SourceMap
-    turbulence_model_horizontal: TurbulenceModel = field(default_factory=AngularModel, init=False)
-    turbulence_model_vertical: TurbulenceModel = field(default_factory=AngularModel, init=False)
+    turbulence_model_horizontal: TurbulenceModel = field(default_factory=AngularModel)
+    turbulence_model_vertical: TurbulenceModel = field(default_factory=AngularModel)
 
     source_half_width: float = 1
-    minimum_contribution: float = 0
 
     def compute_coupling(
         self,
         sensor_object: Union[SensorGroup, Sensor],
         meteorology_object: Union[MeteorologyGroup, Meteorology],
-        gas_object: GasSpecies = None,
+        gas_object: GasSpecies | None = None,
         output_stacked: bool = False,
         run_interpolation: bool = True,
     ) -> Union[list, np.ndarray, dict]:
@@ -127,7 +126,7 @@ class GaussianPlume:
         self,
         sensor_object: Sensor,
         meteorology: Meteorology,
-        gas_object: GasSpecies = None,
+        gas_object: Union[GasSpecies, None] = None,
         run_interpolation: bool = True,
     ) -> Union[list, np.ndarray]:
         """Wrapper function to compute the gaussian plume coupling for a single sensor.
@@ -193,7 +192,7 @@ class GaussianPlume:
             )
 
         if sensor_object.source_on is not None:
-            plume_coupling = plume_coupling * sensor_object.source_on[:, None]
+            plume_coupling = plume_coupling * np.where(sensor_object.source_on != 0, 1, 0)[:, None]
 
         return plume_coupling
 
@@ -384,24 +383,6 @@ class GaussianPlume:
 
         """
 
-        if isinstance(self.turbulence_model_horizontal, DraxlerModel):
-            unit_turbulence_horizontal = "meter_per_sec"
-        elif isinstance(self.turbulence_model_horizontal, AngularModel):
-            unit_turbulence_horizontal = "deg"
-        else:
-            raise ValueError(
-                f"Unit for unknown horizontal turbulence model '{self.turbulence_model_horizontal.__class__.__name__}' undefined."
-            )
-
-        if isinstance(self.turbulence_model_vertical, DraxlerModel):
-            unit_turbulence_vertical = "meter_per_sec"
-        elif isinstance(self.turbulence_model_vertical, AngularModel):
-            unit_turbulence_vertical = "deg"
-        else:
-            raise ValueError(
-                f"Unit for unknown vertical turbulence model '{self.turbulence_model_vertical.__class__.__name__}' undefined."
-            )
-
         if run_interpolation:
             gas_density = self.calculate_gas_density(
                 meteorology=meteorology, sensor_object=sensor_object, gas_object=gas_object
@@ -414,12 +395,12 @@ class GaussianPlume:
             )
             wind_turbulence_horizontal = self.interpolate_meteorology(
                 meteorology=meteorology,
-                variable_name=f"wind_turbulence_horizontal_{unit_turbulence_horizontal}",
+                variable_name="wind_turbulence_horizontal",
                 sensor_object=sensor_object,
             )
             wind_turbulence_vertical = self.interpolate_meteorology(
                 meteorology=meteorology,
-                variable_name=f"wind_turbulence_vertical_{unit_turbulence_vertical}",
+                variable_name="wind_turbulence_vertical",
                 sensor_object=sensor_object,
             )
         else:
@@ -427,10 +408,8 @@ class GaussianPlume:
             gas_density = gas_density.reshape((gas_density.size, 1))
             u_interpolated = meteorology.u_component.reshape((meteorology.u_component.size, 1))
             v_interpolated = meteorology.v_component.reshape((meteorology.v_component.size, 1))
-            turbulence_array_horizontal = getattr(
-                meteorology, f"wind_turbulence_horizontal_{unit_turbulence_horizontal}"
-            )
-            turbulence_array_vertical = getattr(meteorology, f"wind_turbulence_vertical_{unit_turbulence_vertical}")
+            turbulence_array_horizontal = getattr(meteorology, "wind_turbulence_horizontal")
+            turbulence_array_vertical = getattr(meteorology, "wind_turbulence_vertical")
             wind_turbulence_horizontal = turbulence_array_horizontal.reshape((turbulence_array_horizontal.size, 1))
             wind_turbulence_vertical = turbulence_array_vertical.reshape((turbulence_array_vertical.size, 1))
 
@@ -634,38 +613,6 @@ class GaussianPlume:
         plume_coupling = plume_coupling.mean(axis=2)
 
         return plume_coupling
-
-    @staticmethod
-    def compute_coverage(
-        couplings: np.ndarray, threshold_function: Callable, coverage_threshold: float = 6, **kwargs
-    ) -> Union[np.ndarray, dict]:
-        """Returns a logical vector that indicates which sources in the couplings are, or are not, within the coverage.
-
-        The 'coverage' is the area inside which all sources are well covered by wind data. E.g. If wind exclusively
-        blows towards East, then all sources to the East of any sensor are 'invisible', and are not within the coverage.
-
-        Couplings are returned in hr/kg. Some threshold function defines the largest allowed coupling value. This is
-        used to calculate estimated emission rates in kg/hr. Any emissions which are greater than the value of
-        'coverage_threshold' are defined as not within the coverage.
-
-        Args:
-            couplings (np.ndarray): Array of coupling values. Dimensions: n_datapoints x n_sources.
-            threshold_function (Callable): Callable function which returns some single value that defines the
-                maximum or 'threshold' coupling. For example: np.quantile(., q=0.95)
-            coverage_threshold (float, optional): The threshold value of the estimated emission rate which is
-                considered to be within the coverage. Defaults to 6 kg/hr.
-            kwargs (dict, optional): Keyword arguments required for the threshold function.
-
-        Returns:
-            coverage (Union[np.ndarray, dict]): A logical array specifying which sources are within the coverage.
-
-        """
-        coupling_threshold = threshold_function(couplings, **kwargs)
-        no_warning_threshold = np.where(coupling_threshold <= 1e-100, 1, coupling_threshold)
-        no_warning_estimated_emission_rates = np.where(coupling_threshold <= 1e-100, np.inf, 1 / no_warning_threshold)
-        coverage = no_warning_estimated_emission_rates < coverage_threshold
-
-        return coverage
 
 
 def _create_enu_sensor_array(
