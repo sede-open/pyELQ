@@ -548,6 +548,14 @@ def test_two_dimensional_advection_matrix(n_grid, boundary_type):
     solver matrix is then compared to the advection matrix computed using the main implementation (constructed using
     sparse diagonal methods). These should give exactly the same result.
 
+    The forward matrix calculated by the FE code as:
+        W = (V/dt) * I - F + G + diag(b_n)
+    where F is the advection matrix, G is the diffusion matrix, and b_n is the vector of Neumann boundary terms. Thus,
+    to recover the advection matrix F for comparison, we calculate:
+        F = (V/dt) * I - W + diag(b_n)
+    where G is simply a matrix of zeros when the diffusion constants are 0.
+
+
     For simplicity in this case, the solver grid is set up so that the cell volume is 1 and time step dt = 1, so the
     multiplicative factor is also V/dt = 1.
 
@@ -677,6 +685,13 @@ def test_diffusion_matrix(n_grid, boundary_type, dimension):
 
     The test compares the diffusion matrix computed by the finite volume implementation matches a manually
     constructed diffusion matrix which doesn't use the sparse diagonal construction.
+
+    The forward matrix calculated by the FE code as:
+        W = (V/dt) * I - F + G + diag(b_n)
+    where F is the advection matrix, G is the diffusion matrix, and b_n is the vector of Neumann boundary terms. Thus,
+    to recover the diffusion matrix G for comparison, we calculate:
+        G = W - (V/dt) * I - diag(b_n)
+    where F is simply a matrix of zeros when the winds are all set to 0.
 
     For simplicity in this case the finite volume is setup so that the cell volume is 1 and the dt = 1 so the
     multiplicative factor is simply V/dt = 1.

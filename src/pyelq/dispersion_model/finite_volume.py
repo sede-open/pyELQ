@@ -453,11 +453,15 @@ class FiniteVolume(DispersionModel):
         the source term.
 
         Rearranging gives:
-            c^(n+1) = R @ c^(n) + (dt / V) * s
-        where R = I - (dt / V) * (F - G).
+            (V / dt) * c^(n+1) = W @ c^(n) + s
+        where W = (V / dt) * I - F + G.
 
         This function calculates the diagonals of the matrix R by combining the advection and diffusion terms. These
         diagonals are stored in self.adv_diff_terms['combined'].B.
+
+        The boundary vector b_neumann is added back to the leading diagonal of the solver matrix: this imposes a
+        zero-flux Neumann boundary by ensuring that the concentration value on the boundary is the same as in the
+        adjacent edge cell.
 
         """
         num_diags = 1 + self.number_dimensions * 2
