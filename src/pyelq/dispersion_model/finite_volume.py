@@ -370,8 +370,8 @@ class FiniteVolume(DispersionModel):
         the source term.
 
         Rearranging gives:
-            c^(n+1) = R @ c^(n) + (dt / V) * s
-        where R = I - (dt / V) * (F - G).
+            (V / dt) * c^(n+1) = W @ c^(n) + s
+        where W = (V / dt) * I - F + G.
 
         The diagonals of the matrix are constructed using self._construct_diagonals_advection_diffusion() and combined
         using self._combine_advection_diffusion_terms().

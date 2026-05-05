@@ -541,12 +541,16 @@ def manually_construct_2d_advection_matrix(wind_vector):
 
 @pytest.mark.parametrize("n_grid", [3, 5, 10], ids=["3 cells", "5 cells", "10 cells"])
 @pytest.mark.parametrize("boundary_type", ["dirichlet", "neumann"], ids=["Dirichlet", "Neumann"])
-def test_two_dimensional_advection_matrix(n_grid, boundary_type):
-    """This test checks that the advection matrix for a 2D finite volume discretization is correctly constructed.
+@pytest.mark.parametrize("dimension", [1, 2], ids=["1D", "2D"])
+def test_advection_matrix(n_grid, boundary_type, dimension):
+    """This test checks that the advection matrix for the finite volume discretization is correctly constructed.
 
-    The test constructs an advection matrix for a 2D grid element-by-element (in a loop). This "manually constructed"
+    The test constructs an advection matrix for a grid element-by-element (in a loop). This "manually constructed"
     solver matrix is then compared to the advection matrix computed using the main implementation (constructed using
     sparse diagonal methods). These should give exactly the same result.
+
+    The test runs both 1D and 2D cases. In a 2D case, the grid is set up to have the same number of cells in both
+    dimensions.
 
     The forward matrix calculated by the FE code as:
         W = (V/dt) * I - F + G + diag(b_n)
@@ -554,7 +558,6 @@ def test_two_dimensional_advection_matrix(n_grid, boundary_type):
     to recover the advection matrix F for comparison, we calculate:
         F = (V/dt) * I - W + diag(b_n)
     where G is simply a matrix of zeros when the diffusion constants are 0.
-
 
     For simplicity in this case, the solver grid is set up so that the cell volume is 1 and time step dt = 1, so the
     multiplicative factor is also V/dt = 1.
@@ -565,55 +568,35 @@ def test_two_dimensional_advection_matrix(n_grid, boundary_type):
         n_grid (int): number of cells in each dimension of the 2D grid
         boundary_type (str): type of boundary condition to apply at the edges of the grid
             (either "dirichlet" or "neumann"). The same boundary type is applied to all grid edges.
+        dimension (int): number of spatial dimensions (either 1 or 2) of the grid.
 
     """
     source_map = SourceMap()
     source_map.location = ENU(ref_latitude=0, ref_longitude=0, ref_altitude=0)
-    wind_vector = np.random.normal(0, 1, size=(n_grid**2, 2))
-    dim_x = FiniteVolumeDimension("x", number_cells=n_grid, limits=[0, n_grid], external_boundary_type=[boundary_type])
-    dim_y = FiniteVolumeDimension("y", number_cells=n_grid, limits=[0, n_grid], external_boundary_type=[boundary_type])
-    fe = FiniteVolume(dimensions=[dim_x, dim_y], source_map=source_map, dt=1, diffusion_constants=[0.0, 0.0])
+    wind_vector = np.random.normal(0, 1, size=(n_grid**dimension, dimension))
+    dim = [FiniteVolumeDimension("x", number_cells=n_grid, limits=[0, n_grid], external_boundary_type=[boundary_type])]
+    diff_const = [0.0]
+    if dimension == 2:
+        dim.append(
+            FiniteVolumeDimension("y", number_cells=n_grid, limits=[0, n_grid], external_boundary_type=[boundary_type])
+        )
+        diff_const.append(0.0)
+    fe = FiniteVolume(dimensions=dim, source_map=source_map, dt=1, diffusion_constants=diff_const)
     met = MeteorologyWindfield(static_wind_field=None)
     met.u_component = wind_vector[:, [0]]
-    met.v_component = wind_vector[:, [1]]
+    if dimension == 2:
+        met.v_component = wind_vector[:, [1]]
     fe.compute_forward_matrix(met)
 
-    F = np.eye(n_grid**2) - fe.forward_matrix.toarray() + np.diag(fe.adv_diff_terms["combined"].b_neumann.flatten())
-    F_manual = manually_construct_2d_advection_matrix(wind_vector)
-    assert np.allclose(F, F_manual, atol=1e-10)
-
-
-@pytest.mark.parametrize("n_grid", [3, 5, 10], ids=["3 cells", "5 cells", "10 cells"])
-@pytest.mark.parametrize("boundary_type", ["dirichlet", "neumann"], ids=["Dirichlet", "Neumann"])
-def test_one_dimensional_advection_matrix(n_grid, boundary_type):
-    """This test checks that the advection matrix for a 1D finite volume discretization is correctly constructed.
-
-    The test compares the advection matrix computed by the finite volume implementation matches a
-    manually constructed advection matrix for a 1D grid with n_grid cells that doesn't use the sparse diagonal
-    construction.
-
-    For simplicity in this case the finite volume is setup so that the volume is 1 and the dt = 1 so the
-    multiplicative factor is simply V/dt = 1.
-
-    The wind vector is randomly generated for each test case.
-
-    Args:
-        n_grid (int): number of cells in the 1D grid
-        boundary_type (str): type of boundary condition to apply at the edges of the grid
-            (either "dirichlet" or "neumann").
-
-    """
-    source_map = SourceMap()
-    source_map.location = ENU(ref_latitude=0, ref_longitude=0, ref_altitude=0)
-    u = np.random.normal(0, 1, size=(n_grid, 1))
-    dim = FiniteVolumeDimension("x", number_cells=n_grid, limits=[0, n_grid], external_boundary_type=[boundary_type])
-    fe = FiniteVolume(dimensions=[dim], source_map=source_map, dt=1, diffusion_constants=[0.0])
-    met = MeteorologyWindfield(static_wind_field=None)
-    met.u_component = u
-    fe.compute_forward_matrix(met)
-
-    F = np.eye(n_grid) - fe.forward_matrix.toarray() + np.diag(fe.adv_diff_terms["combined"].b_neumann.flatten())
-    F_manual = manually_construct_1d_advection_matrix(u)
+    F = (
+        np.eye(n_grid**dimension)
+        - fe.forward_matrix.toarray()
+        + np.diag(fe.adv_diff_terms["combined"].b_neumann.flatten())
+    )
+    if dimension == 1:
+        F_manual = manually_construct_1d_advection_matrix(wind_vector)
+    else:
+        F_manual = manually_construct_2d_advection_matrix(wind_vector)
     assert np.allclose(F, F_manual, atol=1e-10)
 
 
