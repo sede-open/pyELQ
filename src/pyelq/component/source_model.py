@@ -694,7 +694,9 @@ class SourceModel(Component, SourceGrouping, SourceDistribution):
             )
             self.screen_coverage()
             if counter > 50:
-                raise ValueError(f"Source Map {self.label_string}: Unable to generate a source map with sources in the coverage area")
+                raise ValueError(
+                    f"Source Map {self.label_string}: Unable to generate a source map with sources in the coverage area"
+                )
 
     def screen_coverage(self):
         """Screen the initial source map for coverage."""
