@@ -37,7 +37,6 @@ class GaussianPlume(DispersionModel):
         source_map (SourceMap): SourceMap object used for the dispersion model
         turbulence_model_horizontal (TurbulenceModel): Definition for horizontal turbulence calculation
         turbulence_model_vertical (TurbulenceModel): Definition for vertical turbulence calculation
-
         source_half_width (float): Source half width (radius) to be used in the Gaussian plume model (in meters)
 
     """
