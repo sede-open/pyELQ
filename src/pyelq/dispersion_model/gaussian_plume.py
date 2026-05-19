@@ -272,8 +272,7 @@ class GaussianPlume(DispersionModel):
         wind_turbulence_vertical: np.ndarray,
         distance_x: np.ndarray,
     ) -> tuple[np.ndarray, np.ndarray]:
-        """Compute parameters of plume stability in the horizontal and vertical directions based on the turbulence models
-        in use.
+        """Compute parameters of plume stability in the horizontal and vertical directions based on the turbulence model.
 
         Setting sigma_hor, sigma_vert to 1e-16 when they are identically zero (distance_x == 0) to avoid divide by zero errors
         in the following steps of calculation.
@@ -289,7 +288,6 @@ class GaussianPlume(DispersionModel):
             tuple[np.ndarray, np.ndarray]: tuple of horizontal, vertical plume stability
 
         """
-
         wind_speed_non_zero = np.maximum(wind_speed, 1e-16)
 
         sigma_hor = (
@@ -382,7 +380,6 @@ class GaussianPlume(DispersionModel):
                 parameters.
 
         """
-
         if run_interpolation:
             gas_density = self.calculate_gas_density(
                 meteorology=meteorology, sensor_object=sensor_object, gas_object=gas_object

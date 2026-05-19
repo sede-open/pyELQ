@@ -1,4 +1,4 @@
-"""Turbulence Models"""
+"""Turbulence Models."""
 
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
@@ -8,14 +8,15 @@ import numpy as np
 
 @dataclass
 class TurbulenceModel(ABC):
-    """Abstract class to define specific turbulence model behaviour"""
+    """Abstract class to define specific turbulence model behaviour."""
 
     @abstractmethod
     def calculate(
         self, turbulence_vector: np.ndarray, source_z: np.ndarray, wind_speed: np.ndarray, distance_x: np.ndarray
     ) -> np.ndarray:
-        """Abstract method to define behaviour for turbulence calculation. All inputs are
-        expected to have the same shape.
+        """Abstract method to define behaviour for turbulence calculation.
+        
+        All inputs are expected to have the same shape.
 
         Args:
             turbulence_vector (np.ndarray): wind turbulence parameter [unit depends on model]
@@ -31,7 +32,7 @@ class TurbulenceModel(ABC):
 
 @dataclass
 class AngularModel(TurbulenceModel):
-    """Basic turbulence model"""
+    """Basic turbulence model."""
 
     def calculate(
         self, turbulence_vector: np.ndarray, source_z: np.ndarray, wind_speed: np.ndarray, distance_x: np.ndarray
@@ -41,13 +42,12 @@ class AngularModel(TurbulenceModel):
         Expects that 'turbulence_vector' is in degrees.
 
         """
-
         return np.tan(turbulence_vector * (np.pi / 180)) * np.abs(distance_x)
 
 
 @dataclass
 class DraxlerModel(TurbulenceModel):
-    """Draxler Turbulence Model
+    """Draxler Turbulence Model.
 
     This turbulence model attempts to characterise the dispersion of the plume based on the travel
     time (T) of the gas from source location to sensor.
@@ -115,7 +115,6 @@ class DraxlerModel(TurbulenceModel):
         Expects that 'turbulence_vector' is in m/s
 
         """
-
         positive_part_x = np.maximum(distance_x, 0.0)
         diffusion_time = positive_part_x / wind_speed
 
@@ -131,13 +130,11 @@ class DraxlerModel(TurbulenceModel):
     @staticmethod
     def default_horizontal(**kwargs):
         """Construct a DraxlerModel object for horizontal turbulence, overriding defaults where provided."""
-
         params = DraxlerModel.DEFAULT_DRAXLER_HORIZONTAL | kwargs
         return DraxlerModel(**params)
 
     @staticmethod
     def default_vertical(**kwargs):
         """Construct a DraxlerModel object for vertical turbulence, overriding defaults where provided."""
-
         params = DraxlerModel.DEFAULT_DRAXLER_VERTICAL | kwargs
         return DraxlerModel(**params)
