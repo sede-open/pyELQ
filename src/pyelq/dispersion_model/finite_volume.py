@@ -370,8 +370,8 @@ class FiniteVolume(DispersionModel):
         the source term.
 
         Rearranging gives:
-            c^(n+1) = R @ c^(n) + (dt / V) * s
-        where R = I - (dt / V) * (F - G).
+            (V / dt) * c^(n+1) = W @ c^(n) + s
+        where W = (V / dt) * I - F + G.
 
         The diagonals of the matrix are constructed using self._construct_diagonals_advection_diffusion() and combined
         using self._combine_advection_diffusion_terms().
@@ -453,11 +453,15 @@ class FiniteVolume(DispersionModel):
         the source term.
 
         Rearranging gives:
-            c^(n+1) = R @ c^(n) + (dt / V) * s
-        where R = I - (dt / V) * (F - G).
+            (V / dt) * c^(n+1) = W @ c^(n) + s
+        where W = (V / dt) * I - F + G.
 
         This function calculates the diagonals of the matrix R by combining the advection and diffusion terms. These
         diagonals are stored in self.adv_diff_terms['combined'].B.
+
+        The boundary vector b_neumann is added back to the leading diagonal of the solver matrix: this imposes a
+        zero-flux Neumann boundary by ensuring that the concentration value on the boundary is the same as in the
+        adjacent edge cell.
 
         """
         num_diags = 1 + self.number_dimensions * 2
@@ -468,9 +472,9 @@ class FiniteVolume(DispersionModel):
             terms["combined"].B[:, 0] = terms["combined"].B[:, 0] - self.cell_volume / self.dt
         else:
             terms["combined"].B[:, 0] = terms["combined"].B[:, 0] + self.cell_volume / self.dt
-        terms["combined"].B = terms["combined"].B + terms["advection"].B + terms["diffusion"].B
-        terms["combined"].b_dirichlet = terms["advection"].b_dirichlet + terms["diffusion"].b_dirichlet
-        terms["combined"].b_neumann = terms["advection"].b_neumann + terms["diffusion"].b_neumann
+        terms["combined"].B = terms["combined"].B - terms["advection"].B + terms["diffusion"].B
+        terms["combined"].b_dirichlet = -terms["advection"].b_dirichlet + terms["diffusion"].b_dirichlet
+        terms["combined"].b_neumann = -terms["advection"].b_neumann + terms["diffusion"].b_neumann
         terms["combined"].B[:, 0] = terms["combined"].B[:, 0] + terms["combined"].b_neumann.flatten()
 
     def _construct_diagonal_matrix(self) -> None:
@@ -945,11 +949,6 @@ class FiniteVolumeFace(ABC):
     neighbour_index: np.ndarray = field(init=False)
     adv_diff_terms: dict = field(init=False)
 
-    @property
-    @abstractmethod
-    def normal(self):
-        """Abstract property to be defined in subclasses."""
-
     def __post_init__(self) -> None:
         if self.external_boundary_type not in ["dirichlet", "neumann"]:
             raise ValueError(f"Invalid external boundary type: {self.external_boundary_type}. ")
@@ -984,8 +983,13 @@ class FiniteVolumeFace(ABC):
 
         Upwind scheme for a single dimension has the following form:
             F_i = A * [u^{+} * (c_i - c_{i-1}) + u^{-} * (c_{i+1} - c_{i})]
-        where u^{+} = -min(-u, 0) and u^{-} = max(-u, 0), A is the face area, and indices corresponding to other
+        where u^{+} = max(u, 0) and u^{-} = min(u, 0), A is the face area, and indices corresponding to other
         dimensions have been dropped.
+
+        Scheme is calculated for each face with the left face calculating
+            A * u^{+} * (c_i - c_{i-1})
+        and the right face calculating
+            A * u^{-} * (c_{i+1} - c_{i})
 
         Args:
             wind_vector (np.ndarray): shape=(total_number_cells, 1). Wind speed vector in dimension of this face
@@ -993,9 +997,14 @@ class FiniteVolumeFace(ABC):
 
         """
         term = self.adv_diff_terms["advection"]
-        u_norm = wind_vector * self.normal
-        term.B_central = -self.cell_face_area * -np.minimum(-u_norm, 0)
-        neighbour_advection = self.cell_face_area * np.maximum(-u_norm, 0)
+        u_face = self.wind_cell_face(wind_vector)
+        if isinstance(self, FiniteVolumeFaceLeft):
+            term.B_central = self.cell_face_area * np.maximum(u_face, 0)
+            neighbour_advection = -self.cell_face_area * np.maximum(u_face, 0)
+        else:
+            term.B_central = -self.cell_face_area * np.minimum(u_face, 0)
+            neighbour_advection = self.cell_face_area * np.minimum(u_face, 0)
+
         term.B_neighbour = (self.boundary_type == "internal") * neighbour_advection
         term.b_dirichlet = (self.boundary_type == "dirichlet") * neighbour_advection
         term.b_neumann = (self.boundary_type == "neumann") * neighbour_advection
@@ -1022,6 +1031,26 @@ class FiniteVolumeFace(ABC):
             term.b_dirichlet = (self.boundary_type == "dirichlet") * diffusion_coefficient
             term.b_neumann = (self.boundary_type == "neumann") * diffusion_coefficient
 
+    def wind_cell_face(self, wind_vector: np.ndarray) -> np.ndarray:
+        """Calculate the wind speed at the cell face.
+
+        The wind speed at the cell face is calculated as the average of the wind speed in the current cell and the
+        neighboring cell across the face. For boundary cells, the wind speed is taken as the value in the current cell.
+
+        Args:
+            wind_vector (np.ndarray): shape=(total_number_cells, 1). Wind speed vector in dimension of this face
+                e.g. x, y, z.
+
+        Returns:
+            u_face (np.ndarray): shape=(total_number_cells, 1). Wind speed across the cell face.
+
+        """
+        wind_neighbour = wind_vector.copy()
+        idx_neighbour = self.neighbour_index[self.boundary_type == "internal"]
+        wind_neighbour[self.boundary_type == "internal"] = wind_vector[idx_neighbour].flatten()
+        u_face = (wind_neighbour + wind_vector) / 2
+        return u_face
+
 
 @dataclass
 class FiniteVolumeFaceLeft(FiniteVolumeFace):
@@ -1030,13 +1059,11 @@ class FiniteVolumeFaceLeft(FiniteVolumeFace):
     Attributes:
         direction (str): direction of the face, either 'left' or 'right'.
         shift (int): shift in the grid index to find the neighbour cell. -1 for left face.
-        normal (int): normal vector for the face. -1 for left face.
 
     """
 
     direction: str = "left"
     shift: int = -1
-    normal: int = -1
 
 
 @dataclass
@@ -1046,13 +1073,11 @@ class FiniteVolumeFaceRight(FiniteVolumeFace):
     Attributes:
         direction (str): direction of the face, either 'left' or 'right'.
         shift (int): shift in the grid index to find the neighbour cell. +1 for right face.
-        normal (int): normal vector for the face. +1 for right face.
 
     """
 
     direction: str = "right"
     shift: int = 1
-    normal: int = 1
 
 
 @dataclass

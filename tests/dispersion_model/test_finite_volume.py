@@ -410,3 +410,313 @@ def test_compute_time_bins(finite_volume, sensor_group, meteorology):
     assert time_index_met.dtype == "int64"
     assert np.all(time_index_met >= 0)
     assert np.all(time_index_met <= meteorology.u_component.shape[0])
+
+
+def manually_construct_1d_advection_matrix(wind_vector):
+    """Construct advection matrix F using an upwind scheme for a 1D grid.
+
+     Upwind scheme for a single dimension has the following form:
+            F_i = A * [(u_{i-1/2})^{+} * (c_{i} - c_{i-1}) + (u_{i+1/2})^{-} * (c_{i+1} - c_{i})]
+    where:
+        A = cell face area (= 1 in this case, because of grid setup)
+        (u_{i-1/2})^{+} = max(u_{i-1/2}, 0)
+        (u_{i+1/2})^{-} = min(u_{i+1/2}, 0)
+    The winds u_{i-1/2} and u_{i+1/2} are computed as the average of the winds in the adjacent cells,
+    i.e. u_{i-1/2} = (u_i + u_{i-1})/2 and u_{i+1/2} = (u_i + u_{i+1})/2. For the boundary cells, the
+    face wind is taken as the wind in the cell itself, i.e. u_{-1/2} = u_0 and u_{n+1/2} = u_n.
+
+    The (.)^{+} and (.)^{-} expressions and sign conventions are chosen to coincide with those used in the
+    Wikipedia page on upwind schemes: https://en.wikipedia.org/wiki/Upwind_scheme
+
+    Args:
+        wind_vector (np.ndarray): wind speed at each grid cell
+
+    Returns:
+        F (np.ndarray): advection matrix with shape=(n_grid, n_grid).
+
+    """
+    wind_vector = wind_vector.flatten()
+    n_grid = wind_vector.shape[0]
+    F = np.zeros((n_grid, n_grid))
+
+    for i in range(n_grid):
+        if i == 0:
+            u_face_l = wind_vector[i]
+        else:
+            u_face_l = (wind_vector[i] + wind_vector[i - 1]) / 2
+        u_plus = max(u_face_l, 0)
+        if i == n_grid - 1:
+            u_face_r = wind_vector[i]
+        else:
+            u_face_r = (wind_vector[i] + wind_vector[i + 1]) / 2
+        u_minus = min(u_face_r, 0)
+
+        F[i, i] = u_plus - u_minus
+        if i > 0:
+            F[i, i - 1] = -u_plus
+        if i < n_grid - 1:
+            F[i, i + 1] = +u_minus
+
+    return F
+
+
+def manually_construct_2d_advection_matrix(wind_vector):
+    """Construct advection matrix F using an upwind scheme for 2D grid.
+
+    Upwind scheme for a single dimension has the following form:
+            F_{ij} = A * [(u_{i-1/2,j})^{+} * (c_{i,j} - c_{i-1,j}) +
+                                (u_{i+1/2,j})^{-} * (c_{i+1,j} - c_{i,j}) +
+                          (v_{i,j-1/2})^{+} * (c_{i,j} - c_{i,j-1}) +
+                                (v_{i,j+1/2})^{-} * (c_{i,j+1} - c_{i,j})]
+    where:
+        A = cell face area (= 1 in this case, because of grid setup)
+        (u_{i-1/2,j})^{+} = max(u_{i-1/2,j}, 0)
+        (u_{i+1/2,j})^{-} = min(u_{i+1/2,j}, 0)
+        (v_{i,j-1/2})^{+} = max(v_{i,j-1/2}, 0)
+        (v_{i,j+1/2})^{-} = min(v_{i,j+1/2}, 0)
+    The winds u_{i-1/2,j}, u_{i+1/2,j}, v_{i,j-1/2}, and v_{i,j+1/2} are computed as the average of the winds
+    in the adjacent cells. E.g. u_{i-1/2,j} = (u_{i,j} + u_{i-1,j})/2. For boundary cells, the face wind is
+    set to be the same as at the cell centre.
+
+    The (.)^{+} and (.)^{-} expressions and sign conventions are chosen to coincide with those used in the
+    Wikipedia page on upwind schemes: https://en.wikipedia.org/wiki/Upwind_scheme
+
+    Args:
+        wind_vector (np.ndarray): array with shape=(n_grid^2, 2) of wind vectors in each grid cell. The i^th
+            row is a wind vector (u_{i}, v_{i}) corresponding to the i^th grid cell, using the usual
+            np.meshgrid unwrapping convention.
+
+    Returns:
+        F (np.ndarray): advection matrix with shape=(n_grid^2, n_grid^2).
+
+    """
+    u_vector = wind_vector[:, 0].flatten()
+    v_vector = wind_vector[:, 1].flatten()
+    n_total = u_vector.shape[0]
+    n_grid = int(np.sqrt(n_total))
+    F = np.zeros((n_total, n_total))
+
+    for i in range(n_grid):
+        for j in range(n_grid):
+            i_central = i * n_grid + j
+            i_left = (i - 1) * n_grid + j
+            i_right = (i + 1) * n_grid + j
+            i_down = i * n_grid + (j - 1)
+            i_up = i * n_grid + (j + 1)
+
+            if i == 0:
+                u_face_l = u_vector[i_central]
+            else:
+                u_face_l = (u_vector[i_central] + u_vector[i_left]) / 2
+            u_plus = max(u_face_l, 0)
+            if i == n_grid - 1:
+                u_face_r = u_vector[i_central]
+            else:
+                u_face_r = (u_vector[i_central] + u_vector[i_right]) / 2
+            u_minus = min(u_face_r, 0)
+
+            if j == 0:
+                v_face_d = v_vector[i_central]
+            else:
+                v_face_d = (v_vector[i_central] + v_vector[i_down]) / 2
+            v_plus = max(v_face_d, 0)
+            if j == n_grid - 1:
+                v_face_u = v_vector[i_central]
+            else:
+                v_face_u = (v_vector[i_central] + v_vector[i_up]) / 2
+            v_minus = min(v_face_u, 0)
+
+            F[i_central, i_central] += u_plus - u_minus + v_plus - v_minus
+            if i > 0:
+                F[i_central, i_left] -= u_plus
+            if i < (n_grid - 1):
+                F[i_central, i_right] += u_minus
+            if j > 0:
+                F[i_central, i_down] -= v_plus
+            if j < (n_grid - 1):
+                F[i_central, i_up] += v_minus
+
+    return F
+
+
+@pytest.mark.parametrize("n_grid", [3, 5, 10], ids=["3 cells", "5 cells", "10 cells"])
+@pytest.mark.parametrize("boundary_type", ["dirichlet", "neumann"], ids=["Dirichlet", "Neumann"])
+@pytest.mark.parametrize("dimension", [1, 2], ids=["1D", "2D"])
+def test_advection_matrix(n_grid, boundary_type, dimension):
+    """This test checks that the advection matrix for the finite volume discretization is correctly constructed.
+
+    The test constructs an advection matrix for a grid element-by-element (in a loop). This "manually constructed"
+    solver matrix is then compared to the advection matrix computed using the main implementation (constructed using
+    sparse diagonal methods). These should give exactly the same result.
+
+    The test runs both 1D and 2D cases. In a 2D case, the grid is set up to have the same number of cells in both
+    dimensions.
+
+    The forward matrix calculated by the FE code as:
+        W = (V/dt) * I - F + G + diag(b_n)
+    where F is the advection matrix, G is the diffusion matrix, and b_n is the vector of Neumann boundary terms. Thus,
+    to recover the advection matrix F for comparison, we calculate:
+        F = (V/dt) * I - W + diag(b_n)
+    where G is simply a matrix of zeros when the diffusion constants are 0.
+
+    For simplicity in this case, the solver grid is set up so that the cell volume is 1 and time step dt = 1, so the
+    multiplicative factor is also V/dt = 1.
+
+    The wind vector is randomly generated for each test case.
+
+    Args:
+        n_grid (int): number of cells in each dimension of the 2D grid
+        boundary_type (str): type of boundary condition to apply at the edges of the grid
+            (either "dirichlet" or "neumann"). The same boundary type is applied to all grid edges.
+        dimension (int): number of spatial dimensions (either 1 or 2) of the grid.
+
+    """
+    source_map = SourceMap()
+    source_map.location = ENU(ref_latitude=0, ref_longitude=0, ref_altitude=0)
+    wind_vector = np.random.normal(0, 1, size=(n_grid**dimension, dimension))
+    dim = [FiniteVolumeDimension("x", number_cells=n_grid, limits=[0, n_grid], external_boundary_type=[boundary_type])]
+    diff_const = [0.0]
+    if dimension == 2:
+        dim.append(
+            FiniteVolumeDimension("y", number_cells=n_grid, limits=[0, n_grid], external_boundary_type=[boundary_type])
+        )
+        diff_const.append(0.0)
+    fe = FiniteVolume(dimensions=dim, source_map=source_map, dt=1, diffusion_constants=diff_const)
+    met = MeteorologyWindfield(static_wind_field=None)
+    met.u_component = wind_vector[:, [0]]
+    if dimension == 2:
+        met.v_component = wind_vector[:, [1]]
+    fe.compute_forward_matrix(met)
+
+    F = (
+        np.eye(n_grid**dimension)
+        - fe.forward_matrix.toarray()
+        + np.diag(fe.adv_diff_terms["combined"].b_neumann.flatten())
+    )
+    if dimension == 1:
+        F_manual = manually_construct_1d_advection_matrix(wind_vector)
+    else:
+        F_manual = manually_construct_2d_advection_matrix(wind_vector)
+    assert np.allclose(F, F_manual, atol=1e-10)
+
+
+def manually_construct_1d_diffusion_matrix(diffusion_constant, n_grid):
+    """Make a 1D diffusion matrix by assigning each term individually.
+
+    Finite difference scheme for a single dimension has the following form:
+        G_i = A * K * [(c_{i+1} - c_{i})/dx - (c_{i} - c_{i-1})/dx]
+    where:
+        A = cell face area (= 1 in this case, because of grid setup)
+        K = diffusion constant
+        dx = cell width (= 1 in this case, because of grid setup)
+
+    Args:
+        diffusion_constant (np.ndarray): diffusion constant.
+
+    """
+    G = np.zeros((n_grid, n_grid))
+    for i in range(n_grid):
+        G[i, i] = -diffusion_constant[0] * 2
+        if i > 0:
+            G[i, i - 1] = diffusion_constant[0]
+        if i < n_grid - 1:
+            G[i, i + 1] = diffusion_constant[0]
+    return G
+
+
+def manually_construct_2d_diffusion_matrix(diffusion_constant, n_grid):
+    """Make a 2D diffusion matrix by assigning each term individually.
+
+    Finite difference scheme for two dimensions has the following form:
+        G_{ij} = A * K_x * [(c_{i+1,j} - c_{i,j})/dx - (c_{i,j} - c_{i-1,j})/dx] +
+                 A * K_y * [(c_{i,j+1} - c_{i,j})/dy - (c_{i,j} - c_{i,j-1})/dy]
+    where:
+        A = cell face area (= 1 in this case, because of grid setup)
+        K_x, K_y = diffusion constants in x and y directions
+        dx, dy = cell widths in x and y directions (= 1 in this case, because of grid setup)
+
+    Args:
+        diffusion_constant (np.ndarray): diffusion constant.
+        n_grid (int): number of cells in each dimension of the 2D grid.
+
+    """
+    G = np.zeros((n_grid**2, n_grid**2))
+    for i in range(n_grid):
+        for j in range(n_grid):
+            i_central = i * n_grid + j
+            i_left = (i - 1) * n_grid + j
+            i_right = (i + 1) * n_grid + j
+            i_down = i * n_grid + (j - 1)
+            i_up = i * n_grid + (j + 1)
+            G[i_central, i_central] = -diffusion_constant[0] * 2 - diffusion_constant[1] * 2
+            if i > 0:
+                G[i_central, i_left] = diffusion_constant[0]
+            if i < (n_grid - 1):
+                G[i_central, i_right] = diffusion_constant[0]
+            if j > 0:
+                G[i_central, i_down] = diffusion_constant[1]
+            if j < (n_grid - 1):
+                G[i_central, i_up] = diffusion_constant[1]
+    return G
+
+
+@pytest.mark.parametrize("n_grid", [3, 5, 10], ids=["3 cells", "5 cells", "10 cells"])
+@pytest.mark.parametrize("boundary_type", ["dirichlet", "neumann"], ids=["Dirichlet", "Neumann"])
+@pytest.mark.parametrize("dimension", [1, 2], ids=["1D", "2D"])
+def test_diffusion_matrix(n_grid, boundary_type, dimension):
+    """This test checks that the diffusion matrix for a finite volume discretization is correctly constructed.
+
+    The test compares the diffusion matrix computed by the finite volume implementation matches a manually
+    constructed diffusion matrix which doesn't use the sparse diagonal construction.
+
+    The forward matrix calculated by the FE code as:
+        W = (V/dt) * I - F + G + diag(b_n)
+    where F is the advection matrix, G is the diffusion matrix, and b_n is the vector of Neumann boundary terms. Thus,
+    to recover the diffusion matrix G for comparison, we calculate:
+        G = W - (V/dt) * I - diag(b_n)
+    where F is simply a matrix of zeros when the winds are all set to 0.
+
+    For simplicity in this case the finite volume is setup so that the cell volume is 1 and the dt = 1 so the
+    multiplicative factor is simply V/dt = 1.
+
+    The diffusion constant is randomly generated for each test case.
+
+    Args:
+        n_grid (int): number of cells in each dimension of the grid
+        boundary_type (str): type of boundary condition to apply at the edges of the grid
+            (either "dirichlet" or "neumann").
+        dimension (int): dimensionality of the grid (either 1 or 2).
+
+    """
+    source_map = SourceMap()
+    source_map.location = ENU(ref_latitude=0, ref_longitude=0, ref_altitude=0)
+    diffusion_constant = np.random.uniform(0, 1, size=(dimension,))
+    dim = [FiniteVolumeDimension("x", number_cells=n_grid, limits=[0, n_grid], external_boundary_type=[boundary_type])]
+    if dimension == 2:
+        dim.append(
+            FiniteVolumeDimension("y", number_cells=n_grid, limits=[0, n_grid], external_boundary_type=[boundary_type])
+        )
+    fe = FiniteVolume(
+        dimensions=dim,
+        source_map=source_map,
+        dt=1,
+        diffusion_constants=[diffusion_constant[k] for k in range(dimension)],
+    )
+    met = MeteorologyWindfield(static_wind_field=None)
+    if dimension == 1:
+        met.u_component = np.zeros((n_grid, 1))
+    if dimension == 2:
+        met.u_component = np.zeros((n_grid**2, 1))
+        met.v_component = np.zeros((n_grid**2, 1))
+    fe.compute_forward_matrix(met)
+
+    G = (
+        fe.forward_matrix.toarray()
+        - np.eye(fe.forward_matrix.shape[0])
+        - np.diag(fe.adv_diff_terms["combined"].b_neumann.flatten())
+    )
+    if dimension == 1:
+        G_manual = manually_construct_1d_diffusion_matrix(diffusion_constant, n_grid)
+    else:
+        G_manual = manually_construct_2d_diffusion_matrix(diffusion_constant, n_grid)
+    assert np.allclose(G, G_manual, atol=1e-10)
