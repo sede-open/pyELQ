@@ -28,6 +28,8 @@ from geojson import Feature, FeatureCollection
 from openmcmc.mcmc import MCMC
 from shapely import geometry
 
+from pyelq.dispersion_model.finite_volume import FiniteVolume
+from pyelq.dispersion_model.gaussian_plume import GaussianPlume
 from pyelq.component.background import TemporalBackground
 from pyelq.component.error_model import ErrorModel
 from pyelq.component.offset import PerSensor
@@ -1149,56 +1151,74 @@ class Plot:
         opacity: float = 0.4,
         map_color_scale="jet",
     ):
-        """Creates a coverage plot using the coverage function from Gaussian Plume.
+        """Function to create coverage plot indicating whether a grid cell is within the coverage region given the 
+        meteorology information.
+
+        Source map is generated for a fixed grid shape of (40, 40, 24) and source locations are generated. Given the
+        sensor locations and the meteorology information, the coupling matrix is computed for the dispersion model and
+        for each grid cell it is determined whether it is in the coverage area or not. Since the grid is defined in 3D,
+        a coverage map is created for each height level.
 
         Args:
-            source_model (SourceModel): The source model object containing the source locations and emission rates.
-            opacity (float): The opacity of the grid cells when they are plotted.
-            map_color_scale (str): The string which defines which plotly colour scale should be used when plotting
-                                   the values.
+            model_object (ELQModel): ELQModel object containing the quantification results, the sensor information and
+            the meteorology information.
+            opacity (float, optional): Opacity used for the coverage grid cells. Defaults to 0.4.
+            map_color_scale (str, optional): Plotly color scale used for the coverage cells. Defaults to "jet".
 
-                                                  considered to be within the coverage. Defaults to 6 kg/hr.
-            opacity (float): The opacity of the grid cells when they are plotted.
-            map_color_scale (str): The string which defines which plotly colour scale should be used when plotting
-                                   the values.
+        Raises:
+            ValueError: If the dispersion model is not supported by this coverage plot implementation.
 
         """
-        source_model = model_object.components["source"]
+        dict_key = "coverage_map"
+        source_model = deepcopy(model_object.components["source"])
+        sensor_object = deepcopy(model_object.sensor_object)
+        datetime_min_string = sensor_object.time.min().strftime("%d-%b-%Y, %H:%M:%S")
+        datetime_max_string = sensor_object.time.max().strftime("%d-%b-%Y, %H:%M:%S")
         site_limits = source_model.site_limits
-        grid_shape = (10, 10, 12)
+        grid_shape = (40, 40, 24)
+
         source_map = SourceMap()
         location_object = ENU(
             ref_latitude=source_model.dispersion_model.source_map.location.ref_latitude,
             ref_longitude=source_model.dispersion_model.source_map.location.ref_longitude,
             ref_altitude=source_model.dispersion_model.source_map.location.ref_altitude
         )
-
         source_map.generate_sources(
             coordinate_object=location_object,
             sourcemap_limits=site_limits,
             sourcemap_type="grid", nof_sources=math.prod(grid_shape), grid_shape=grid_shape
         )
         source_model.dispersion_model.source_map = source_map
-        coupling_matrix = source_model.dispersion_model.compute_coupling(
-            sensor_object=model_object.sensor_object,
-            meteorology_object=model_object.meteorology,
-            gas_object=model_object.gas_species,
-            output_stacked=True,
-        )
+
+        if isinstance(source_model.dispersion_model, FiniteVolume):
+            coupling_matrix = source_model.dispersion_model.compute_coupling(
+                sensor_object=model_object.sensor_object,
+                met_windfield=model_object.meteorology,
+                gas_object=model_object.gas_species,
+                output_stacked=True)
+        elif isinstance(source_model.dispersion_model, GaussianPlume):
+            coupling_matrix = source_model.dispersion_model.compute_coupling(
+                sensor_object=sensor_object,
+                meteorology_object= model_object.meteorology,
+                gas_object=model_object.gas_species,
+                output_stacked=True)
+        else:
+            raise ValueError((f"Dispersion model {type(source_model.dispersion_model).__name__} not recognized for "
+                              f"coverage plot, only Gaussian Plume and Finite Volume are currently supported."))
+            
         in_coverage_area = source_model.compute_coverage(coupling_matrix)
 
-        dict_key = "coverage_map"
         grid_locations = source_map.location.to_enu()
         grid_locations_lla = grid_locations.to_lla()
-        self.create_empty_map_figure(dict_key=dict_key)
-
+        
+        self.figure_dict[dict_key] = go.Figure()
         trace_groups = []
         heights = np.unique(grid_locations.up)
         for i, height in enumerate(heights):
             group_idxs = []
             idx_height = (grid_locations.up == height).flatten()
-            coverge_height = in_coverage_area[idx_height].astype(int)
-            in_coverage_indices = np.nonzero(coverge_height == 1)[0]
+            coverage_height = in_coverage_area[idx_height].astype(int)
+            in_coverage_indices = np.nonzero(coverage_height == 1)[0]
 
             latitude = grid_locations_lla.latitude[idx_height][in_coverage_indices]
             longitude = grid_locations_lla.longitude[idx_height][in_coverage_indices]
@@ -1218,8 +1238,8 @@ class Plot:
             group_idxs.append(len(self.figure_dict[dict_key].data) - 1)
 
             marker_dict = {"size": 10, "opacity": 0.8}
-            for i, sensor in enumerate(model_object.sensor_object.values()):
-                marker_dict["color"] = model_object.sensor_object.color_map[i]
+            for i_sensor, sensor in enumerate(model_object.sensor_object.values()):
+                marker_dict["color"] = model_object.sensor_object.color_map[i_sensor]
                 self.figure_dict[dict_key].add_trace(
                     go.Scattermapbox(
                         mode="markers+lines",
@@ -1236,16 +1256,18 @@ class Plot:
         
         steps = []
         n_traces = len(self.figure_dict[dict_key].data)
-        base_title = "Coverage plot for different heights where the areas within the coverage are shown"
+        base_title = (
+            "Coverage plot for different heights where the areas within coverage are shown in green "
+            f"for {datetime_min_string} to {datetime_max_string}"
+        )
         for i, height in enumerate(heights):
             visible = [False] * n_traces
             for idx in trace_groups[i]:
                 visible[idx] = True
             steps.append(
-                {"method": "update",
-                 "args": [{"visible": visible},
-                          {"title": {"text": f"{base_title}<br>Height = {height:.3f} m"}}],
-                          "label": f"{height:.3f} m"
+                {"method": "restyle",
+                 "args": [{"visible": visible}],
+                 "label": f"{height:.3f} m"
                 }
             )
 
@@ -1253,21 +1275,23 @@ class Plot:
         for tr, v in zip(self.figure_dict[dict_key].data, init_visible):
             tr.visible = v
 
-
         self.figure_dict[dict_key].update_layout(
-        mapbox={
-            "style": "carto-positron",
-            "center": {"lat": grid_locations.ref_latitude, "lon": grid_locations.ref_longitude},
-            "zoom": 16,
-        },
-        sliders=[{
-            "active": 0,
-            "currentvalue": {"prefix": "Height: "},
-            "pad": {"t": 40},
-            "steps": steps
-        }],
+            mapbox={
+                "style": "carto-positron",
+                "zoom": 15,
+                "center": {"lon": grid_locations.ref_longitude, "lat": grid_locations.ref_latitude},
+            },
+            title=base_title,
+            font_family="Futura",
+            font_size=15,
+            sliders=[{
+                "active": 0,
+                "font": {"size": 18},
+                "currentvalue": {"prefix": "Height: ", "font": {"size": 18}},
+                "pad": {"t": 40},
+                "steps": steps,
+            }],
         )
-
 
 
     @staticmethod
