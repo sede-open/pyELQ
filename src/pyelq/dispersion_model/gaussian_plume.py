@@ -17,16 +17,16 @@ from typing import Union
 
 import numpy as np
 
+import pyelq.support_functions.spatio_temporal_interpolation as sti
 from pyelq.coordinate_system import ENU, LLA
 from pyelq.dispersion_model.dispersion_model import DispersionModel
+from pyelq.dispersion_model.turbulence_model import AngularModel, TurbulenceModel
 from pyelq.gas_species import GasSpecies
 from pyelq.meteorology.meteorology import Meteorology, MeteorologyGroup
 from pyelq.sensor.beam import Beam
 from pyelq.sensor.satellite import Satellite
 from pyelq.sensor.sensor import Sensor, SensorGroup
 from pyelq.source_map import SourceMap
-from pyelq.dispersion_model.turbulence_model import TurbulenceModel, AngularModel
-import pyelq.support_functions.spatio_temporal_interpolation as sti
 
 
 @dataclass
