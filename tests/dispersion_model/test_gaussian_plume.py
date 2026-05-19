@@ -586,4 +586,3 @@ def test_draxler_model_turbulence(met_object, sensor_object):
     )
 
     assert coupling.shape == (sensor_object.nof_observations, source_object.nof_sources)
-
