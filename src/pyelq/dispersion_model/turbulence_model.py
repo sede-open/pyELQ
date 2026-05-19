@@ -15,7 +15,7 @@ class TurbulenceModel(ABC):
         self, turbulence_vector: np.ndarray, source_z: np.ndarray, wind_speed: np.ndarray, distance_x: np.ndarray
     ) -> np.ndarray:
         """Abstract method to define behaviour for turbulence calculation.
-        
+
         All inputs are expected to have the same shape.
 
         Args:
