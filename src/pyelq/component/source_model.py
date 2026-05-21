@@ -621,8 +621,7 @@ class SourceModel(Component, SourceGrouping, SourceDistribution):
         Attempts to generate a source map with sources in the coverage area, and to generate a coupling matrix.
 
         If a dispersion_model has not already been attached to the instance, then this function adds a GaussianPlume
-        dispersion model, with a default source map that has limits set based on the site limits
-
+        dispersion model, with a default source map that has limits set based on the site limits.
 
         Args:
             sensor_object (SensorGroup): object containing sensor data.
@@ -630,7 +629,6 @@ class SourceModel(Component, SourceGrouping, SourceDistribution):
             gas_species (GasSpecies): object containing gas species information.
 
         """
-
         blank_source_map = SourceMap()
         sensor_locations = sensor_object.location.to_enu()
         blank_source_map.location = ENU(
