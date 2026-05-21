@@ -583,6 +583,10 @@ class SourceModel(Component, SourceGrouping, SourceDistribution):
                 they will be required when we need to update the couplings when new source locations are proposed when
                 we move/birth/death.
 
+        If sources are already attached to the source map, the code does not attempt to change their locations. Sources
+        are screened to check whether they lie withing the coverage area: any sources which do not are removed from the
+        source map. If there are no sources left after screening, a ValueError is raised.
+
         If no sources are in the source map, generate_sources will be run with default arguments to generate an initial
         source map with sources in the coverage area.
 
@@ -590,6 +594,9 @@ class SourceModel(Component, SourceGrouping, SourceDistribution):
             sensor_object (SensorGroup): object containing sensor data.
             meteorology (MeteorologyGroup): object containing meteorology data.
             gas_species (GasSpecies): object containing gas species information.
+
+        Raises:
+            ValueError: If no sources in a user-provided source map are in the coverage area.
 
         """
         self.sensor_object = sensor_object
