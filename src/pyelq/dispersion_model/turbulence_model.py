@@ -1,7 +1,7 @@
 """Turbulence Models."""
 
 from abc import ABC, abstractmethod
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 import numpy as np
 
@@ -88,8 +88,6 @@ class DraxlerModel(TurbulenceModel):
         exp_elevated (float): the exp parameter as described above for an elevated source.
         t_i_elevated (float): the t_i parameter as described above for an elevated source.
         ground_threshold (float): maximum height above ground at which source can be considered 'ground'.
-        DEFAULT_DRAXLER_HORIZONTAL (dict): default Draxler parameters for horizontal turbulence.
-        DEFAULT_DRAXLER_VERTICAL (dict): default Draxler parameters for vertical turbulence.
 
     """
 
@@ -100,23 +98,6 @@ class DraxlerModel(TurbulenceModel):
     t_i_ground: float
     t_i_elevated: float
     ground_threshold: float = 0.5
-
-    DEFAULT_DRAXLER_HORIZONTAL: dict = {
-        "scale_ground": 0.9,
-        "scale_elevated": 0.9,
-        "exp_ground": 0.5,
-        "exp_elevated": 0.5,
-        "t_i_ground": 300.0,
-        "t_i_elevated": 1000.0,
-    }
-    DEFAULT_DRAXLER_VERTICAL: dict = {
-        "scale_ground": 0.9,
-        "scale_elevated": 0.945,
-        "exp_ground": 0.5,
-        "exp_elevated": 0.806,
-        "t_i_ground": 50.0,
-        "t_i_elevated": 100.0,
-    }
 
     def calculate(
         self, turbulence_vector: np.ndarray, source_z: np.ndarray, wind_speed: np.ndarray, distance_x: np.ndarray
@@ -150,11 +131,27 @@ class DraxlerModel(TurbulenceModel):
     @staticmethod
     def default_horizontal(**kwargs):
         """Construct a DraxlerModel object for horizontal turbulence, overriding defaults where provided."""
-        params = DraxlerModel.DEFAULT_DRAXLER_HORIZONTAL | kwargs
+        DEFAULT_DRAXLER_HORIZONTAL = {
+            "scale_ground": 0.9,
+            "scale_elevated": 0.9,
+            "exp_ground": 0.5,
+            "exp_elevated": 0.5,
+            "t_i_ground": 300.0,
+            "t_i_elevated": 1000.0,
+        }
+        params = DEFAULT_DRAXLER_HORIZONTAL | kwargs
         return DraxlerModel(**params)
 
     @staticmethod
     def default_vertical(**kwargs):
         """Construct a DraxlerModel object for vertical turbulence, overriding defaults where provided."""
-        params = DraxlerModel.DEFAULT_DRAXLER_VERTICAL | kwargs
+        DEFAULT_DRAXLER_VERTICAL = {
+            "scale_ground": 0.9,
+            "scale_elevated": 0.945,
+            "exp_ground": 0.5,
+            "exp_elevated": 0.806,
+            "t_i_ground": 50.0,
+            "t_i_elevated": 100.0,
+        }
+        params = DEFAULT_DRAXLER_VERTICAL | kwargs
         return DraxlerModel(**params)

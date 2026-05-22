@@ -3,9 +3,7 @@
 import numpy as np
 import pytest
 
-from pyelq.coordinate_system import ENU
 from pyelq.dispersion_model.turbulence_model import AngularModel, DraxlerModel
-from tests.dispersion_model.test_gaussian_plume import make_met_object
 
 
 @pytest.mark.parametrize("n_wind", [1, 10], ids=["1", "10"])
@@ -40,8 +38,8 @@ def test_draxler_model(n_wind, parameters, type):
         assert model.scale_ground == parameters["scale_ground"]
         assert model.exp_ground == parameters["exp_ground"]
     else:
-        assert model.scale_ground == DraxlerModel.DEFAULT_DRAXLER_HORIZONTAL["scale_ground"]
-        assert model.exp_ground == DraxlerModel.DEFAULT_DRAXLER_HORIZONTAL["exp_ground"]
+        assert model.scale_ground == 0.9
+        assert model.exp_ground == 0.5
 
     idx_ground_source = source_z[:, 0] <= model.ground_threshold
     f = plume_spread * (wind_speed / turbulence_vector) / distance_x
