@@ -12,18 +12,21 @@ The Mathematics of Atmospheric Dispersion Modeling, John M. Stockie, DOI. 10.113
 """
 
 from copy import deepcopy
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Union
 
 import numpy as np
 
+import pyelq.support_functions.spatio_temporal_interpolation as sti
 from pyelq.coordinate_system import ENU, LLA
 from pyelq.dispersion_model.dispersion_model import DispersionModel
+from pyelq.dispersion_model.turbulence_model import AngularModel, TurbulenceModel
 from pyelq.gas_species import GasSpecies
 from pyelq.meteorology.meteorology import Meteorology, MeteorologyGroup
 from pyelq.sensor.beam import Beam
 from pyelq.sensor.satellite import Satellite
 from pyelq.sensor.sensor import Sensor, SensorGroup
+from pyelq.source_map import SourceMap
 
 
 @dataclass
@@ -31,9 +34,16 @@ class GaussianPlume(DispersionModel):
     """Defines the Gaussian plume dispersion model class.
 
     Attributes:
+        source_map (SourceMap): SourceMap object used for the dispersion model
+        turbulence_model_horizontal (TurbulenceModel): Definition for horizontal turbulence calculation
+        turbulence_model_vertical (TurbulenceModel): Definition for vertical turbulence calculation
         source_half_width (float): Source half width (radius) to be used in the Gaussian plume model (in meters)
 
     """
+
+    source_map: SourceMap
+    turbulence_model_horizontal: TurbulenceModel = field(default_factory=AngularModel)
+    turbulence_model_vertical: TurbulenceModel = field(default_factory=AngularModel)
 
     source_half_width: float = 1
 
@@ -41,7 +51,7 @@ class GaussianPlume(DispersionModel):
         self,
         sensor_object: Union[SensorGroup, Sensor],
         meteorology_object: Union[MeteorologyGroup, Meteorology],
-        gas_object: GasSpecies = None,
+        gas_object: GasSpecies | None = None,
         output_stacked: bool = False,
         run_interpolation: bool = True,
     ) -> Union[list, np.ndarray, dict]:
@@ -231,10 +241,13 @@ class GaussianPlume(DispersionModel):
 
         distance_y = -sin_theta * sensor_x + cos_theta * sensor_y
 
-        sigma_hor = np.tan(wind_turbulence_horizontal * (np.pi / 180)) * np.abs(distance_x) + self.source_half_width
-        sigma_vert = np.tan(wind_turbulence_vertical * (np.pi / 180)) * np.abs(distance_x)
-
-        sigma_vert[sigma_vert == 0] = 1e-16
+        sigma_hor, sigma_vert = self.compute_plume_spread(
+            source_z=source_z,
+            wind_speed=wind_speed,
+            wind_turbulence_horizontal=wind_turbulence_horizontal,
+            wind_turbulence_vertical=wind_turbulence_vertical,
+            distance_x=distance_x,
+        )
 
         plume_coupling = (
             (1 / (2 * np.pi * wind_speed * sigma_hor * sigma_vert))
@@ -249,6 +262,193 @@ class GaussianPlume(DispersionModel):
         plume_coupling[np.logical_or(distance_x < 0, plume_coupling < self.minimum_contribution)] = 0
 
         return plume_coupling
+
+    def compute_plume_spread(
+        self,
+        source_z: np.ndarray,
+        wind_speed: np.ndarray,
+        wind_turbulence_horizontal: np.ndarray,
+        wind_turbulence_vertical: np.ndarray,
+        distance_x: np.ndarray,
+    ) -> tuple[np.ndarray, np.ndarray]:
+        """Compute parameters of plume stability in the horizontal and vertical directions based on the turbulence model.
+
+        Setting sigma_hor, sigma_vert to 1e-16 when they are identically zero (distance_x == 0) to avoid divide by zero errors
+        in the following steps of calculation.
+
+        Args:
+            source_z (np.ndarray): source height above ground [m]
+            wind_speed (np.ndarray): wind speed at source locations [m/s]
+            wind_turbulence_horizontal (np.ndarray): parameter of wind stability in the horizontal direction [unit dependent on model in use]
+            wind_turbulence_vertical (np.ndarray): parameter of wind stability in the vertical direction [unit dependent on model in use]
+            distance_x (np.ndarray): distance from source to sensor [m]
+
+        Returns:
+            tuple[np.ndarray, np.ndarray]: tuple of horizontal, vertical plume stability
+
+        """
+        wind_speed_non_zero = np.maximum(wind_speed, 1e-16)
+
+        sigma_hor = (
+            self.turbulence_model_horizontal.calculate(
+                wind_turbulence_horizontal, source_z, wind_speed_non_zero, distance_x
+            )
+            + self.source_half_width
+        )
+        sigma_vert = self.turbulence_model_vertical.calculate(
+            wind_turbulence_vertical, source_z, wind_speed_non_zero, distance_x
+        )
+
+        sigma_vert[sigma_vert == 0] = 1e-16
+        sigma_hor[sigma_hor == 0] = 1e-16
+
+        return sigma_hor, sigma_vert
+
+    def calculate_gas_density(
+        self, meteorology: Meteorology, sensor_object: Sensor, gas_object: Union[GasSpecies, None]
+    ) -> np.ndarray:
+        """Helper function to calculate the gas density using ideal gas law.
+
+        https://en.wikipedia.org/wiki/Ideal_gas
+
+        When a gas object is passed as input we calculate the density according to that gas. We check if the
+        meteorology object has a temperature and/or pressure value and use those accordingly. Otherwise, we use Standard
+        Temperature and Pressure (STP).
+
+        We interpolate the temperature and pressure values to the source locations/times such that this is consistent
+        with the other calculations, i.e. we only do spatial interpolation when the sensor is a Satellite object
+        and temporal interpolation otherwise.
+
+        When no gas_object is passed in we just set the gas density value to 1.
+
+        Args:
+            meteorology (Meteorology): Meteorology object potentially containing temperature or pressure values
+            sensor_object (Sensor): Sensor object containing information about where to interpolate to
+            gas_object (Union[GasSpecies, None]): Gas species object which actually calculates the correct density
+
+        Returns:
+            gas_density (np.ndarray): Numpy array of shape [1 x nof_sources] (Satellite sensor)
+                or [nof_observations x 1] (otherwise) containing the gas density values to use
+
+        """
+        if not isinstance(gas_object, GasSpecies):
+            if isinstance(sensor_object, Satellite):
+                return np.ones((1, self.source_map.nof_sources))
+            return np.ones((sensor_object.nof_observations, 1))
+
+        temperature_interpolated = self.interpolate_meteorology(
+            meteorology=meteorology, variable_name="temperature", sensor_object=sensor_object
+        )
+        if temperature_interpolated is None:
+            temperature_interpolated = np.array([[273.15]])
+
+        pressure_interpolated = self.interpolate_meteorology(
+            meteorology=meteorology, variable_name="pressure", sensor_object=sensor_object
+        )
+        if pressure_interpolated is None:
+            pressure_interpolated = np.array([[101.325]])
+
+        gas_density = gas_object.gas_density(temperature=temperature_interpolated, pressure=pressure_interpolated)
+
+        return gas_density
+
+    def interpolate_all_meteorology(
+        self, sensor_object: Sensor, meteorology: Meteorology, gas_object: GasSpecies, run_interpolation: bool
+    ):
+        """Function which carries out interpolation of all meteorological information.
+
+        The flag run_interpolation determines whether the interpolation should be carried out. If this
+        is set to be False, the meteorological parameters are simply set to the values stored on the
+        meteorology object (i.e. we assume that the meteorology has already been interpolated). This
+        functionality is required to avoid wasted computation in the case of e.g. a reversible jump run.
+
+        Args:
+            sensor_object (Sensor): object containing locations/times onto which met information should
+                be interpolated.
+            meteorology (Meteorology): object containing meteorology information for interpolation.
+            gas_object (GasSpecies): object containing gas information.
+            run_interpolation (bool): logical indicating whether the meteorology information needs to be interpolated.
+
+        Returns:
+            gas_density (np.ndarray): numpy array of shape [n_data x 1] of gas densities.
+            u_interpolated (np.ndarray): numpy array of shape [n_data x 1] of northerly wind components.
+            v_interpolated (np.ndarray): numpy array of shape [n_data x 1] of easterly wind components.
+            wind_turbulence_horizontal (np.ndarray): numpy array of shape [n_data x 1] of horizontal turbulence
+                parameters.
+            wind_turbulence_vertical (np.ndarray): numpy array of shape [n_data x 1] of vertical turbulence
+                parameters.
+
+        """
+        if run_interpolation:
+            gas_density = self.calculate_gas_density(
+                meteorology=meteorology, sensor_object=sensor_object, gas_object=gas_object
+            )
+            u_interpolated = self.interpolate_meteorology(
+                meteorology=meteorology, variable_name="u_component", sensor_object=sensor_object
+            )
+            v_interpolated = self.interpolate_meteorology(
+                meteorology=meteorology, variable_name="v_component", sensor_object=sensor_object
+            )
+            wind_turbulence_horizontal = self.interpolate_meteorology(
+                meteorology=meteorology,
+                variable_name="wind_turbulence_horizontal",
+                sensor_object=sensor_object,
+            )
+            wind_turbulence_vertical = self.interpolate_meteorology(
+                meteorology=meteorology,
+                variable_name="wind_turbulence_vertical",
+                sensor_object=sensor_object,
+            )
+        else:
+            gas_density = gas_object.gas_density(temperature=meteorology.temperature, pressure=meteorology.pressure)
+            gas_density = gas_density.reshape((gas_density.size, 1))
+            u_interpolated = meteorology.u_component.reshape((meteorology.u_component.size, 1))
+            v_interpolated = meteorology.v_component.reshape((meteorology.v_component.size, 1))
+            turbulence_array_horizontal = getattr(meteorology, "wind_turbulence_horizontal")
+            turbulence_array_vertical = getattr(meteorology, "wind_turbulence_vertical")
+            wind_turbulence_horizontal = turbulence_array_horizontal.reshape((turbulence_array_horizontal.size, 1))
+            wind_turbulence_vertical = turbulence_array_vertical.reshape((turbulence_array_vertical.size, 1))
+
+        return gas_density, u_interpolated, v_interpolated, wind_turbulence_horizontal, wind_turbulence_vertical
+
+    def interpolate_meteorology(
+        self, meteorology: Meteorology, variable_name: str, sensor_object: Sensor
+    ) -> Union[np.ndarray, None]:
+        """Helper function to interpolate meteorology variables.
+
+        This function interpolates meteorological variables to times in Sensor or Sources in sourcemap. It also
+        calculates the wind speed and mathematical angle between the u- and v-components which in turn gets used in the
+        calculation of the Gaussian plume.
+
+        When the input sensor object is a Satellite type we use spatial interpolation using the interpolation method
+        from the coordinate system class as this takes care of the coordinate systems.
+        When the input sensor object is of another time we use temporal interpolation (assumption is spatial uniformity
+        for all observations over a small(er) area).
+
+        Args:
+            meteorology (Meteorology): Meteorology object containing u- and v-components of wind including their
+                spatial location
+            variable_name (str): String name of an attribute in the meteorology input object which needs to be
+                interpolated
+            sensor_object (Sensor): Sensor object containing information about where to interpolate to
+
+        Returns:
+            variable_interpolated (np.ndarray): Interpolated values
+
+        """
+        variable = getattr(meteorology, variable_name)
+        if variable is None:
+            return None
+
+        if isinstance(sensor_object, Satellite):
+            variable_interpolated = meteorology.location.interpolate(variable, self.source_map.location)
+            variable_interpolated = variable_interpolated.reshape(1, self.source_map.nof_sources)
+        else:
+            variable_interpolated = sti.interpolate(
+                time_in=meteorology.time, values_in=variable, time_out=sensor_object.time
+            )
+            variable_interpolated = variable_interpolated.reshape(sensor_object.nof_observations, 1)
+        return variable_interpolated
 
     def compute_coupling_satellite(
         self,
