@@ -1,5 +1,4 @@
-"""Test module for TurbulenceModel objects.
-"""
+"""Test module for TurbulenceModel objects."""
 
 import numpy as np
 import pytest
@@ -10,9 +9,7 @@ from tests.dispersion_model.test_gaussian_plume import make_met_object
 
 
 @pytest.mark.parametrize("n_wind", [1, 10], ids=["1", "10"])
-@pytest.mark.parametrize(
-    "parameters", [{}, {"scale_ground": 0.8, "exp_ground": 0.4}], ids=["default", "override"]
-)
+@pytest.mark.parametrize("parameters", [{}, {"scale_ground": 0.8, "exp_ground": 0.4}], ids=["default", "override"])
 @pytest.mark.parametrize("type", ["horizontal", "vertical"], ids=["horizontal", "vertical"])
 def test_draxler_model(n_wind, parameters, type):
     """Tests for the Draxler turbulence model.
@@ -23,7 +20,7 @@ def test_draxler_model(n_wind, parameters, type):
         - The scale_ground and exp_ground parameters are correctly set either to the default or
             user-supplied values (horizontal and vertical defaults are equivalent for these parameters).
         - The calculated plume spread has the expected shape.
-        - The universal turbulence function f has the expected values in the case where the wind speed and 
+        - The universal turbulence function f has the expected values in the case where the wind speed and
             turbulence_vector are both set to 1.0, for both ground and elevated sources.
 
     """
@@ -36,10 +33,7 @@ def test_draxler_model(n_wind, parameters, type):
     source_z = np.linspace(0, 3, n_wind).reshape((n_wind, 1))
     distance_x = np.linspace(1, 50, n_wind).reshape((n_wind, 1))
     plume_spread = model.calculate(
-        turbulence_vector=turbulence_vector,
-        source_z=source_z,
-        wind_speed=wind_speed,
-        distance_x=distance_x
+        turbulence_vector=turbulence_vector, source_z=source_z, wind_speed=wind_speed, distance_x=distance_x
     )
 
     if parameters:
@@ -51,12 +45,8 @@ def test_draxler_model(n_wind, parameters, type):
 
     idx_ground_source = source_z[:, 0] <= model.ground_threshold
     f = plume_spread * (wind_speed / turbulence_vector) / distance_x
-    expected_f_ground = 1.0 / (
-        1.0 + model.scale_ground * ((distance_x / model.t_i_ground) ** model.exp_ground)
-    )
-    expected_f_elevated = 1.0 / (
-        1.0 + model.scale_elevated * ((distance_x  / model.t_i_elevated) ** model.exp_elevated)
-    )
+    expected_f_ground = 1.0 / (1.0 + model.scale_ground * ((distance_x / model.t_i_ground) ** model.exp_ground))
+    expected_f_elevated = 1.0 / (1.0 + model.scale_elevated * ((distance_x / model.t_i_elevated) ** model.exp_elevated))
     assert plume_spread.shape == (n_wind, 1)
     assert np.allclose(f[idx_ground_source, 0], expected_f_ground[idx_ground_source, 0])
     assert np.allclose(f[~idx_ground_source, 0], expected_f_elevated[~idx_ground_source, 0])
@@ -77,10 +67,7 @@ def test_angular_model(n_wind):
     turbulence_vector = np.ones((n_wind, 1)) * 10
     wind_speed = np.ones((n_wind, 1)) * 1
     plume_spread = model.calculate(
-        turbulence_vector=turbulence_vector,
-        source_z=source_z,
-        wind_speed=wind_speed,
-        distance_x=distance_x
+        turbulence_vector=turbulence_vector, source_z=source_z, wind_speed=wind_speed, distance_x=distance_x
     )
 
     assert plume_spread.shape == (n_wind, 1)
