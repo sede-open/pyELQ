@@ -63,7 +63,7 @@ def test_angular_model(n_wind):
     """
     model = AngularModel()
     source_z = np.linspace(0, 3, n_wind).reshape((n_wind, 1))
-    distance_x = np.linspace(0, 100, n_wind).reshape((n_wind, 1))
+    distance_x = np.linspace(1, 100, n_wind).reshape((n_wind, 1))
     turbulence_vector = np.ones((n_wind, 1)) * 10
     wind_speed = np.ones((n_wind, 1)) * 1
     plume_spread = model.calculate(
