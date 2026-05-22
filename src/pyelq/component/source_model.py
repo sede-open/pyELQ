@@ -684,9 +684,11 @@ class SourceModel(Component, SourceGrouping, SourceDistribution):
 
         if not isinstance(source_map_pointer.location, ENU):
             raise TypeError("source_map location must be an instance of ENU")
-        sensor_locations = sensor_object.location.to_enu(ref_latitude=source_map_pointer.location.ref_latitude,
-                                                         ref_longitude=source_map_pointer.location.ref_longitude,
-                                                         ref_altitude=source_map_pointer.location.ref_altitude)
+        sensor_locations = sensor_object.location.to_enu(
+            ref_latitude=source_map_pointer.location.ref_latitude,
+            ref_longitude=source_map_pointer.location.ref_longitude,
+            ref_altitude=source_map_pointer.location.ref_altitude,
+        )
 
         source_map_pointer.location.east = None
         source_map_pointer.location.north = None
@@ -705,7 +707,6 @@ class SourceModel(Component, SourceGrouping, SourceDistribution):
             self.coupling = self.dispersion_model.compute_coupling(
                 sensor_object, meteorology, gas_species, output_stacked=True
             )
-
 
             # import matplotlib.pyplot as plt
             # plt.plot(sensor_locations.east, sensor_locations.north, "x", label="sensors")
