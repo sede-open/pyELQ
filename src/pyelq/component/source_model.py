@@ -708,12 +708,6 @@ class SourceModel(Component, SourceGrouping, SourceDistribution):
                 sensor_object, meteorology, gas_species, output_stacked=True
             )
 
-            # import matplotlib.pyplot as plt
-            # plt.plot(sensor_locations.east, sensor_locations.north, "x", label="sensors")
-            # plt.plot(source_map_pointer.location.east, source_map_pointer.location.north, "o", label="sources")
-            # plt.legend()
-            # plt.show()
-
             self.screen_coverage()
             if counter > 100:
                 raise ValueError(
