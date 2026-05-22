@@ -19,13 +19,13 @@ class TurbulenceModel(ABC):
         All inputs are expected to have the same shape.
 
         Args:
-            turbulence_vector (np.ndarray): wind turbulence parameter [unit depends on model]
-            source_z (np.ndarray): height of source relative to ground [m]
-            wind_speed (np.ndarray): wind speed at sensor location [m/s]
-            distance_x (np.ndarray): distance along plume axis from source to sensor location [m]
+            turbulence_vector (np.ndarray): wind turbulence parameter [unit depends on model].
+            source_z (np.ndarray): height of source relative to ground [m].
+            wind_speed (np.ndarray): wind speed at sensor location [m/s].
+            distance_x (np.ndarray): distance along plume axis from source to sensor location [m].
 
         Returns:
-            np.ndarray: stability of the plume according to the specific model in use
+            np.ndarray: stability of the plume according to the specific model in use.
 
         """
 
@@ -59,13 +59,13 @@ class DraxlerModel(TurbulenceModel):
     in the horizontal and vertical directions under particular conditions of atmospheric stability and source
     heights. The functions take the form:
 
-        f = 1 / (1 + scale * (T/t_i) ** exp)
+        f = 1 / (1 + scale * (T/t_i) ** power)
 
     Taking T as input, and as parameters:
         scale: an increase in scale reduces the effective dispersion along the entire plume, constraining
-            plume growth with distance
-        exp: an increase in exp creates a more abrupt transition point from greater to lesser dispersion
-        t_i: the time scale at which the transition from greater to lower dispersion is expected to occur
+            plume growth with distance.
+        power: an increase in power creates a more abrupt transition point from greater to lesser dispersion.
+        t_i: the time scale at which the transition from greater to lower dispersion is expected to occur.
 
     This class differentiates between the stability parameters for ground and elevated sources, and provides
     defaults for both of these in both the horizontal and vertical planes. The scale and exp values are drawn
@@ -112,7 +112,7 @@ class DraxlerModel(TurbulenceModel):
     ) -> np.ndarray:
         """Draxler calculation for atmospheric diffusion. See DOI above for details.
 
-        Expects that 'turbulence_vector' is in m/s
+        Expects that 'turbulence_vector' is in m/s.
 
         """
         positive_part_x = np.maximum(distance_x, 0.0)
