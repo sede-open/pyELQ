@@ -565,7 +565,7 @@ def test_source_on_switch(met_object, sensor_object):
     assert np.all(coupling_switch[change_point:] == 0) and np.any(coupling[change_point:] > 0)
 
 
-def test_draxler_model_turbulence(met_object, sensor_object):
+def test_draxler_model_turbulence(met_object: Meteorology, sensor_object: Sensor):
     """Test to check if the DraxlerModel runs successfully."""
     location = ENU(ref_longitude=0, ref_latitude=0, ref_altitude=0)
     source_object = SourceMap()

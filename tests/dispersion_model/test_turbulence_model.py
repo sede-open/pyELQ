@@ -9,7 +9,7 @@ from pyelq.dispersion_model.turbulence_model import AngularModel, DraxlerModel
 @pytest.mark.parametrize("n_wind", [1, 10], ids=["1", "10"])
 @pytest.mark.parametrize("parameters", [{}, {"scale_ground": 0.8, "exp_ground": 0.4}], ids=["default", "override"])
 @pytest.mark.parametrize("type", ["horizontal", "vertical"], ids=["horizontal", "vertical"])
-def test_draxler_model(n_wind, parameters, type):
+def test_draxler_model(n_wind: int, parameters: dict, type: str):
     """Tests for the Draxler turbulence model.
 
     Performs the following checks:
@@ -51,7 +51,7 @@ def test_draxler_model(n_wind, parameters, type):
 
 
 @pytest.mark.parametrize("n_wind", [1, 10], ids=["1", "10"])
-def test_angular_model(n_wind):
+def test_angular_model(n_wind: int):
     """Tests for the Angular turbulence model.
 
     Performs the following checks:

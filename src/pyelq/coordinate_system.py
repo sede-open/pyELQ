@@ -101,16 +101,19 @@ class Coordinate(ABC):
 
     @abstractmethod
     def to_enu(
-        self, ref_latitude: float | None = None, ref_longitude: float | None = None, ref_altitude: float | None = None
+        self,
+        ref_latitude: Union[float, None] = None,
+        ref_longitude: Union[float, None] = None,
+        ref_altitude: Union[float, None] = None,
     ) -> "ENU":
         """Converts coordinates to East North Up system.
 
         If a reference is not provided, the  minimum of coordinates in Lat/Lon/Alt is used as the reference.
 
         Args:
-            ref_latitude (float | None, optional): reference latitude for ENU
-            ref_longitude (float | None, optional): reference longitude for ENU
-            ref_altitude (float | None, optional):  reference altitude for ENU
+            ref_latitude (Union[float, None], optional): reference latitude for ENU
+            ref_longitude (Union[float, None], optional): reference longitude for ENU
+            ref_altitude (Union[float, None], optional):  reference altitude for ENU
 
         Returns:
            (ENU): East North Up coordinate object

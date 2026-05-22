@@ -64,7 +64,7 @@ class Meteorology:
     atmospheric_boundary_layer: np.ndarray = field(init=False, default=None)
     surface_albedo: np.ndarray = field(init=False, default=None)
     time: DatetimeArray = field(init=False, default=None)
-    location: Coordinate | None = field(init=False, default=None)
+    location: Coordinate = field(init=False, default=None)
     label: str = field(init=False)
 
     @property
