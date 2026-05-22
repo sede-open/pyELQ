@@ -59,12 +59,12 @@ class DraxlerModel(TurbulenceModel):
     in the horizontal and vertical directions under particular conditions of atmospheric stability and source
     heights. The functions take the form:
 
-        f = 1 / (1 + scale * (T/t_i) ** power)
+        f = 1 / (1 + scale * (T/t_i) ** exp)
 
     Taking T as input, and as parameters:
         scale: an increase in scale reduces the effective dispersion along the entire plume, constraining
             plume growth with distance.
-        power: an increase in power creates a more abrupt transition point from greater to lesser dispersion.
+        exp: an increase in this power creates a more abrupt transition point from greater to lesser dispersion.
         t_i: the time scale at which the transition from greater to lower dispersion is expected to occur.
 
     This class differentiates between the stability parameters for ground and elevated sources, and provides
