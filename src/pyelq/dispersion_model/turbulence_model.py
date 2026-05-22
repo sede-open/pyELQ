@@ -41,6 +41,15 @@ class AngularModel(TurbulenceModel):
 
         Expects that 'turbulence_vector' is in degrees.
 
+        Args:
+            turbulence_vector (np.ndarray): wind turbulence parameter [degrees].
+            source_z (np.ndarray): height of source relative to ground [m].
+            wind_speed (np.ndarray): wind speed at sensor location [m/s].
+            distance_x (np.ndarray): distance along plume axis from source to sensor location [m].
+
+        Returns:
+            np.ndarray: calculated plume spread values.
+
         """
         return np.tan(turbulence_vector * (np.pi / 180)) * np.abs(distance_x)
 
@@ -72,13 +81,15 @@ class DraxlerModel(TurbulenceModel):
     from Equations 2.7 and 2.9 in the Draxler paper and the t_i values from Table 3.
 
     Attributes:
-        scale_ground (float): the scale parameter as described above for a ground source
-        exp_ground (float): the exp parameter as described above for a ground source
-        t_i_ground (float): the t_i parameter as described above for a ground source
-        scale_elevated (float): the scale parameter as described above for an elevated source
-        exp_elevated (float): the exp parameter as described above for an elevated source
-        t_i_elevated (float): the t_i parameter as described above for an elevated source
-        ground_threshold (float): maximum height above ground at which source can be considered 'ground'
+        scale_ground (float): the scale parameter as described above for a ground source.
+        exp_ground (float): the exp parameter as described above for a ground source.
+        t_i_ground (float): the t_i parameter as described above for a ground source.
+        scale_elevated (float): the scale parameter as described above for an elevated source.
+        exp_elevated (float): the exp parameter as described above for an elevated source.
+        t_i_elevated (float): the t_i parameter as described above for an elevated source.
+        ground_threshold (float): maximum height above ground at which source can be considered 'ground'.
+        DEFAULT_DRAXLER_HORIZONTAL (dict): default Draxler parameters for horizontal turbulence.
+        DEFAULT_DRAXLER_VERTICAL (dict): default Draxler parameters for vertical turbulence.
 
     """
 
@@ -90,7 +101,7 @@ class DraxlerModel(TurbulenceModel):
     t_i_elevated: float
     ground_threshold: float = 0.5
 
-    DEFAULT_DRAXLER_HORIZONTAL = {
+    DEFAULT_DRAXLER_HORIZONTAL: dict = {
         "scale_ground": 0.9,
         "scale_elevated": 0.9,
         "exp_ground": 0.5,
@@ -98,7 +109,7 @@ class DraxlerModel(TurbulenceModel):
         "t_i_ground": 300.0,
         "t_i_elevated": 1000.0,
     }
-    DEFAULT_DRAXLER_VERTICAL = {
+    DEFAULT_DRAXLER_VERTICAL: dict = {
         "scale_ground": 0.9,
         "scale_elevated": 0.945,
         "exp_ground": 0.5,
@@ -113,6 +124,15 @@ class DraxlerModel(TurbulenceModel):
         """Draxler calculation for atmospheric diffusion. See DOI above for details.
 
         Expects that 'turbulence_vector' is in m/s.
+
+        Args:
+            turbulence_vector (np.ndarray): wind turbulence parameter [m/s].
+            source_z (np.ndarray): height of source relative to ground [m].
+            wind_speed (np.ndarray): wind speed at sensor location [m/s].
+            distance_x (np.ndarray): distance along plume axis from source to sensor location [m].
+
+        Returns:
+            np.ndarray: calculated plume spread values.
 
         """
         positive_part_x = np.maximum(distance_x, 0.0)
