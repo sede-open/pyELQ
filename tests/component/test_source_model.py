@@ -139,6 +139,9 @@ def test_generate_sources(source_model, sensor_group, met_group, gas_species, no
     Tests that the source locations are generated within the specified limits, and that the screening
     the coverage doesn't change the number of sources.
 
+    Also tests that if the source is not in the coverage area (when the sensor altitude is increased by
+    1000m), then a ValueError is raised as expected.
+
     """
     source_model.generate_sources(
         sensor_object=sensor_group,
@@ -159,7 +162,6 @@ def test_generate_sources(source_model, sensor_group, met_group, gas_species, no
 
     assert source_model.dispersion_model.source_map.nof_sources == nof_sources_before_screening
 
-    # make sensor really high so that model should fail
     with pytest.raises(ValueError):
         sensor_group_copy = deepcopy(sensor_group)
         for sensor in sensor_group_copy.values():
