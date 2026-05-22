@@ -667,6 +667,8 @@ class SourceModel(Component, SourceGrouping, SourceDistribution):
         no sources are in the coverage area, the function will keep trying to generate a source map until it finds one
         with sources in the coverage area, or until it has tried 100 times (in which case it raises a ValueError).
 
+        We assume the source map is in ENU coordinates and centered on the same reference point as the site limits
+
         Args:
             sensor_object (SensorGroup): object containing sensor data.
             meteorology (Meteorology): object containing meteorology data.
@@ -678,20 +680,23 @@ class SourceModel(Component, SourceGrouping, SourceDistribution):
 
         """
         self.sensor_object = sensor_object
-        sensor_locations = sensor_object.location.to_enu()
         source_map_pointer = self.dispersion_model.source_map
 
-        source_map_pointer.location = ENU(
-            ref_latitude=sensor_locations.ref_latitude,
-            ref_longitude=sensor_locations.ref_longitude,
-            ref_altitude=sensor_locations.ref_altitude,
-        )
+        if not isinstance(source_map_pointer.location, ENU):
+            raise TypeError("source_map location must be an instance of ENU")
+        sensor_locations = sensor_object.location.to_enu(ref_latitude=source_map_pointer.location.ref_latitude,
+                                                         ref_longitude=source_map_pointer.location.ref_longitude,
+                                                         ref_altitude=source_map_pointer.location.ref_altitude)
+
+        source_map_pointer.location.east = None
+        source_map_pointer.location.north = None
+        source_map_pointer.location.up = None
 
         counter = 0
         while source_map_pointer.nof_sources == 0:
             counter += 1
             source_map_pointer.generate_sources(
-                coordinate_object=sensor_locations,
+                coordinate_object=source_map_pointer.location,
                 sourcemap_limits=self.site_limits,
                 sourcemap_type="hypercube",
                 nof_sources=nof_sources,
@@ -700,8 +705,16 @@ class SourceModel(Component, SourceGrouping, SourceDistribution):
             self.coupling = self.dispersion_model.compute_coupling(
                 sensor_object, meteorology, gas_species, output_stacked=True
             )
+
+
+            # import matplotlib.pyplot as plt
+            # plt.plot(sensor_locations.east, sensor_locations.north, "x", label="sensors")
+            # plt.plot(source_map_pointer.location.east, source_map_pointer.location.north, "o", label="sources")
+            # plt.legend()
+            # plt.show()
+
             self.screen_coverage()
-            if counter > 50:
+            if counter > 100:
                 raise ValueError(
                     f"Source Map {self.label_string}: Unable to generate a source map with sources in the coverage area"
                 )

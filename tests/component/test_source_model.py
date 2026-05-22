@@ -159,6 +159,19 @@ def test_generate_sources(source_model, sensor_group, met_group, gas_species, no
 
     assert source_model.dispersion_model.source_map.nof_sources == nof_sources_before_screening
 
+    # make sensor really high so that model should fail
+    with pytest.raises(ValueError):
+        sensor_group_copy = deepcopy(sensor_group)
+        for sensor in sensor_group_copy.values():
+            sensor.location.altitude += 1000
+
+        source_model.generate_sources(
+            sensor_object=sensor_group_copy,
+            meteorology=met_group,
+            gas_species=gas_species,
+            nof_sources=nof_sources,
+        )
+
 
 def test_birth_function(source_model):
     """Test the birth_function implementation, and some aspects of the reversible jump sampler.
