@@ -1,4 +1,12 @@
-"""Turbulence Models."""
+# SPDX-FileCopyrightText: 2026 Shell Global Solutions International B.V. All Rights Reserved.
+#
+# SPDX-License-Identifier: Apache-2.0
+
+# -*- coding: utf-8 -*-
+"""Turbulence Model module.
+
+The class for the Turbulence models used in pyELQ.
+"""
 
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
