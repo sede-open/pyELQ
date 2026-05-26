@@ -1,3 +1,8 @@
+# SPDX-FileCopyrightText: 2026 Shell Global Solutions International B.V. All Rights Reserved.
+#
+# SPDX-License-Identifier: Apache-2.0
+
+# -*- coding: utf-8 -*-
 """Test module for TurbulenceModel objects."""
 
 import numpy as np
