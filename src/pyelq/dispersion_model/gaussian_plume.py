@@ -39,7 +39,7 @@ class GaussianPlume(DispersionModel):
         source_half_width (float): Source half width (radius) to be used in the Gaussian plume model (in meters)
 
     """
-    
+
     turbulence_model_horizontal: TurbulenceModel = field(default_factory=AngularModel)
     turbulence_model_vertical: TurbulenceModel = field(default_factory=AngularModel)
 
