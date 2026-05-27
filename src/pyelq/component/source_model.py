@@ -680,15 +680,10 @@ class SourceModel(Component, SourceGrouping, SourceDistribution):
 
         """
         self.sensor_object = sensor_object
-        source_map_pointer = self.dispersion_model.source_map
+        source_map_pointer = deepcopy(self.dispersion_model.source_map)
 
         if not isinstance(source_map_pointer.location, ENU):
             raise TypeError("source_map location must be an instance of ENU")
-        sensor_locations = sensor_object.location.to_enu(
-            ref_latitude=source_map_pointer.location.ref_latitude,
-            ref_longitude=source_map_pointer.location.ref_longitude,
-            ref_altitude=source_map_pointer.location.ref_altitude,
-        )
 
         source_map_pointer.location.east = None
         source_map_pointer.location.north = None
