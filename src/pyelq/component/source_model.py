@@ -710,8 +710,6 @@ class SourceModel(Component, SourceGrouping, SourceDistribution):
                     f"Source Map {self.label_string}: Unable to generate a source map with sources in the coverage area"
                 )
 
-
-
     def screen_coverage(self):
         """Screen the initial source map for coverage."""
         in_coverage_area = self.compute_coverage(self.coupling)
