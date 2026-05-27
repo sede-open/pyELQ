@@ -680,7 +680,8 @@ class SourceModel(Component, SourceGrouping, SourceDistribution):
 
         """
         self.sensor_object = sensor_object
-        source_map_pointer = deepcopy(self.dispersion_model.source_map)
+        self.dispersion_model.source_map = deepcopy(self.dispersion_model.source_map)
+        source_map_pointer = self.dispersion_model.source_map
 
         if not isinstance(source_map_pointer.location, ENU):
             raise TypeError("source_map location must be an instance of ENU")
@@ -708,6 +709,8 @@ class SourceModel(Component, SourceGrouping, SourceDistribution):
                 raise ValueError(
                     f"Source Map {self.label_string}: Unable to generate a source map with sources in the coverage area"
                 )
+
+
 
     def screen_coverage(self):
         """Screen the initial source map for coverage."""
