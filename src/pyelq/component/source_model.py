@@ -583,55 +583,132 @@ class SourceModel(Component, SourceGrouping, SourceDistribution):
                 they will be required when we need to update the couplings when new source locations are proposed when
                 we move/birth/death.
 
+        If sources are already attached to the source map, the code does not attempt to change their locations. Sources
+        are screened to check whether they lie withing the coverage area: any sources which do not are removed from the
+        source map. If there are no sources left after screening, a ValueError is raised.
+
+        If no sources are in the source map, generate_sources will be run with default arguments to generate an initial
+        source map with sources in the coverage area.
+
+        Args:
+            sensor_object (SensorGroup): object containing sensor data.
+            meteorology (MeteorologyGroup): object containing meteorology data.
+            gas_species (GasSpecies): object containing gas species information.
+
+        Raises:
+            ValueError: If no sources in a user-provided source map are in the coverage area.
+
+        """
+        self.sensor_object = sensor_object
+        if self.dispersion_model is None:
+            self.initialise_dispersion_model(sensor_object, meteorology, gas_species)
+
+        if self.dispersion_model.source_map.nof_sources == 0:
+            self.generate_sources(sensor_object=sensor_object, meteorology=meteorology, gas_species=gas_species)
+        else:
+            self.coupling = self.dispersion_model.compute_coupling(
+                sensor_object, meteorology, gas_species, output_stacked=True
+            )
+            self.screen_coverage()
+            if self.dispersion_model.source_map.nof_sources == 0:
+                raise ValueError(
+                    "All sources in the source map are screened out by the coverage area, please adjust "
+                    "the source map or the coverage threshold."
+                )
+
+        if self.reversible_jump:
+            self.meteorology = meteorology
+            self.gas_species = gas_species
+
+    def initialise_dispersion_model(
+        self, sensor_object: SensorGroup, meteorology: Meteorology, gas_species: GasSpecies
+    ):
+        """Initialise the dispersion model.
+
+        Attempts to generate a source map with sources in the coverage area, and to generate a coupling matrix.
+
+        If a dispersion_model has not already been attached to the instance, then this function adds a GaussianPlume
+        dispersion model, with a default source map that has limits set based on the site limits.
+
         Args:
             sensor_object (SensorGroup): object containing sensor data.
             meteorology (MeteorologyGroup): object containing meteorology data.
             gas_species (GasSpecies): object containing gas species information.
 
         """
-        self.initialise_dispersion_model(sensor_object)
-        self.coupling = self.dispersion_model.compute_coupling(
-            sensor_object, meteorology, gas_species, output_stacked=True
+        blank_source_map = SourceMap()
+        sensor_locations = sensor_object.location.to_enu()
+        blank_source_map.location = ENU(
+            ref_latitude=sensor_locations.ref_latitude,
+            ref_longitude=sensor_locations.ref_longitude,
+            ref_altitude=sensor_locations.ref_altitude,
         )
+        if self.site_limits is None:
+            buffer = 1
+            self.site_limits = np.array(
+                [
+                    [np.min(sensor_locations.east) - buffer, np.max(sensor_locations.east) + buffer],
+                    [np.min(sensor_locations.north) - buffer, np.max(sensor_locations.north) + buffer],
+                    [np.min(sensor_locations.up) - buffer, np.max(sensor_locations.up) + buffer],
+                ]
+            )
+        self.dispersion_model = GaussianPlume(blank_source_map)
 
-        self.sensor_object = sensor_object
-        self.screen_coverage()
-        if self.reversible_jump:
-            self.meteorology = meteorology
-            self.gas_species = gas_species
+    def generate_sources(
+        self,
+        sensor_object: SensorGroup,
+        meteorology: Meteorology,
+        gas_species: GasSpecies,
+        nof_sources: int = 5,
+    ):
+        """Generate random source locations for the source map using a hypercube design within coverage area.
 
-    def initialise_dispersion_model(self, sensor_object: SensorGroup):
-        """Initialise the dispersion model.
+        Attempts to generate a source map within the site_limits and with at least one source  in the coverage area. If
+        no sources are in the coverage area, the function will keep trying to generate a source map until it finds one
+        with sources in the coverage area, or until it has tried 100 times (in which case it raises a ValueError).
 
-        If a dispersion_model has already been attached to this instance, then this function takes no action.
-
-        If a dispersion_model has not already been attached to the instance, then this function adds a GaussianPlume
-        dispersion model, with a default source map that has limits set based on the sensor locations.
+        We assume the source map is in ENU coordinates and centered on the same reference point as the site limits
 
         Args:
             sensor_object (SensorGroup): object containing sensor data.
+            meteorology (Meteorology): object containing meteorology data.
+            gas_species (GasSpecies): object containing gas species information.
+            nof_sources (int, optional): number of sources to generate. Defaults to 5.
+
+        Raises:
+            ValueError: If no source map with sources in the coverage area can be generated after 50 attempts.
 
         """
-        if self.dispersion_model is None:
-            source_map = SourceMap()
-            sensor_locations = sensor_object.location.to_enu()
-            location_object = ENU(
-                ref_latitude=sensor_locations.ref_latitude,
-                ref_longitude=sensor_locations.ref_longitude,
-                ref_altitude=sensor_locations.ref_altitude,
+        self.sensor_object = sensor_object
+        self.dispersion_model.source_map = deepcopy(self.dispersion_model.source_map)
+        source_map_pointer = self.dispersion_model.source_map
+
+        if not isinstance(source_map_pointer.location, ENU):
+            raise TypeError("source_map location must be an instance of ENU")
+
+        source_map_pointer.location.east = None
+        source_map_pointer.location.north = None
+        source_map_pointer.location.up = None
+
+        counter = 0
+        while source_map_pointer.nof_sources == 0:
+            counter += 1
+            source_map_pointer.generate_sources(
+                coordinate_object=source_map_pointer.location,
+                sourcemap_limits=self.site_limits,
+                sourcemap_type="hypercube",
+                nof_sources=nof_sources,
             )
-            source_map.generate_sources(
-                coordinate_object=location_object,
-                sourcemap_limits=np.array(
-                    [
-                        [np.min(sensor_locations.east), np.max(sensor_locations.east)],
-                        [np.min(sensor_locations.north), np.max(sensor_locations.north)],
-                        [np.min(sensor_locations.up), np.max(sensor_locations.up)],
-                    ]
-                ),
-                sourcemap_type="grid",
+
+            self.coupling = self.dispersion_model.compute_coupling(
+                sensor_object, meteorology, gas_species, output_stacked=True
             )
-            self.dispersion_model = GaussianPlume(source_map)
+
+            self.screen_coverage()
+            if counter > 50:
+                raise ValueError(
+                    f"Source Map {self.label_string}: Unable to generate a source map with sources in the coverage area"
+                )
 
     def screen_coverage(self):
         """Screen the initial source map for coverage."""

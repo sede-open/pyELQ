@@ -132,6 +132,49 @@ def test_coverage_function(source_model):
     assert np.allclose(threshold_value, np.quantile(random_vars, 0.95))
 
 
+@pytest.mark.parametrize("nof_sources", [1, 5], ids=lambda n: f"nof_sources_{n}")
+def test_generate_sources(source_model, sensor_group, met_group, gas_species, nof_sources):
+    """Test the generate_sources function.
+
+    Tests that the source locations are generated within the specified limits, and that the screening
+    the coverage doesn't change the number of sources.
+
+    Also tests that if the source is not in the coverage area (when the sensor altitude is increased by
+    1000m), then a ValueError is raised as expected.
+
+    """
+    source_model.generate_sources(
+        sensor_object=sensor_group,
+        meteorology=met_group,
+        gas_species=gas_species,
+        nof_sources=nof_sources,
+    )
+    assert source_model.dispersion_model.source_map.location is not None
+    assert np.all(source_model.dispersion_model.source_map.location.east >= source_model.site_limits[0, 0])
+    assert np.all(source_model.dispersion_model.source_map.location.east <= source_model.site_limits[0, 1])
+    assert np.all(source_model.dispersion_model.source_map.location.north >= source_model.site_limits[1, 0])
+    assert np.all(source_model.dispersion_model.source_map.location.north <= source_model.site_limits[1, 1])
+    assert np.all(source_model.dispersion_model.source_map.location.up >= source_model.site_limits[2, 0])
+    assert np.all(source_model.dispersion_model.source_map.location.up <= source_model.site_limits[2, 1])
+
+    nof_sources_before_screening = source_model.dispersion_model.source_map.nof_sources
+    source_model.screen_coverage()
+
+    assert source_model.dispersion_model.source_map.nof_sources == nof_sources_before_screening
+
+    with pytest.raises(ValueError):
+        sensor_group_copy = deepcopy(sensor_group)
+        for sensor in sensor_group_copy.values():
+            sensor.location.altitude += 1000
+
+        source_model.generate_sources(
+            sensor_object=sensor_group_copy,
+            meteorology=met_group,
+            gas_species=gas_species,
+            nof_sources=nof_sources,
+        )
+
+
 def test_birth_function(source_model):
     """Test the birth_function implementation, and some aspects of the reversible jump sampler.
 
