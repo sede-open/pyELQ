@@ -114,6 +114,7 @@ nav:
       - Finite Volume: pyelq/dispersion_model/finite_volume.md
       - Gaussian Plume: pyelq/dispersion_model/gaussian_plume.md
       - Site Layout: pyelq/dispersion_model/site_layout.md
+      - Turbulence Model: pyelq/dispersion_model/turbulence_model.md
     - DLM: pyelq/dlm.md
     - Gas Species: pyelq/gas_species.md
     - Meteorology:
