@@ -73,6 +73,26 @@ For some examples on how to use this package please check out these [Examples](h
 # Contribution
 This project welcomes contributions and suggestions. If you have a suggestion that would make this better you can simply open an issue with a relevant title. Don't forget to give the project a star! Thanks again!
 
+## Contributor setup with uv
+This repository now uses [uv](https://docs.astral.sh/uv/) for contributor environment management.
+
+1. Install uv by following the official instructions.
+2. From the repository root (where pyproject.toml is located), create and sync the environment with contributor tools:
+
+```bash
+uv sync --group contributor --group dev
+```
+
+3. Run commands in the project environment using uv:
+
+```bash
+uv run pytest .
+uv run black . --check
+uv run isort . --check
+uv run pydocstyle .
+uv run pylint src/
+```
+
 For more details on contributing to this repository, see the [Contributing guide](https://github.com/sede-open/pyELQ/blob/main/CONTRIBUTING.md).
 
 ***
