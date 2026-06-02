@@ -260,7 +260,7 @@ def create_plot_specifics(
             warnings.warn("Burn in is not specified for the ErrorModel plot, are you sure this is correct?")
 
     elif isinstance(object_to_plot, PerSensor):
-        offset_sensor_name = list(sensor_object.values())[0].label
+        offset_sensor_name = next(iter(sensor_object.values())).label
         y_values = object_to_plot.offset
         nan_row = np.tile(np.nan, (1, y_values.shape[1]))
         y_values = np.concatenate((nan_row, y_values), axis=0)
@@ -286,7 +286,7 @@ def create_plot_specifics(
 
     elif isinstance(object_to_plot, MCMC):
         y_values = object_to_plot.store["y"]
-        x_values = list(sensor_object.values())[0].time
+        x_values = next(iter(sensor_object.values())).time
         dict_key = kwargs.pop("dict_key", "fitted_values")
         title_text = "Observations and Predicted Model Values Against Time"
         x_label = "Time"
