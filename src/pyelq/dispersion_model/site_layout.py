@@ -48,8 +48,8 @@ class SiteLayout:
             return 0
         return self.cylinder_coordinates.nof_observations
 
-    def find_index_obstacles(self, grid_coordinates: ENU):
-        """Find the indices of the grid_coordinates that are within the radius of the obstacles.
+    def find_index_obstacles(self, coordinates: ENU):
+        """Find the indices of the coordinates that are within the radius of the obstacles.
 
         This method uses a KDTree to efficiently find the indices of the grid points that are within the radius of the
         cylindrical obstacles. It also checks the height of the grid points against the height of the obstacles.
@@ -60,25 +60,29 @@ class SiteLayout:
 
         """
         if self.cylinder_coordinates is None or self.cylinder_coordinates.nof_observations == 0:
-            self.id_obstacles = np.zeros((grid_coordinates.nof_observations, 1), dtype=bool)
+            self.id_obstacles = np.zeros((coordinates.nof_observations, 1), dtype=bool)
             return
 
-        self.check_reference_coordinates(grid_coordinates)
+        self.check_reference_coordinates(coordinates)
 
-        grid_coordinates_array = grid_coordinates.to_array(dim=2)
-        tree = spatial.KDTree(grid_coordinates_array)
+        coordinates_array = coordinates.to_array(dim=2)
+        tree = spatial.KDTree(coordinates_array)
         indices = tree.query_ball_point(x=self.cylinder_coordinates.to_array(dim=2), r=self.cylinder_radius.flatten())
 
-        if grid_coordinates.up is not None:
+        if coordinates.up is not None:
 
             for i, height in enumerate(self.cylinder_coordinates.up):
                 indices[i] = np.array(indices[i])
                 if len(indices[i]) > 0:
-                    indices[i] = indices[i][grid_coordinates.up[indices[i]].flatten() <= height]
+                    indices[i] = indices[i][coordinates.up[indices[i]].flatten() <= height]
         indices_conc = np.unique(np.concatenate(indices, axis=0)).astype(int)
-        self.id_obstacles_index = indices_conc
-        self.id_obstacles = np.zeros((grid_coordinates.nof_observations, 1), dtype=bool)
-        self.id_obstacles[[indices_conc]] = True
+        id_obstacles_index = indices_conc
+        id_obstacles = np.zeros((coordinates.nof_observations, 1), dtype=bool)
+        id_obstacles[[indices_conc]] = True
+        return id_obstacles_index, id_obstacles
+    
+    def set_index_obstacles_grid(self, grid_coordinates: ENU):
+        self.id_obstacles_index, self.id_obstacles = self.find_index_obstacles(grid_coordinates)
 
     def check_reference_coordinates(self, grid_coordinates: ENU):
         """Check if the reference coordinates of the grid and cylinder coordinates match.
