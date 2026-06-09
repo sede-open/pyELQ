@@ -16,7 +16,6 @@ from copy import deepcopy
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any, Callable, Type, Union, cast
 
-import math
 import numpy as np
 import pandas as pd
 import plotly.express as px
@@ -1149,7 +1148,7 @@ class Plot:
         self,
         model_object: "ELQModel",
         opacity: float = 0.4,
-        map_color_scale="jet",
+        map_color_scale = "jet",
     ):
         """Function to create coverage plot indicating whether a grid cell is within the coverage region given the 
         meteorology information.
@@ -1161,9 +1160,9 @@ class Plot:
 
         Args:
             model_object (ELQModel): ELQModel object containing the quantification results, the sensor information and
-            the meteorology information.
-            opacity (float, optional): Opacity used for the coverage grid cells. Defaults to 0.4.
-            map_color_scale (str, optional): Plotly color scale used for the coverage cells. Defaults to "jet".
+                the meteorology information.
+            opacity (float, optional): Opacity used for the coverage map. Defaults to 0.4.
+            map_color_scale (str, optional): Plotly color scale used for the coverage map. Defaults to "jet".
 
         Raises:
             ValueError: If the dispersion model is not supported by this coverage plot implementation.
@@ -1186,13 +1185,13 @@ class Plot:
         source_map.generate_sources(
             coordinate_object=location_object,
             sourcemap_limits=site_limits,
-            sourcemap_type="grid", nof_sources=math.prod(grid_shape), grid_shape=grid_shape
+            sourcemap_type="grid", nof_sources=np.prod(grid_shape).item(), grid_shape=grid_shape
         )
         source_model.dispersion_model.source_map = source_map
 
         if isinstance(source_model.dispersion_model, FiniteVolume):
             coupling_matrix = source_model.dispersion_model.compute_coupling(
-                sensor_object=model_object.sensor_object,
+                sensor_object=sensor_object,
                 met_windfield=model_object.meteorology,
                 gas_object=model_object.gas_species,
                 output_stacked=True)
@@ -1232,7 +1231,9 @@ class Plot:
                 map_color_scale=map_color_scale,
                 tolerance=1e-7,
                 unit="")
-            trace.showlegend = False
+            trace.name = "coverage_map"
+            trace.legendgroup = "coverage_map"
+            trace.showlegend = True
             trace.showscale = False
             self.figure_dict[dict_key].add_trace(trace)
             group_idxs.append(len(self.figure_dict[dict_key].data) - 1)
@@ -1257,8 +1258,7 @@ class Plot:
         steps = []
         n_traces = len(self.figure_dict[dict_key].data)
         base_title = (
-            "Coverage plot for different heights where the areas within coverage are shown in green "
-            f"for {datetime_min_string} to {datetime_max_string}"
+            f"Coverage plot for varying heights from {datetime_min_string} to {datetime_max_string}"
         )
         for i, height in enumerate(heights):
             visible = [False] * n_traces
