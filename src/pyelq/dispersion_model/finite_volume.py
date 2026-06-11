@@ -303,7 +303,10 @@ class FiniteVolume(DispersionModel):
         """
         interpolated_coupling = {}
         source_location = self.source_map.location.to_array(dim=self.number_dimensions)
-        _, id_obstacles = self.site_layout.find_index_obstacles(self.source_map.location)
+        if self.site_layout is not None:
+            _, id_obstacles = self.site_layout.find_index_obstacles(self.source_map.location)
+        else:
+            id_obstacles = np.zeros((self.source_map.nof_sources, 1), dtype=bool)
         for key, sensor in sensor_object.items():
             interpolated_coupling[key] = np.full((sensor.time.shape[0], source_location.shape[0]), fill_value=0.0)
             lookup_table_values = self.coupling_lookup_table[key].T
