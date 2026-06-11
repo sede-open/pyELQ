@@ -11,7 +11,7 @@ This module defines the SiteLayout class, which represents the layout of a site,
 """
 
 from dataclasses import dataclass, field
-from typing import Union, Tuple
+from typing import Tuple, Union
 
 import numpy as np
 from scipy import spatial
@@ -84,10 +84,10 @@ class SiteLayout:
         id_obstacles = np.zeros((coordinates.nof_observations, 1), dtype=bool)
         id_obstacles[[indices_conc]] = True
         return id_obstacles_index, id_obstacles
-    
+
     def set_index_obstacles_grid(self, grid_coordinates: ENU):
         """Set the indices of the grid points that are within obstacle regions based on the grid coordinates.
-        
+
         Args:
             grid_coordinates (ENU): The coordinates of the grid points to check.
 
