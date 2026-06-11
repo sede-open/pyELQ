@@ -39,18 +39,6 @@ def fixture_grid_coordinates():
         ref_altitude=0,
     )
 
-@pytest.fixture(name="coordinates")
-def fixture_coordinates():
-    """Fixture for coordinates."""
-    return ENU(
-        east=np.array([0.5, 0.5, 0.5, 5.0]),
-        north=np.array([0, 0, 0, 0]),
-        up=np.array([0, 2.0, 25, 0]),
-        ref_latitude=0,
-        ref_longitude=0,
-        ref_altitude=0,
-    )
-
 @pytest.fixture(params=[0, 10, 20], ids=["0-m", "10-m", "20-m"], name="height")
 def fixture_height(request):
     """Fixture for the cylinder heights."""
