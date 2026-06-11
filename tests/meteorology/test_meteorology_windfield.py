@@ -104,17 +104,24 @@ def test_set_index_obstacles_grid(site_layout, grid_coordinates, height):
     site_layout.set_index_obstacles_grid(site_layout.cylinder_coordinates)
     assert np.all(site_layout.id_obstacles)
 
-def test_find_index_obstacles(site_layout, coordinates, height):
+def test_find_index_obstacles(site_layout, height):
     """Test the find_index_obstacles method of SiteLayout.
 
-    Test the method with different cylinder configurations and check the output.
+    Test the method with different coordinates and cylinder configurations and check the output.
 
-    Check that grid points above the height of the cylinders are not considered obstacles.
-
-    Pass cylinder locations in as grid coordinates and check that the method correctly identifies them as obstacles or
-    not.
-
+    Check that coordinates that are in the cylinders are identified as obstacles, and that coordinates that are not
+    in the cylinders are not identified as obstacles. I also check that coordinates that their 2D location is in the
+    cylinder but are above the height of the cylinders are not identified as obstacles.
+    
     """
+    coordinates = ENU(
+        east=np.array([0.5, 0.5, 0.5, 5.0]),
+        north=np.array([0, 0, 0, 0]),
+        up=np.array([0, 2.0, 25, 0]),
+        ref_latitude=0,
+        ref_longitude=0,
+        ref_altitude=0
+        )
     _, id_obstacles = site_layout.find_index_obstacles(coordinates)
     if site_layout.cylinder_coordinates.nof_observations > 0:
         if height == 0:
