@@ -113,7 +113,7 @@ class ELQModel:
         if error_model is None:
             self.components["error_model"] = BySensor()
             warnings.warn("None is not an allowed type for error_model: resetting to default BySensor model.")
-        for key in list(self.components.keys()):
+        for key in list(self.components.keys()):  # noqa: S7504 Need the list of keys as we alter the dict in the loop
             if self.components[key] is None:
                 self.components.pop(key)
 

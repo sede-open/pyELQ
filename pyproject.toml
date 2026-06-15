@@ -3,50 +3,55 @@
 # SPDX-License-Identifier: Apache-2.0
 
 [build-system]
-requires = ["poetry-core>=1.0.0"]
-build-backend = "poetry.core.masonry.api"
+requires = ["hatchling>=1.27.0"]
+build-backend = "hatchling.build"
 
-[tool.poetry]
+[project]
 name = "pyelq"
 version = "1.2.5"
 description = "Package for detection, localization and quantification code."
-authors = ["Bas van de Kerkhof", "Matthew Jones", "David Randell"]
-homepage = "https://sede-open.github.io/pyELQ/"
-repository = "https://github.com/sede-open/pyELQ"
-documentation = "https://sede-open.github.io/pyELQ/"
+authors = [
+	{ name = "Bas van de Kerkhof" },
+	{ name = "Matthew Jones" },
+	{ name = "David Randell" },
+]
+urls = { Homepage = "https://sede-open.github.io/pyELQ/", Repository = "https://github.com/sede-open/pyELQ", Documentation = "https://sede-open.github.io/pyELQ/" }
 readme = "README.md"
 license = "Apache-2.0"
 keywords = ["gas dispersion", "emission", "detection", "localization", "quantification"]
-packages = [{ include = "pyelq", from = "src" }]
+requires-python = ">=3.11"
+dependencies = [
+	"pandas>=2.3.3,<3.0.0",
+	"numpy>=2.4.0",
+	"plotly>=6.5.0",
+	"scipy>=1.16.3",
+	"pymap3d>=3.2.0",
+	"geojson>=3.2.0",
+	"shapely>=2.1.2",
+	"scikit-learn>=1.8.0",
+	"openmcmc==1.0.8",
+]
 
-[tool.poetry.dependencies]
-python = ">=3.11"
-pandas = ">=2.3.3, <3.0.0"
-numpy = ">=2.4.0"
-plotly = ">=6.5.0"
-scipy = ">=1.16.3"
-pymap3d = ">=3.2.0"
-geojson = ">=3.2.0"
-shapely = ">=2.1.2"
-scikit-learn = ">=1.8.0"
-openmcmc = "==1.0.8"
+[dependency-groups]
+contributor = [
+	"black>=25.12.0",
+	"isort>=7.0.0",
+	"pydocstyle>=6.3.0",
+	"pylint>=4.0.4",
+	"pytest>=9.0.2",
+	"pytest-cov>=7.0.0",
+	"mkdocs-material>=9.7.1",
+	"mkdocstrings-python>=2.0.1",
+]
+dev = [
+	"ipykernel>=7.1.0,<8.0.0",
+]
 
-[tool.poetry.group.contributor]
-optional = true
+[tool.hatch.build.targets.wheel]
+packages = ["src/pyelq"]
 
-[tool.poetry.group.contributor.dependencies]
-black = ">=25.12.0"
-isort = ">=7.0.0"
-pydocstyle = ">=6.3.0"
-pylint = ">=4.0.4"
-pytest = ">=9.0.2"
-pytest-cov = ">=7.0.0"
-mkdocs-material = ">=9.7.1"
-mkdocstrings-python = ">=2.0.1"
-
-
-[tool.poetry.group.dev.dependencies]
-ipykernel = "^7.1.0"
+[tool.hatch.build.targets.sdist]
+include = ["src/pyelq", "tests", "README.md", "LICENSE.md"]
 
 [tool.pytest.ini_options]
 addopts = "--cov=pyelq --cov-fail-under=90 --ignore-glob=*plot*"
