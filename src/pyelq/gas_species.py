@@ -141,7 +141,7 @@ class CH4(GasSpecies):
         """Str: Chemical formula of gas."""
         return "CH4"
 
-    global_background = 1.85
+    global_background: float = 1.85
 
 
 @dataclass
@@ -163,7 +163,7 @@ class C2H6(GasSpecies):
         """Str: Chemical formula of gas."""
         return "C2H6"
 
-    global_background = 5e-4
+    global_background: float = 5e-4
 
 
 @dataclass
@@ -185,7 +185,7 @@ class C3H8(GasSpecies):
         """Str: Chemical formula of gas."""
         return "C3H8"
 
-    global_background = 5e-4
+    global_background: float = 5e-4
 
 
 @dataclass
@@ -207,7 +207,7 @@ class CO2(GasSpecies):
         """Str: Chemical formula of gas."""
         return "CO2"
 
-    global_background = 400
+    global_background: float = 400
 
 
 @dataclass
@@ -229,8 +229,8 @@ class NO2(GasSpecies):
         """Str: Chemical formula of gas."""
         return "NO2"
 
-    global_background = 0
-    half_life = 12
+    global_background: float = 0
+    half_life: float = 12
 
 
 @dataclass
@@ -252,4 +252,4 @@ class H2(GasSpecies):
         """Str: Chemical formula of gas."""
         return "H2"
 
-    global_background = 0.5
+    global_background: float = 0.5

@@ -34,19 +34,21 @@ class Preprocessor:
     sensor_object: SensorGroup
     met_object: Union[Meteorology, MeteorologyGroup]
     aggregate_function: str = "mean"
-    sensor_fields = ["time", "concentration", "source_on"]
-    met_fields = [
-        "time",
-        "wind_direction",
-        "wind_speed",
-        "pressure",
-        "temperature",
-        "u_component",
-        "v_component",
-        "w_component",
-        "wind_turbulence_horizontal",
-        "wind_turbulence_vertical",
-    ]
+    sensor_fields: list[str] = field(default_factory=lambda: ["time", "concentration", "source_on"])
+    met_fields: list[str] = field(
+        default_factory=lambda: [
+            "time",
+            "wind_direction",
+            "wind_speed",
+            "pressure",
+            "temperature",
+            "u_component",
+            "v_component",
+            "w_component",
+            "wind_turbulence_horizontal",
+            "wind_turbulence_vertical",
+        ]
+    )
     is_regularized: bool = field(init=False, default=False)
 
     def __post_init__(self) -> None:
