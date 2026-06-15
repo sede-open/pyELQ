@@ -495,6 +495,8 @@ class SourceModel(Component, SourceGrouping, SourceDistribution):
             solution can change). Unused in the case of a Uniform prior (self.distribution_number_sources == "Uniform").
         n_sources_max (int): maximum number of sources that can feature in the solution. Only relevant for cases where
             reversible_jump == True (where the number of sources in the solution can change).
+        n_sources_min (int): minimum number of sources that can feature in the solution. Only relevant for cases where
+            reversible_jump == True (where the number of sources in the solution can change).
         emission_proposal_std (float): standard deviation of the truncated Gaussian distribution used to propose the
             new source emission rate in case of a birth move.
 
@@ -536,6 +538,7 @@ class SourceModel(Component, SourceGrouping, SourceDistribution):
     site_limits: np.ndarray = None
     rate_num_sources: int = 5
     n_sources_max: int = 20
+    n_sources_min: int = 0
     emission_proposal_std: float = 0.5
 
     update_precision: bool = False
@@ -930,7 +933,7 @@ class SourceModel(Component, SourceGrouping, SourceDistribution):
                 model.append(
                     Uniform(
                         response=self.map["number_sources"],
-                        domain_response_lower=1,
+                        domain_response_lower=self.n_sources_min,
                         domain_response_upper=self.n_sources_max,
                     )
                 )
@@ -1028,6 +1031,7 @@ class SourceModel(Component, SourceGrouping, SourceDistribution):
                 step=np.array([1.0], ndmin=2),
                 associated_params=self.map["source_location"],
                 n_max=self.n_sources_max,
+                n_min=self.n_sources_min,
                 state_birth_function=self.birth_function,
                 state_death_function=self.death_function,
                 matching_params=matching_params,
