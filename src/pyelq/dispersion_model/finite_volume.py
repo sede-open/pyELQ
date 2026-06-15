@@ -307,13 +307,14 @@ class FiniteVolume(DispersionModel):
             _, id_obstacles = self.site_layout.find_index_obstacles(self.source_map.location)
         else:
             id_obstacles = np.zeros((self.source_map.nof_sources, 1), dtype=bool)
+        id_obstacles = id_obstacles.flatten()
         for key, sensor in sensor_object.items():
             interpolated_coupling[key] = np.full((sensor.time.shape[0], source_location.shape[0]), fill_value=0.0)
             lookup_table_values = self.coupling_lookup_table[key].T
             interpolated_coupling[key] = self._build_interpolator(
                 lookup_table_values, locations_to_interpolate=source_location
             ).T
-            interpolated_coupling[key][:, id_obstacles.flatten()] = 0
+            interpolated_coupling[key][:, id_obstacles] = 0
         return interpolated_coupling
 
     def propagate_solver_single_time_step(
