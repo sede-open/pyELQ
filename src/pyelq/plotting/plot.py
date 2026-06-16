@@ -14,7 +14,7 @@ import re
 import warnings
 from copy import deepcopy
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING, Any, Callable, Type, Union
+from typing import TYPE_CHECKING, Any, Callable, Type, Union, cast
 
 import numpy as np
 import pandas as pd
@@ -23,15 +23,18 @@ import plotly.figure_factory as ff
 import plotly.graph_objects as go
 from geojson import Feature, FeatureCollection
 from openmcmc.mcmc import MCMC
+from plotly.subplots import make_subplots
 from shapely import geometry
 
 from pyelq.component.background import TemporalBackground
 from pyelq.component.error_model import ErrorModel
 from pyelq.component.offset import PerSensor
 from pyelq.component.source_model import SlabAndSpike, SourceModel
-from pyelq.coordinate_system import LLA
+from pyelq.coordinate_system import ENU, LLA
+from pyelq.dispersion_model.finite_volume import FiniteVolume
 from pyelq.dispersion_model.gaussian_plume import GaussianPlume
 from pyelq.sensor.sensor import Sensor, SensorGroup
+from pyelq.source_map import SourceMap
 from pyelq.support_functions.post_processing import (
     calculate_rectangular_statistics,
     create_lla_polygons_from_xy_points,
@@ -381,7 +384,7 @@ def plot_single_box(fig: go.Figure, y_values: np.ndarray, color: str, name: str)
 
 def plot_polygons_on_map(
     polygons: Union[np.ndarray, list], values: np.ndarray, opacity: float, map_color_scale: str, **kwargs: Any
-) -> go.Choroplethmap:
+) -> go.Choroplethmapbox:
     """Plot a set of polygons on a map.
 
     Args:
@@ -390,11 +393,11 @@ def plot_polygons_on_map(
                              used in coloring the polygons on the map.
         opacity (float): Float between 0 and 1 specifying the opacity of the polygon fill color.
         map_color_scale (str): The string which defines which plotly color scale.
-        **kwargs (Any): Additional key word arguments which can be passed on the go.Choroplethmap object
+        **kwargs (Any): Additional key word arguments which can be passed on the go.Choroplethmapbox object
             (will override the default values as specified in this function)
 
     Returns:
-        trace: go.Choroplethmap trace with the colored polygons which can be added to a go.Figure object.
+        trace: go.Choroplethmapbox trace with the colored polygons which can be added to a go.Figure object.
 
     """
     polygon_id = list(range(values.shape[0]))
@@ -423,7 +426,7 @@ def plot_polygons_on_map(
     for key, value in kwargs.items():
         trace_options[key] = value
 
-    trace = go.Choroplethmap(**trace_options)
+    trace = go.Choroplethmapbox(**trace_options)
 
     return trace
 
@@ -436,7 +439,7 @@ def plot_regular_grid(
     tolerance: float = 1e-7,
     unit: str = "kg/hr",
     name="Values",
-) -> go.Choroplethmap:
+) -> go.Choroplethmapbox:
     """Plots a regular grid of LLA data onto a map.
 
     So long as the input array is regularly spaced, the value of the spacing is found. A set of rectangles are defined
@@ -454,7 +457,7 @@ def plot_regular_grid(
         name (str, optional): Name for the trace to be used in the color bar as well
 
     Returns:
-        trace (go.Choroplethmap): Trace with the colored polygons which can be added to a go.Figure object.
+        trace (go.Choroplethmapbox): Trace with the colored polygons which can be added to a go.Figure object.
 
     """
     _, gridsize_lat = is_regularly_spaced(coordinates.latitude, tolerance=tolerance)
@@ -462,10 +465,10 @@ def plot_regular_grid(
 
     polygons = [
         geometry.box(
-            coordinates.longitude[idx] - gridsize_lon / 2,
-            coordinates.latitude[idx] - gridsize_lat / 2,
-            coordinates.longitude[idx] + gridsize_lon / 2,
-            coordinates.latitude[idx] + gridsize_lat / 2,
+            coordinates.longitude[idx].item() - gridsize_lon / 2,
+            coordinates.latitude[idx].item() - gridsize_lat / 2,
+            coordinates.longitude[idx].item() + gridsize_lon / 2,
+            coordinates.latitude[idx].item() + gridsize_lat / 2,
         )
         for idx in range(coordinates.nof_observations)
     ]
@@ -1142,38 +1145,154 @@ class Plot:
 
     def plot_coverage(
         self,
-        coordinates: LLA,
-        couplings: np.ndarray,
-        threshold_function: Callable = np.max,
-        coverage_threshold: float = 6,
-        opacity: float = 0.8,
+        model_object: "ELQModel",
+        opacity: float = 0.4,
         map_color_scale="jet",
     ):
-        """Creates a coverage plot using the coverage function from Gaussian Plume.
+        """Function to create coverage plot indicating whether a grid cell is within the coverage region.
+
+        Source map is generated for a fixed grid shape of (40, 40, 24) and source locations are generated. Given the
+        sensor locations and the meteorology information, the coupling matrix is computed for the dispersion model and
+        for each grid cell it is determined whether it is in the coverage area or not. Since the grid is defined in 3D,
+        a coverage map is created for each height level.
 
         Args:
-            coordinates (LLA object): A LLA coordinate object containing a set of locations.
-            couplings (np.array): The calculated values of coupling (The 'A matrix') for a set of wind data.
-            threshold_function (Callable, optional): Callable function which returns some single value that defines the
-                                         maximum or 'threshold' coupling. Examples: np.quantile(q=0.9),
-                                         np.max, np.mean. Defaults to np.max.
-            coverage_threshold (float, optional): The threshold value of the estimated emission rate which is
-                                                  considered to be within the coverage. Defaults to 6 kg/hr.
-            opacity (float): The opacity of the grid cells when they are plotted.
-            map_color_scale (str): The string which defines which plotly colour scale should be used when plotting
-                                   the values.
+            model_object (ELQModel): ELQModel object containing the quantification results, the sensor information and
+                the meteorology information.
+            opacity (float, optional): Opacity used for the coverage map. Defaults to 0.4.
+            map_color_scale (str, optional): Plotly color scale used for the coverage map. Defaults to "jet".
+
+        Raises:
+            ValueError: If the dispersion model is not supported by this coverage plot implementation.
 
         """
-        coverage_values = GaussianPlume(source_map=None).compute_coverage(
-            couplings=couplings, threshold_function=threshold_function, coverage_threshold=coverage_threshold
+        dict_key = "coverage_map"
+        source_model = deepcopy(model_object.components["source"])
+        sensor_object = deepcopy(model_object.sensor_object)
+        datetime_min_string = sensor_object.time.min().strftime("%d-%b-%Y, %H:%M:%S")
+        datetime_max_string = sensor_object.time.max().strftime("%d-%b-%Y, %H:%M:%S")
+        site_limits = source_model.site_limits
+        grid_shape = (40, 40, 24)
+
+        source_map = SourceMap()
+        location_object = ENU(
+            ref_latitude=source_model.dispersion_model.source_map.location.ref_latitude,
+            ref_longitude=source_model.dispersion_model.source_map.location.ref_longitude,
+            ref_altitude=source_model.dispersion_model.source_map.location.ref_altitude,
         )
-        self.plot_values_on_map(
-            dict_key="coverage_map",
-            coordinates=coordinates,
-            values=coverage_values,
-            aggregate_function=np.max,
-            opacity=opacity,
-            map_color_scale=map_color_scale,
+        source_map.generate_sources(
+            coordinate_object=location_object,
+            sourcemap_limits=site_limits,
+            sourcemap_type="grid",
+            nof_sources=np.prod(grid_shape).item(),
+            grid_shape=grid_shape,
+        )
+        source_model.dispersion_model.source_map = source_map
+
+        if isinstance(source_model.dispersion_model, FiniteVolume):
+            coupling_matrix = source_model.dispersion_model.compute_coupling(
+                sensor_object=sensor_object,
+                met_windfield=model_object.meteorology,
+                gas_object=model_object.gas_species,
+                output_stacked=True,
+            )
+        elif isinstance(source_model.dispersion_model, GaussianPlume):
+            coupling_matrix = source_model.dispersion_model.compute_coupling(
+                sensor_object=sensor_object,
+                meteorology_object=model_object.meteorology,
+                gas_object=model_object.gas_species,
+                output_stacked=True,
+            )
+        else:
+            raise ValueError(
+                (
+                    f"Dispersion model {type(source_model.dispersion_model).__name__} not recognized for "
+                    f"coverage plot, only Gaussian Plume and Finite Volume are currently supported."
+                )
+            )
+
+        in_coverage_area = source_model.compute_coverage(coupling_matrix)
+
+        grid_locations = source_map.location.to_enu()
+        grid_locations_lla = grid_locations.to_lla()
+
+        self.figure_dict[dict_key] = go.Figure()
+        trace_groups = []
+        heights = np.unique(grid_locations.up)
+        for i, height in enumerate(heights):
+            group_idxs = []
+            idx_height = (grid_locations.up == height).flatten()
+            coverage_height = in_coverage_area[idx_height].astype(int)
+            in_coverage_indices = np.nonzero(coverage_height == 1)[0]
+
+            latitude = grid_locations_lla.latitude[idx_height][in_coverage_indices]
+            longitude = grid_locations_lla.longitude[idx_height][in_coverage_indices]
+            altitude = grid_locations_lla.altitude[idx_height][in_coverage_indices]
+            coordinates_plot = LLA(latitude=latitude, longitude=longitude, altitude=altitude)
+
+            trace = plot_regular_grid(
+                coordinates=coordinates_plot,
+                values=np.ones_like(latitude),
+                opacity=opacity,
+                map_color_scale=map_color_scale,
+                tolerance=1e-7,
+                unit="",
+            )
+            trace.name = "coverage_map"
+            trace.legendgroup = "coverage_map"
+            trace.showlegend = True
+            trace.showscale = False
+            self.figure_dict[dict_key].add_trace(trace)
+            group_idxs.append(len(self.figure_dict[dict_key].data) - 1)
+
+            marker_dict = {"size": 10, "opacity": 0.8}
+            for i_sensor, sensor in enumerate(model_object.sensor_object.values()):
+                marker_dict["color"] = model_object.sensor_object.color_map[i_sensor]
+                self.figure_dict[dict_key].add_trace(
+                    go.Scattermapbox(
+                        mode="markers+lines",
+                        lat=np.array(sensor.location.latitude),
+                        lon=np.array(sensor.location.longitude),
+                        marker=marker_dict,
+                        line={"width": 3},
+                        name=sensor.label,
+                        showlegend=True,
+                    )
+                )
+                group_idxs.append(len(self.figure_dict[dict_key].data) - 1)
+            trace_groups.append(group_idxs)
+
+        steps = []
+        n_traces = len(self.figure_dict[dict_key].data)
+        base_title = f"Coverage plot for varying heights from {datetime_min_string} to {datetime_max_string}"
+        for i, height in enumerate(heights):
+            visible = [False] * n_traces
+            for idx in trace_groups[i]:
+                visible[idx] = True
+            steps.append({"method": "restyle", "args": [{"visible": visible}], "label": f"{height:.3f} m"})
+
+        init_visible = steps[0]["args"][0]["visible"]
+        for tr, v in zip(self.figure_dict[dict_key].data, init_visible):
+            tr.visible = v
+
+        self.figure_dict[dict_key].update_layout(
+            mapbox={
+                "style": "carto-positron",
+                "zoom": 15,
+                "center": {"lon": grid_locations.ref_longitude, "lat": grid_locations.ref_latitude},
+            },
+            title=base_title,
+            font_family="Futura",
+            font_size=15,
+            sliders=[
+                {
+                    "active": 0,
+                    "font": {"size": 18},
+                    "currentvalue": {"prefix": "Height: ", "font": {"size": 18}},
+                    "pad": {"t": 40},
+                    "steps": steps,
+                }
+            ],
         )
 
     @staticmethod
