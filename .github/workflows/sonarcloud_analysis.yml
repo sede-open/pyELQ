@@ -16,16 +16,16 @@ jobs:
         python-version: [ "3.11" ]
     steps:
       - name: Checkout Repo
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           # Disabling shallow clone is recommended for improving relevancy of reporting
           fetch-depth: 0
       - name: Download coverage xml results
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: coverage_xml
       - name: Download coverage junitxml results
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: pytest_junitxml
       - name: SonarCloud Scan
@@ -34,7 +34,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
       - name: Upload SonarCloud Scan Report
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: sonar-scan-log
           path: .scannerwork/report-task.txt

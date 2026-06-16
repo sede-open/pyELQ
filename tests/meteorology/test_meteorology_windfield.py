@@ -66,7 +66,7 @@ def fixture_site_layout(request, height, grid_coordinates):
         ),
         cylinder_radius=radius,
     )
-    site_layout.find_index_obstacles(grid_coordinates)
+    site_layout.set_index_obstacles_grid(grid_coordinates)
     return site_layout
 
 
@@ -76,8 +76,8 @@ def fixture_meteorology_windfield(site_layout, meteorology):
     return MeteorologyWindfield(site_layout=site_layout, static_wind_field=meteorology)
 
 
-def test_find_index_obstacles(site_layout, grid_coordinates, height):
-    """Test the find_index_obstacles method of SiteLayout.
+def test_set_index_obstacles_grid(site_layout, grid_coordinates, height):
+    """Test the set_index_obstacles_grid method of SiteLayout.
 
     Test the method with different cylinder configurations and check the output.
 
@@ -90,8 +90,36 @@ def test_find_index_obstacles(site_layout, grid_coordinates, height):
     assert site_layout.id_obstacles.shape == (grid_coordinates.nof_observations, 1)
     assert site_layout.id_obstacles.dtype == bool
     assert not np.any(site_layout.id_obstacles[grid_coordinates.up > height])
-    site_layout.find_index_obstacles(site_layout.cylinder_coordinates)
+    site_layout.set_index_obstacles_grid(site_layout.cylinder_coordinates)
     assert np.all(site_layout.id_obstacles)
+
+
+def test_find_index_obstacles(site_layout, height):
+    """Test the find_index_obstacles method of SiteLayout.
+
+    Test the method with different coordinates and cylinder configurations and check the output.
+
+    Check that coordinates that are in the cylinders are identified as obstacles, and that coordinates that are not
+    in the cylinders are not identified as obstacles. I also check that coordinates that their 2D location is in the
+    cylinder but are above the height of the cylinders are not identified as obstacles.
+
+    """
+    coordinates = ENU(
+        east=np.array([0.5, 0.5, 0.5, 5.0]),
+        north=np.array([0, 0, 0, 0]),
+        up=np.array([0, 2.0, 25, 0]),
+        ref_latitude=0,
+        ref_longitude=0,
+        ref_altitude=0,
+    )
+    _, id_obstacles = site_layout.find_index_obstacles(coordinates)
+    if site_layout.cylinder_coordinates.nof_observations > 0:
+        if height == 0:
+            assert np.array_equal(id_obstacles, np.array([[True, False, False, False]]).T)
+        elif height == 10 or height == 20:
+            assert np.array_equal(id_obstacles, np.array([[True, True, False, False]]).T)
+    else:
+        assert np.array_equal(id_obstacles, np.array([[False, False, False, False]]).T)
 
 
 def test_meteorology_windfield(meteorology_windfield, meteorology, grid_coordinates):
