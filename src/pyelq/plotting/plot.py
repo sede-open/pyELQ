@@ -21,21 +21,20 @@ import pandas as pd
 import plotly.express as px
 import plotly.figure_factory as ff
 import plotly.graph_objects as go
-from plotly.subplots import make_subplots
-
 from geojson import Feature, FeatureCollection
 from openmcmc.mcmc import MCMC
+from plotly.subplots import make_subplots
 from shapely import geometry
 
-from pyelq.dispersion_model.finite_volume import FiniteVolume
-from pyelq.dispersion_model.gaussian_plume import GaussianPlume
 from pyelq.component.background import TemporalBackground
 from pyelq.component.error_model import ErrorModel
 from pyelq.component.offset import PerSensor
 from pyelq.component.source_model import SlabAndSpike, SourceModel
-from pyelq.coordinate_system import LLA, ENU
-from pyelq.source_map import SourceMap
+from pyelq.coordinate_system import ENU, LLA
+from pyelq.dispersion_model.finite_volume import FiniteVolume
+from pyelq.dispersion_model.gaussian_plume import GaussianPlume
 from pyelq.sensor.sensor import Sensor, SensorGroup
+from pyelq.source_map import SourceMap
 from pyelq.support_functions.post_processing import (
     calculate_rectangular_statistics,
     create_lla_polygons_from_xy_points,
@@ -1150,8 +1149,7 @@ class Plot:
         opacity: float = 0.4,
         map_color_scale="jet",
     ):
-        """Function to create coverage plot indicating whether a grid cell is within the coverage region given the
-        meteorology information.
+        """Function to create coverage plot indicating whether a grid cell is within the coverage region.
 
         Source map is generated for a fixed grid shape of (40, 40, 24) and source locations are generated. Given the
         sensor locations and the meteorology information, the coupling matrix is computed for the dispersion model and
