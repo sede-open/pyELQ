@@ -1249,7 +1249,7 @@ class Plot:
             for i_sensor, sensor in enumerate(model_object.sensor_object.values()):
                 marker_dict["color"] = model_object.sensor_object.color_map[i_sensor]
                 self.figure_dict[dict_key].add_trace(
-                    go.Scattermapbox(
+                    go.Scattermap(
                         mode="markers+lines",
                         lat=np.array(sensor.location.latitude),
                         lon=np.array(sensor.location.longitude),
@@ -1276,7 +1276,7 @@ class Plot:
             tr.visible = v
 
         self.figure_dict[dict_key].update_layout(
-            mapbox={
+            map={
                 "style": "carto-positron",
                 "zoom": 15,
                 "center": {"lon": grid_locations.ref_longitude, "lat": grid_locations.ref_latitude},
