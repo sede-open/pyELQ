@@ -384,7 +384,7 @@ def plot_single_box(fig: go.Figure, y_values: np.ndarray, color: str, name: str)
 
 def plot_polygons_on_map(
     polygons: Union[np.ndarray, list], values: np.ndarray, opacity: float, map_color_scale: str, **kwargs: Any
-) -> go.Choroplethmapbox:
+) -> go.Choroplethmap:
     """Plot a set of polygons on a map.
 
     Args:
@@ -393,11 +393,11 @@ def plot_polygons_on_map(
                              used in coloring the polygons on the map.
         opacity (float): Float between 0 and 1 specifying the opacity of the polygon fill color.
         map_color_scale (str): The string which defines which plotly color scale.
-        **kwargs (Any): Additional key word arguments which can be passed on the go.Choroplethmapbox object
+        **kwargs (Any): Additional key word arguments which can be passed on the go.Choroplethmap object
             (will override the default values as specified in this function)
 
     Returns:
-        trace: go.Choroplethmapbox trace with the colored polygons which can be added to a go.Figure object.
+        trace: go.Choroplethmap trace with the colored polygons which can be added to a go.Figure object.
 
     """
     polygon_id = list(range(values.shape[0]))
@@ -426,7 +426,7 @@ def plot_polygons_on_map(
     for key, value in kwargs.items():
         trace_options[key] = value
 
-    trace = go.Choroplethmapbox(**trace_options)
+    trace = go.Choroplethmap(**trace_options)
 
     return trace
 
@@ -439,7 +439,7 @@ def plot_regular_grid(
     tolerance: float = 1e-7,
     unit: str = "kg/hr",
     name="Values",
-) -> go.Choroplethmapbox:
+) -> go.Choroplethmap:
     """Plots a regular grid of LLA data onto a map.
 
     So long as the input array is regularly spaced, the value of the spacing is found. A set of rectangles are defined
@@ -457,7 +457,7 @@ def plot_regular_grid(
         name (str, optional): Name for the trace to be used in the color bar as well
 
     Returns:
-        trace (go.Choroplethmapbox): Trace with the colored polygons which can be added to a go.Figure object.
+        trace (go.Choroplethmap): Trace with the colored polygons which can be added to a go.Figure object.
 
     """
     _, gridsize_lat = is_regularly_spaced(coordinates.latitude, tolerance=tolerance)
