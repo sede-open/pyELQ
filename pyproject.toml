@@ -21,7 +21,7 @@ license = "Apache-2.0"
 keywords = ["gas dispersion", "emission", "detection", "localization", "quantification"]
 requires-python = ">=3.11"
 dependencies = [
-	"pandas>=2.3.3,<3.0.0",
+	"pandas>=2.3.3,<4.0.0",
 	"numpy>=2.4.0",
 	"plotly>=6.5.0",
 	"scipy>=1.16.3",
