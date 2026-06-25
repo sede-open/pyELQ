@@ -85,7 +85,7 @@ def test_temporal_interpolation():
     random_index = rng.integers(0, periods - 1)
     random_factor = rng.random()
     return_vals = sti.interpolate(
-        time_in=time_in, values_in=vals, time_out=time_in[[random_index]] + random_factor * pd.Timedelta(1, unit="sec")
+        time_in=time_in, values_in=vals, time_out=time_in[[random_index]] + random_factor * pd.Timedelta(1, unit="sec").as_unit("ns")
     )
     assert np.allclose(return_vals, random_factor * (vals[random_index + 1] - vals[random_index]) + vals[random_index])
     return_vals_array = sti.interpolate(
