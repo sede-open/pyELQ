@@ -7,6 +7,9 @@ name: pydocstyle
 on:
   workflow_call:
 
+permissions:
+  contents: read
+
 jobs:
   pydocstyle:
     runs-on: ubuntu-latest
