@@ -7,6 +7,9 @@ name: Code formatting
 on:
   workflow_call:
 
+permissions:
+  contents: write
+
 jobs:
   Black:
     runs-on: ubuntu-latest
