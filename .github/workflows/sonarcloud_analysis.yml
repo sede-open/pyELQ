@@ -8,6 +8,11 @@ on:
   workflow_call:
   workflow_dispatch:
 
+permissions:
+  actions: write
+  contents: read
+  pull-requests: read
+  
 jobs:
   Tests:
     if: ${{ github.event_name == 'workflow_dispatch' }}
