@@ -6,6 +6,7 @@ name: Building the package
 
 on:
   workflow_call:
+  workflow_dispatch:
 
 jobs:
   Build:
@@ -16,6 +17,8 @@ jobs:
     steps:
       - name: Checkout Repo
         uses: actions/checkout@v7
+        with:
+          ref: ${{ github.ref_name }}
       - name: Set up Python ${{ matrix.python-version }}
         uses: actions/setup-python@v6
         with:
