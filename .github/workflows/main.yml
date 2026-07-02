@@ -10,10 +10,7 @@ on:
   push:
     branches:
       - main
-    paths:
-      - '**.py'
-      - '!pyproject.toml'
-      - 'requirements.txt'
+  workflow_dispatch:
 
 jobs:
   CodeFormat:
@@ -44,12 +41,12 @@ jobs:
 
   ReleaseTag:
     uses: sede-open/pyELQ/.github/workflows/release_tagging.yml@main
-    needs: [CodeFormat, Pydocstyle]
+    needs: [CodeFormat, Pydocstyle, Pylint, Tests]
     secrets: inherit
 
   Build:
     uses: sede-open/pyELQ/.github/workflows/build_package.yml@main
-    needs: [CodeFormat, Pydocstyle, Pylint, Tests]
+    needs: [CodeFormat, Pydocstyle, Pylint, Tests, ReleaseTag]
     secrets: inherit
 
   PublishDocs:
