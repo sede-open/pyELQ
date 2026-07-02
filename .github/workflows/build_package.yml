@@ -8,6 +8,10 @@ on:
   workflow_call:
   workflow_dispatch:
 
+permissions:
+  actions: write
+  contents: read
+
 jobs:
   Build:
     runs-on: ubuntu-latest
