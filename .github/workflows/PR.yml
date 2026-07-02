@@ -4,7 +4,10 @@
 
 name: PullRequest
 
-permissions: write-all
+permissions:
+  actions: read
+  contents: read
+  pull-requests: read
 
 on:
   pull_request:
