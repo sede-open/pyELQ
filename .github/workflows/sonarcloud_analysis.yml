@@ -6,9 +6,21 @@ name: SonarCloudAnalysis
 
 on:
   workflow_call:
+  workflow_dispatch:
 
+permissions:
+  actions: write
+  contents: read
+  pull-requests: read
+  
 jobs:
+  Tests:
+    if: ${{ github.event_name == 'workflow_dispatch' }}
+    uses: sede-open/pyELQ/.github/workflows/run_tests.yml@main
+
   SonarCloudAnalysis:
+    if: ${{ github.event_name == 'workflow_call' || needs.Tests.result == 'success' }}
+    needs: Tests
     runs-on: ubuntu-latest
     strategy:
       matrix:

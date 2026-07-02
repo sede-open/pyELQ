@@ -6,6 +6,9 @@ name: REUSE Compliance Check
 
 on:
   workflow_call:
+  
+permissions:
+  contents: read
 
 jobs:
   test:
