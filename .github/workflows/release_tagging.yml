@@ -4,8 +4,12 @@
 
 name: ReleaseTag
 
+permissions:
+  contents: write
+
 on:
   workflow_call:
+  workflow_dispatch:
 
 jobs:
   # Releases new Python version when Pull Requests are merged into "main"
@@ -20,20 +24,37 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v7
         with:
-          persist-credentials: false
+          fetch-depth: 0
       - name: Set up Python ${{ matrix.python-version }}
         uses: actions/setup-python@v6
         with:
           python-version: ${{ matrix.python-version }}
-      - name: Get version
-        env:
-          GITHUB_ACCESS_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        id: version
+      - name: Bump patch version
+        id: bump_version
         run: |
-          version=$(python .github/get_version.py)
-          echo "BUMPED_VERSION=$(echo v$version)" >> $GITHUB_ENV
+          version=$(python .github/bump_version.py)
+          echo "BUMPED_VERSION=$version" >> "$GITHUB_ENV"
           echo "New version: $version"
+      - name: Commit and push bumped version
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add pyproject.toml
+          if git diff --cached --quiet; then
+            echo "No version change to commit"
+            exit 0
+          fi
+          git commit --signoff -m "Bump version to ${{ env.BUMPED_VERSION }} [skip ci]"
+          git push origin "HEAD:${{ github.ref_name }}"
       - name: Create Release
-        run: gh release create ${{ env.BUMPED_VERSION }} --generate-notes
+        run: |
+          tag_name="v${{ env.BUMPED_VERSION }}"
+          if gh release view "$tag_name" >/dev/null 2>&1; then
+            echo "Release $tag_name already exists. Skipping creation."
+            exit 0
+          fi
+          gh release create "$tag_name" --generate-notes --target "${{ github.ref_name }}"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
