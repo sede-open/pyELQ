@@ -29,7 +29,7 @@ jobs:
           python -m pip install --upgrade pip
           pip install black
           pip install isort
-      - name: Run isort, docformatter and black checks
+      - name: Run isort and black checks
         id: checks
         continue-on-error: true
         run: |
