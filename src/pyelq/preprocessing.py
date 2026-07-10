@@ -102,13 +102,15 @@ class Preprocessor:
         self.is_regularized = True
         sensor_out = deepcopy(self.sensor_object)
         for sns_new, sns_old in zip(sensor_out.values(), self.sensor_object.values()):
-            for field in self.sensor_fields:
-                if (field != "time") and (getattr(sns_old, field) is not None):
+            time_out = None
+            for field_name in self.sensor_fields:
+                if (field_name != "time") and (getattr(sns_old, field_name) is not None):
                     time_out, resampled_values = temporal_resampling(
-                        sns_old.time, getattr(sns_old, field), self.time_bin_edges, self.aggregate_function
+                        sns_old.time, getattr(sns_old, field_name), self.time_bin_edges, self.aggregate_function
                     )
-                    setattr(sns_new, field, resampled_values)
-            sns_new.time = time_out
+                    setattr(sns_new, field_name, resampled_values)
+            if time_out is not None:
+                sns_new.time = time_out
 
         met_out = MeteorologyGroup()
         if isinstance(self.met_object, Meteorology):
