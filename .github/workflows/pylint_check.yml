@@ -7,6 +7,10 @@ name: Pylint Check
 on:
   workflow_call:
 
+permissions:
+  actions: write
+  contents: read
+
 jobs:
   Pylint:
     # Specify the operating system GitHub has to use to perform the checks (ubuntu seems to be default)
