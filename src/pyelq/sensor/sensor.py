@@ -180,7 +180,7 @@ class SensorGroup(dict):
     @property
     def location(self) -> Coordinate:
         """Coordinate: Coordinate object containing observation locations from all sensors in the group."""
-        location_object = deepcopy(list(self.values())[0].location)
+        location_object = deepcopy(next(iter(self.values())).location)
         if isinstance(location_object, ENU):
             attr_list = ["east", "north", "up"]
         elif isinstance(location_object, LLA):

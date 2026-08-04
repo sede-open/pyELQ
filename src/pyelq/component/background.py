@@ -329,7 +329,7 @@ class SpatioTemporalBackground(Background):
             self.get_locations_from_sensors(sensor_object)
         else:
             self.n_location = 1
-            self.location = sensor_object[list(sensor_object.keys())[0]].location
+            self.location = sensor_object[next(iter(sensor_object.keys()))].location
 
     def make_precision_matrix(self):
         """Create the full precision matrix for the background parameters.
@@ -382,7 +382,7 @@ class SpatioTemporalBackground(Background):
             sensor_object (SensorGroup): group of sensor objects.
 
         """
-        self.location = deepcopy(sensor_object[list(sensor_object.keys())[0]].location.to_enu())
+        self.location = deepcopy(sensor_object[next(iter(sensor_object.keys()))].location.to_enu())
         self.location.east = np.full(shape=(self.n_location,), fill_value=np.nan)
         self.location.north = np.full(shape=(self.n_location,), fill_value=np.nan)
         self.location.up = np.full(shape=(self.n_location,), fill_value=np.nan)
