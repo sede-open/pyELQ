@@ -5,8 +5,8 @@
 name: PullRequest
 
 permissions:
-  actions: read
-  contents: read
+  actions: write
+  contents: write
   pull-requests: read
 
 on:
